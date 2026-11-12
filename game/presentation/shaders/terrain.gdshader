@@ -13,6 +13,8 @@ uniform float cliff_start : hint_range(0.0, 1.0) = 0.16;
 uniform float cliff_end : hint_range(0.0, 1.0) = 0.38;
 uniform float strata_scale = 1.1;
 
+#include "fog.gdshaderinc"
+
 varying vec3 world_pos;
 varying vec3 world_normal;
 
@@ -40,7 +42,7 @@ void fragment() {
 	float slope = 1.0 - world_normal.y;
 	float cliff = smoothstep(cliff_start, cliff_end, slope + (fine - 0.5) * 0.08);
 
-	ALBEDO = mix(ground, rock, cliff);
+	ALBEDO = fog_color(mix(ground, rock, cliff), fog_at(world_pos));
 	ROUGHNESS = mix(0.95, 0.85, cliff);
 	NORMAL_MAP = texture(detail_normal, world_pos.xz / 7.0).rgb;
 	NORMAL_MAP_DEPTH = mix(0.55, 0.15, cliff);

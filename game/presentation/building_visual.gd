@@ -17,6 +17,7 @@ const SITE_START := 0.07
 var _meshes: Array[MeshInstance3D] = []
 var _dish: Node3D
 var _ring: MeshInstance3D
+var _health_bar: HealthBar
 var _site: MeshInstance3D
 var _height: float = 1.0
 
@@ -34,6 +35,8 @@ func _ready() -> void:
 	add_child(_ring)
 	_site = _build_site_plate()
 	add_child(_site)
+	_health_bar = HealthBar.create(footprint_radius * 1.2, _height + 1.2)
+	add_child(_health_bar)
 	set_selected(false)
 
 
@@ -65,6 +68,13 @@ func set_damage(amount: float) -> void:
 
 func set_selected(selected: bool) -> void:
 	_ring.visible = selected
+	_health_bar.set_selected(selected)
+
+
+## 1 = full health, 0 = dead. Also drives the worn look of the model.
+func set_health(fraction: float) -> void:
+	_health_bar.set_fraction(fraction)
+	set_damage(1.0 - clampf(fraction, 0.0, 1.0))
 
 
 func _collect(node: Node) -> void:

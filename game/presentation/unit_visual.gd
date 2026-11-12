@@ -30,6 +30,7 @@ var _legs: Array[Node3D] = []
 var _turret: Node3D
 var _dish: Node3D
 var _ring: MeshInstance3D
+var _health_bar: HealthBar
 var _dust: GPUParticles3D
 var _speed: float = 0.0
 var _stride_phase: float = 0.0
@@ -47,6 +48,8 @@ func _ready() -> void:
 	add_child(_ring)
 	_dust = _build_dust()
 	add_child(_dust)
+	_health_bar = HealthBar.create(footprint_radius * 1.6, 2.6)
+	add_child(_health_bar)
 	set_selected(false)
 
 
@@ -90,6 +93,13 @@ func set_damage(amount: float) -> void:
 
 func set_selected(selected: bool) -> void:
 	_ring.visible = selected
+	_health_bar.set_selected(selected)
+
+
+## 1 = full health, 0 = dead. Also drives the worn look of the model.
+func set_health(fraction: float) -> void:
+	_health_bar.set_fraction(fraction)
+	set_damage(1.0 - clampf(fraction, 0.0, 1.0))
 
 
 ## World-space point the turret should track; call clear_aim() to face forward.
