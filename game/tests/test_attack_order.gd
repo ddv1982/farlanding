@@ -175,3 +175,18 @@ func test_fast_unit_does_not_slide_inside_engagement_distance() -> void:
 	assert_true(unit.orders.is_engaged())
 	var distance: float = _flat_distance(unit.locomotion.mover.position, Vector3(0, 0, -60))
 	assert_between(distance, AttackCommand.ENGAGE_RANGE - 0.5, AttackCommand.ENGAGE_RANGE + 1.0)
+
+
+func test_attack_given_mid_move_drops_the_old_route_into_the_target() -> void:
+	var enemy: Unit = _unit(Vector3(0, 0, -30), 1)
+	var unit: Unit = _unit(Vector3.ZERO)
+	# Walk straight at the enemy's position, then order the attack once in range.
+	_queue.push(MoveCommand.new(MoveCommand.KIND_MOVE, 0, [unit], Vector3(0, 0, -30)))
+	_tick([unit], 45)
+	var at_order: float = _flat_distance(unit.locomotion.mover.position, Vector3(0, 0, -30))
+	assert_lt(at_order, AttackCommand.ENGAGE_RANGE, "in range when the order is given")
+	_queue.push(AttackCommand.new(0, [unit], enemy))
+	_tick([unit], 60)
+	var held: float = _flat_distance(unit.locomotion.mover.position, Vector3(0, 0, -30))
+	assert_gt(held, at_order - 2.0, "stops where it was, not on top of the target")
+	assert_true(unit.orders.is_engaged())

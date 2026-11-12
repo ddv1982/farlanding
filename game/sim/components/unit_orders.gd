@@ -133,6 +133,8 @@ func _start(order: Order) -> void:
 		if _attack_target() == null:
 			current = null
 			return
+		# Drop any route left from the previous order: it may lead into the target.
+		_locomotion.stop()
 		_tick_attack()
 		return
 	var started: bool = false
