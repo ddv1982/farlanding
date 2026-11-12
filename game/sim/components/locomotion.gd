@@ -38,6 +38,7 @@ var _safe_velocity: Vector3 = Vector3.ZERO
 var _has_safe_velocity: bool = false
 var _stuck_seconds: float = 0.0
 var _best_corner_distance: float = INF
+var _stuck_corner: int = -1
 var _reported_speed: float = 0.0
 var _repaths: int = 0
 
@@ -179,6 +180,12 @@ func _finish() -> void:
 
 func _check_stuck(dt: float) -> void:
 	var distance: float = mover.distance_to_corner()
+	if mover.path_index != _stuck_corner:
+		# A new corner is further away than the one just passed: restart the measure.
+		_stuck_corner = mover.path_index
+		_best_corner_distance = distance
+		_stuck_seconds = 0.0
+		return
 	if distance < _best_corner_distance - STUCK_PROGRESS:
 		_best_corner_distance = distance
 		_stuck_seconds = 0.0
@@ -201,6 +208,7 @@ func _check_stuck(dt: float) -> void:
 func _reset_stuck() -> void:
 	_stuck_seconds = 0.0
 	_best_corner_distance = INF
+	_stuck_corner = -1
 
 
 func _on_ground(point: Vector3) -> Vector3:

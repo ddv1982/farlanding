@@ -152,3 +152,26 @@ func test_locomotion_uses_the_given_path_service() -> void:
 	_queue.push(MoveCommand.new(MoveCommand.KIND_MOVE, 0, [unit], Vector3(0, 0, -10)))
 	_queue.flush()
 	assert_eq(counting.requests, 1, "one path request per order")
+
+
+class DoglegPaths:
+	extends PathService
+	var requests: int = 0
+
+	func find_path(_from: Vector3, to: Vector3) -> PackedVector3Array:
+		requests += 1
+		return PackedVector3Array([Vector3(0, 0, -2), to])
+
+
+func test_long_leg_after_a_near_corner_is_not_treated_as_stuck() -> void:
+	var paths: DoglegPaths = DoglegPaths.new()
+	var unit: Unit = Unit.new()
+	unit.def = _def
+	unit.add_child(Locomotion.new())
+	unit.add_child(UnitOrders.new())
+	add_child_autofree(unit)
+	unit.locomotion.setup(_def, Vector3.ZERO, 0.0, paths, null)
+	_queue.push(MoveCommand.new(MoveCommand.KIND_MOVE, 0, [unit], Vector3(0, 0, -40)))
+	_tick([unit], 120)
+	assert_eq(paths.requests, 1, "steady progress must not trigger a repath")
+	assert_almost_eq(unit.locomotion.mover.position.z, -40.0, 0.5)
