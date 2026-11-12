@@ -1,0 +1,107 @@
+class_name AttackCommand
+extends Command
+## Attack one enemy unit. Each receiver closes on `target_entity` and holds at
+## `engage_range`, the group spread in an arc on the side it approaches from. There
+## is no combat yet: holding means facing the target. With `queued`, the attack runs
+## after each unit's current orders.
+
+const KIND: StringName = &"attack"
+## Distance from the target at which units stop and engage, in metres.
+const ENGAGE_RANGE: float = 10.0
+
+var engage_range: float = ENGAGE_RANGE
+
+
+func _init(
+	p_issuer_faction: int = 0,
+	p_entities: Array[Node3D] = [],
+	p_target: Node3D = null,
+	p_queued: bool = false,
+) -> void:
+	super(KIND, p_issuer_faction, p_entities)
+	target_entity = p_target
+	queued = p_queued
+
+
+## True when `target` may be attacked by `faction`: a live unit of another faction.
+static func is_valid_target(target: Variant, faction: int) -> bool:
+	if not is_instance_valid(target) or not target is Unit:
+		return false
+	var unit: Unit = target
+	return unit.is_inside_tree() and unit.faction != faction
+
+
+## Simulation position of an entity (the mover's, which leads the drawn node).
+static func position_of(entity: Node3D) -> Vector3:
+	var unit: Unit = entity as Unit
+	if unit != null and unit.locomotion != null:
+		return unit.locomotion.mover.position
+	return entity.global_position
+
+
+## Offsets from the target, one per start, each `engage_range` long. Units take
+## neighbouring slots `spacing` apart on an arc centred on the side the group comes
+## from, keeping their left-to-right order so paths do not cross.
+static func engage_offsets(
+	target: Vector3, starts: PackedVector3Array, engage_range: float, spacing: float
+) -> PackedVector3Array:
+	var count: int = starts.size()
+	var offsets: PackedVector3Array = PackedVector3Array()
+	offsets.resize(count)
+	if count == 0:
+		return offsets
+	var centroid: Vector3 = Vector3.ZERO
+	for start: Vector3 in starts:
+		centroid += start
+	centroid /= float(count)
+	var base: Vector3 = Vector3(centroid.x - target.x, 0.0, centroid.z - target.z)
+	var base_angle: float = atan2(base.x, base.z) if base.length_squared() > 1e-4 else 0.0
+	var relative: Array[float] = []
+	var order: Array[int] = []
+	for i: int in count:
+		var to_start: Vector3 = starts[i] - target
+		var angle: float = atan2(to_start.x, to_start.z)
+		relative.append(
+			angle_difference(base_angle, angle) if base.length_squared() > 1e-4 else 0.0
+		)
+		order.append(i)
+	order.sort_custom(func(a: int, b: int) -> bool: return relative[a] < relative[b])
+	var step: float = minf(spacing / maxf(engage_range, 0.1), TAU / count)
+	for k: int in count:
+		var angle: float = base_angle + (k - (count - 1) * 0.5) * step
+		offsets[order[k]] = Vector3(sin(angle), 0.0, cos(angle)) * engage_range
+	return offsets
+
+
+func execute() -> void:
+	if not is_valid_target(target_entity, issuer_faction):
+		return
+	var units: Array[Unit] = []
+	for entity: Node3D in entities:
+		var unit: Unit = entity as Unit
+		if (
+			unit != null
+			and unit != target_entity
+			and unit.orders != null
+			and unit.faction == issuer_faction
+		):
+			units.append(unit)
+	if units.is_empty():
+		return
+	target_position = position_of(target_entity)
+	var starts: PackedVector3Array = PackedVector3Array()
+	var radii: PackedFloat32Array = PackedFloat32Array()
+	for unit: Unit in units:
+		var start: Vector3 = position_of(unit)
+		if queued:
+			start = unit.orders.last_destination(start)
+		starts.append(start)
+		radii.append(unit.def.radius if unit.def != null else 0.5)
+	var offsets: PackedVector3Array = engage_offsets(
+		target_position, starts, engage_range, Formation.spacing_for(radii)
+	)
+	for i: int in units.size():
+		var order: Order = Order.new(kind, target_position)
+		order.target_entity = target_entity
+		order.engage_offset = offsets[i]
+		units[i].orders.give(order, queued)

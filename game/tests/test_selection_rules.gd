@@ -90,3 +90,34 @@ func test_hud_summary_counts_types() -> void:
 	var entities: Array[Node3D] = [_unit(_ranger), _unit(_kite), _unit(_ranger)]
 	assert_eq(Hud.summarize(entities), "3 selected: 2 Ranger, 1 Kite")
 	assert_eq(Hud.summarize([]), "Nothing selected")
+
+
+func test_left_click_resolution() -> void:
+	var own: Unit = _unit(_ranger)
+	var enemy: Unit = _unit(_ranger, 1)
+	var none: Array[Unit] = []
+	var some: Array[Unit] = [own]
+	assert_eq(SelectionRules.left_click(none, own, 0), SelectionRules.CLICK_SELECT)
+	assert_eq(SelectionRules.left_click(none, null, 0), SelectionRules.CLICK_SELECT)
+	assert_eq(SelectionRules.left_click(none, enemy, 0), SelectionRules.CLICK_NONE)
+	assert_eq(SelectionRules.left_click(some, own, 0), SelectionRules.CLICK_SELECT)
+	assert_eq(SelectionRules.left_click(some, null, 0), SelectionRules.CLICK_SELECT)
+	assert_eq(SelectionRules.left_click(some, enemy, 0), SelectionRules.CLICK_ATTACK)
+
+
+func test_right_click_resolution() -> void:
+	var own: Unit = _unit(_ranger)
+	var enemy: Unit = _unit(_ranger, 1)
+	var none: Array[Unit] = []
+	var some: Array[Unit] = [own]
+	assert_eq(SelectionRules.right_click(none, own, 0), SelectionRules.CLICK_NONE)
+	assert_eq(SelectionRules.right_click(none, null, 0), SelectionRules.CLICK_NONE)
+	assert_eq(SelectionRules.right_click(none, enemy, 0), SelectionRules.CLICK_NONE)
+	assert_eq(SelectionRules.right_click(some, own, 0), SelectionRules.CLICK_MOVE)
+	assert_eq(SelectionRules.right_click(some, null, 0), SelectionRules.CLICK_MOVE)
+	assert_eq(SelectionRules.right_click(some, enemy, 0), SelectionRules.CLICK_ATTACK)
+
+
+func test_enemies_are_not_selected_by_click() -> void:
+	var enemy: Unit = _unit(_ranger, 1)
+	assert_eq(SelectionRules.click([], enemy, false, 0), [] as Array[Unit])

@@ -5,11 +5,11 @@ extends CanvasLayer
 ## styles so every panel reads as the same survey-instrument family.
 
 const HINT: String = (
-	"SELECT   LMB click or drag  ·  Shift add  ·  double-click same type\n"
-	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall  ·  press twice to centre\n"
-	+ "ORDERS   RMB move  ·  Shift queue  ·  A then LMB attack-move  ·  S stop\n"
-	+ "CAMERA   arrows, screen edge or MMB drag  ·  wheel zoom  ·  Q/E rotate\n"
-	+ "         WASD pans when nothing is selected"
+	"LEFT     select: click, drag, double-click type  ·  enemy: attack\n"
+	+ "RIGHT    move  ·  right-click enemy also attacks\n"
+	+ "SHIFT    add to selection  ·  queue orders  ·  X stop\n"
+	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
+	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn"
 )
 const PANEL_COLOR := Color(0.055, 0.07, 0.09, 0.84)
 const ACCENT_COLOR := Color(0.93, 0.36, 0.05)

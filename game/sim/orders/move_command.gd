@@ -1,11 +1,10 @@
 class_name MoveCommand
 extends Command
-## Move (or attack-move) a group to a ground point. The group arrives in a Formation
+## Move a group to a ground point. The group arrives in a Formation
 ## facing its direction of travel. With `queued`, the move is appended as a waypoint
 ## after each unit's current orders.
 
 const KIND_MOVE: StringName = &"move"
-const KIND_ATTACK_MOVE: StringName = &"attack_move"
 
 
 func _init(
@@ -15,7 +14,7 @@ func _init(
 	p_target: Vector3 = Vector3.ZERO,
 	p_queued: bool = false,
 ) -> void:
-	assert(p_kind == KIND_MOVE or p_kind == KIND_ATTACK_MOVE, "Not a move kind: %s" % p_kind)
+	assert(p_kind == KIND_MOVE, "Not a move kind: %s" % p_kind)
 	super(p_kind, p_issuer_faction, p_entities)
 	target_position = p_target
 	queued = p_queued

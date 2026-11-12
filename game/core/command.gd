@@ -5,7 +5,7 @@ extends RefCounted
 ##
 ## Subclasses override `execute()`. The base class does nothing when executed.
 
-## What kind of order this is, e.g. &"move", &"stop", &"attack_move".
+## What kind of order this is, e.g. &"move", &"stop", &"attack".
 var kind: StringName = &""
 ## The faction that issued the order.
 var issuer_faction: int = 0

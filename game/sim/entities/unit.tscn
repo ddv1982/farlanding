@@ -18,3 +18,5 @@ script = ExtResource("3_orders")
 script = ExtResource("4_visual")
 
 [connection signal="motion_changed" from="Locomotion" to="Visual" method="set_motion"]
+[connection signal="aim_changed" from="Orders" to="Visual" method="aim_at"]
+[connection signal="aim_cleared" from="Orders" to="Visual" method="clear_aim"]

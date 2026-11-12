@@ -4,7 +4,7 @@ extends RefCounted
 
 const COLORS: Array[Color] = [
 	Color(0.25, 0.55, 1.0),  # 0: player (Concord expedition)
-	Color(0.1, 0.85, 0.72),  # 1: Halcyon Combine
+	Color(0.9, 0.18, 0.12),  # 1: hostile (Halcyon Combine): enemies read red
 	Color(0.85, 0.75, 0.45),  # 2: Custodians
 ]
 
