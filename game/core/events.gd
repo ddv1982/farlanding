@@ -24,4 +24,33 @@ signal entity_died(entity: Node3D)
 ## The mission's sim clock advanced to `tick`.
 signal sim_ticked(tick: int)
 
+## A building was placed and its construction site now exists.
+signal building_placed(building: Node3D)
+
+## A building finished construction and is operational.
+signal construction_completed(building: Node3D)
+
+## A producer started building `def` (a unit type).
+signal production_started(producer: Node3D, def: EntityDef)
+
+## A producer finished a unit, which is already in the world.
+signal production_completed(producer: Node3D, unit: Node3D)
+
+## A faction's stockpile changed.
+signal resources_changed(faction: int, alloy: int, flux: int)
+
+## A faction's power balance changed. Low power means `used` exceeds `produced`.
+signal power_changed(faction: int, produced: int, used: int)
+
+## A hauler unloaded `amount` Alloy at a refinery.
+signal harvest_delivered(hauler: Node3D, amount: int)
+
+## A resource node ran out.
+signal resource_depleted(node: Node3D)
+
+## Something the player's advisor should announce, e.g. &"low_power",
+## &"insufficient_resources", &"construction_complete", &"unit_ready",
+## &"deposit_depleted". Player-facing only: never emitted for other factions.
+signal advisor_alert(kind: StringName)
+
 @warning_ignore_restore("unused_signal")
