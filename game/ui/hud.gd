@@ -1,31 +1,40 @@
 class_name Hud
 extends CanvasLayer
-## Minimal HUD: selection summary, controls hint and an F3 debug overlay. Plain
-## labels; styling comes later.
+## In-mission HUD: a selection panel with one chip per unit type, a controls
+## panel (F1) and a debug overlay (F3). Built in code from one small set of
+## styles so every panel reads as the same survey-instrument family.
 
 const HINT: String = (
-	"LMB select / drag box · Shift add · double-click same type · Ctrl+1-9 store, 1-9 recall\n"
-	+ "RMB move (Shift queue) · A + LMB attack-move · S stop · Esc cancel\n"
-	+ "Arrows / edges / MMB drag pan (WASD when nothing selected) · wheel zoom · Q/E rotate · F3 debug"
+	"LEFT     select: click, drag, double-click type  ·  enemy: attack\n"
+	+ "RIGHT    move  ·  right-click enemy also attacks\n"
+	+ "SHIFT    add to selection  ·  queue orders  ·  X stop\n"
+	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
+	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn"
 )
+const PANEL_COLOR := Color(0.055, 0.07, 0.09, 0.84)
+const ACCENT_COLOR := Color(0.93, 0.36, 0.05)
+const TEXT_COLOR := Color(0.90, 0.92, 0.94)
+const MUTED_COLOR := Color(0.62, 0.68, 0.74)
+const MARGIN := 14
+const ICON_SIZE := 52
 
 ## Optional: shows the last sim-tick cost in the debug overlay.
 @export var world: SimWorld
 
-var _summary: Label
-var _hint: Label
+var _selection_panel: PanelContainer
+var _selection_title: Label
+var _chips: HBoxContainer
+var _hint_panel: PanelContainer
+var _hint_toggle: Label
+var _debug_panel: PanelContainer
 var _debug: Label
 var _tick: int = 0
 
 
 func _ready() -> void:
-	_summary = _make_label(16, Control.PRESET_BOTTOM_LEFT)
-	_hint = _make_label(12, Control.PRESET_BOTTOM_RIGHT)
-	_hint.text = HINT
-	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_hint.modulate = Color(1, 1, 1, 0.75)
-	_debug = _make_label(14, Control.PRESET_TOP_LEFT)
-	_debug.visible = false
+	_build_selection_panel()
+	_build_hint()
+	_build_debug()
 	Events.selection_changed.connect(_on_selection_changed)
 	Events.sim_ticked.connect(func(tick: int) -> void: _tick = tick)
 	_on_selection_changed([])
@@ -33,12 +42,18 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"debug_overlay"):
-		_debug.visible = not _debug.visible
+		_debug_panel.visible = not _debug_panel.visible
+		get_viewport().set_input_as_handled()
+		return
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.keycode == KEY_F1:
+		_hint_panel.visible = not _hint_panel.visible
+		_hint_toggle.visible = not _hint_panel.visible
 		get_viewport().set_input_as_handled()
 
 
 func _process(_delta: float) -> void:
-	if not _debug.visible:
+	if not _debug_panel.visible:
 		return
 	var lines: PackedStringArray = [
 		"FPS %d  (frame %.1f ms)" % [Engine.get_frames_per_second(), _frame_ms()],
@@ -54,47 +69,124 @@ func _process(_delta: float) -> void:
 static func summarize(entities: Array[Node3D]) -> String:
 	if entities.is_empty():
 		return "Nothing selected"
-	var counts: Dictionary[String, int] = {}
-	var order: PackedStringArray = []
-	for entity: Node3D in entities:
-		var unit: Unit = entity as Unit
-		var type_name: String = "Unit"
-		if unit != null and unit.def != null:
-			type_name = unit.def.display_name
-		if not counts.has(type_name):
-			counts[type_name] = 0
-			order.append(type_name)
-		counts[type_name] += 1
 	var parts: PackedStringArray = []
-	for type_name: String in order:
-		parts.append("%d %s" % [counts[type_name], type_name])
+	for group: Dictionary in group_by_type(entities):
+		parts.append("%d %s" % [group["count"], group["name"]])
 	return "%d selected: %s" % [entities.size(), ", ".join(parts)]
 
 
+## One entry per unit type in first-seen order: { name, count, icon }.
+static func group_by_type(entities: Array[Node3D]) -> Array[Dictionary]:
+	var groups: Array[Dictionary] = []
+	var index_by_name: Dictionary[String, int] = {}
+	for entity: Node3D in entities:
+		var unit: Unit = entity as Unit
+		var type_name: String = "Unit"
+		var icon: Texture2D = null
+		if unit != null and unit.def != null:
+			type_name = unit.def.display_name
+			icon = unit.def.icon
+		if not index_by_name.has(type_name):
+			index_by_name[type_name] = groups.size()
+			groups.append({"name": type_name, "count": 0, "icon": icon})
+		var group: Dictionary = groups[index_by_name[type_name]]
+		var count: int = group["count"]
+		group["count"] = count + 1
+	return groups
+
+
 func _on_selection_changed(entities: Array[Node3D]) -> void:
-	_summary.text = summarize(entities)
+	_selection_panel.visible = not entities.is_empty()
+	_selection_title.text = "SELECTED  ·  %d" % entities.size()
+	for chip: Node in _chips.get_children():
+		chip.queue_free()
+	for group: Dictionary in group_by_type(entities):
+		var type_name: String = group["name"]
+		var count: int = group["count"]
+		var icon: Texture2D = group["icon"]
+		_chips.add_child(_make_chip(type_name, count, icon))
 
 
-func _make_label(font_size: int, preset: Control.LayoutPreset) -> Label:
-	var label: Label = Label.new()
+func _build_selection_panel() -> void:
+	_selection_panel = _make_panel(Control.PRESET_BOTTOM_LEFT)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override(&"separation", 6)
+	_selection_panel.add_child(column)
+	_selection_title = _make_label(11, MUTED_COLOR)
+	column.add_child(_selection_title)
+	_chips = HBoxContainer.new()
+	_chips.add_theme_constant_override(&"separation", 14)
+	column.add_child(_chips)
+
+
+func _build_hint() -> void:
+	_hint_panel = _make_panel(Control.PRESET_BOTTOM_RIGHT)
+	_hint_panel.add_child(_make_label(12, TEXT_COLOR, HINT))
+	_hint_panel.visible = false
+	_hint_toggle = _make_label(11, MUTED_COLOR, "F1  CONTROLS")
+	add_child(_hint_toggle)
+	_place(_hint_toggle, Control.PRESET_BOTTOM_RIGHT)
+
+
+func _build_debug() -> void:
+	_debug_panel = _make_panel(Control.PRESET_TOP_LEFT)
+	_debug = _make_label(12, TEXT_COLOR)
+	_debug_panel.add_child(_debug)
+	_debug_panel.visible = false
+
+
+func _make_chip(type_name: String, count: int, icon: Texture2D) -> Control:
+	var chip := VBoxContainer.new()
+	chip.add_theme_constant_override(&"separation", 0)
+	var picture := TextureRect.new()
+	picture.texture = icon
+	picture.custom_minimum_size = Vector2.ONE * ICON_SIZE
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chip.add_child(picture)
+	var caption := _make_label(12, TEXT_COLOR, "%d  %s" % [count, type_name])
+	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	chip.add_child(caption)
+	return chip
+
+
+func _make_panel(preset: Control.LayoutPreset) -> PanelContainer:
+	var style := StyleBoxFlat.new()
+	style.bg_color = PANEL_COLOR
+	style.border_color = ACCENT_COLOR
+	style.border_width_top = 2
+	style.set_corner_radius_all(3)
+	style.set_content_margin_all(10)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override(&"panel", style)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(panel)
+	_place(panel, preset)
+	return panel
+
+
+func _make_label(font_size: int, color: Color, text: String = "") -> Label:
+	var label := Label.new()
+	label.text = text
 	label.add_theme_font_size_override(&"font_size", font_size)
-	label.add_theme_color_override(&"font_shadow_color", Color(0, 0, 0, 0.8))
-	label.add_theme_constant_override(&"shadow_offset_x", 1)
-	label.add_theme_constant_override(&"shadow_offset_y", 1)
+	label.add_theme_color_override(&"font_color", color)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(label)
-	label.set_anchors_and_offsets_preset(preset, Control.PRESET_MODE_MINSIZE, 12)
-	label.grow_horizontal = (
+	return label
+
+
+## Pins a control to a screen corner and makes it grow away from that corner.
+func _place(control: Control, preset: Control.LayoutPreset) -> void:
+	control.set_anchors_and_offsets_preset(preset, Control.PRESET_MODE_MINSIZE, MARGIN)
+	control.grow_horizontal = (
 		Control.GROW_DIRECTION_BEGIN
 		if preset == Control.PRESET_BOTTOM_RIGHT
 		else Control.GROW_DIRECTION_END
 	)
-	label.grow_vertical = (
+	control.grow_vertical = (
 		Control.GROW_DIRECTION_END
 		if preset == Control.PRESET_TOP_LEFT
 		else Control.GROW_DIRECTION_BEGIN
 	)
-	return label
 
 
 static func _frame_ms() -> float:

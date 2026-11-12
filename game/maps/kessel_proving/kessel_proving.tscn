@@ -21,6 +21,7 @@ world = NodePath("SimWorld")
 camera = NodePath("RtsCamera")
 navigation_region = NodePath("NavigationRegion3D")
 start_roster = Array[ExtResource("13_unit_def")]([ExtResource("9_kite"), ExtResource("9_kite"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("11_surveyor"), ExtResource("11_surveyor"), ExtResource("12_bulwark"), ExtResource("12_bulwark")])
+hostile_roster = Array[ExtResource("13_unit_def")]([ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger")])
 
 [node name="MissionContext" type="Node" parent="."]
 script = ExtResource("4_context")

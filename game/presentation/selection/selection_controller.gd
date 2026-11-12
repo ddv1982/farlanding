@@ -3,10 +3,11 @@ extends Node
 ## Player selection and order input.
 ##
 ## Left click selects (Shift toggles), left drag box-selects (Shift adds), double-click
-## selects every visible unit of that type. Ctrl+1..9 stores a control group, 1..9
-## recalls it, a quick second press centres the camera on it. Right click moves (Shift
-## queues a waypoint), S stops, A then left click attack-moves. Every order goes
-## through the mission's CommandQueue.
+## selects every visible unit of that type. With units selected, left or right click on
+## an enemy attacks it and right click on the ground moves there (Shift queues either).
+## X stops. Ctrl+1..9 stores a control group, 1..9 recalls it, a quick second press
+## centres the camera on it. The cursor turns into a red reticle over an enemy while
+## units are selected. Every order goes through the mission's CommandQueue.
 
 const DRAG_THRESHOLD_PX: float = 6.0
 const DOUBLE_TAP_SECONDS: float = 0.35
@@ -14,6 +15,8 @@ const MOVE_MARKER_COLOR: Color = Color(0.45, 1.0, 0.55)
 const ATTACK_MARKER_COLOR: Color = Color(1.0, 0.4, 0.3)
 ## Point above a unit's origin used for screen-space picking, in metres.
 const PICK_HEIGHT: float = 1.0
+## Attack cursor: size and hotspot (its centre) in pixels.
+const ATTACK_CURSOR_SIZE: int = 32
 
 @export var camera: RtsCamera
 @export var world: SimWorld
@@ -26,7 +29,8 @@ var _box: SelectionBox
 var _press_position: Vector2 = Vector2.ZERO
 var _pressing: bool = false
 var _box_dragging: bool = false
-var _attack_move_armed: bool = false
+var _attack_cursor: Texture2D = null
+var _attack_cursor_shown: bool = false
 var _last_group_key: int = 0
 var _last_group_time: float = -10.0
 
@@ -42,8 +46,18 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if camera != null:
-		camera.wasd_enabled = selection.is_empty()
+	var hovering_enemy: bool = false
+	if not selection.is_empty() and camera != null and world != null:
+		var hovered: Unit = unit_at(get_viewport().get_mouse_position())
+		hovering_enemy = (
+			SelectionRules.right_click(selection, hovered, player_faction)
+			== SelectionRules.CLICK_ATTACK
+		)
+	_show_attack_cursor(hovering_enemy)
+
+
+func _exit_tree() -> void:
+	_show_attack_cursor(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -74,8 +88,6 @@ func set_selection(units: Array[Unit]) -> void:
 	for unit: Unit in next:
 		_set_ring(unit, true)
 	selection = next
-	if selection.is_empty():
-		_disarm()
 	var entities: Array[Node3D] = []
 	entities.assign(selection)
 	Events.selection_changed.emit(entities)
@@ -116,10 +128,6 @@ func _handle_mouse_button(button: InputEventMouseButton) -> void:
 	match button.button_index:
 		MOUSE_BUTTON_LEFT:
 			if button.pressed:
-				if _attack_move_armed:
-					_issue_move(MoveCommand.KIND_ATTACK_MOVE, button.position, button.shift_pressed)
-					_disarm()
-					return
 				if button.double_click:
 					_select_same_type(button.position)
 					_pressing = false
@@ -142,21 +150,25 @@ func _handle_mouse_button(button: InputEventMouseButton) -> void:
 						)
 					)
 				else:
-					set_selection(
-						SelectionRules.click(
-							selection,
-							unit_at(button.position),
-							button.shift_pressed,
-							player_faction
-						)
-					)
+					_left_click(button.position, button.shift_pressed)
 		MOUSE_BUTTON_RIGHT:
 			if not button.pressed:
 				return
-			if _attack_move_armed:
-				_disarm()
-				return
-			_issue_move(MoveCommand.KIND_MOVE, button.position, button.shift_pressed)
+			var clicked: Unit = unit_at(button.position)
+			match SelectionRules.right_click(selection, clicked, player_faction):
+				SelectionRules.CLICK_ATTACK:
+					_issue_attack(clicked, button.shift_pressed)
+				SelectionRules.CLICK_MOVE:
+					_issue_move(button.position, button.shift_pressed)
+
+
+func _left_click(screen_position: Vector2, shift: bool) -> void:
+	var clicked: Unit = unit_at(screen_position)
+	match SelectionRules.left_click(selection, clicked, player_faction):
+		SelectionRules.CLICK_ATTACK:
+			_issue_attack(clicked, shift)
+		SelectionRules.CLICK_SELECT:
+			set_selection(SelectionRules.click(selection, clicked, shift, player_faction))
 
 
 func _handle_key(key: InputEventKey) -> void:
@@ -169,17 +181,10 @@ func _handle_key(key: InputEventKey) -> void:
 			_recall_group(group)
 		get_viewport().set_input_as_handled()
 		return
-	if key.is_action_pressed(&"ui_cancel"):
-		_disarm()
-		return
 	if selection.is_empty():
 		return
 	if key.is_action_pressed(&"order_stop"):
 		_push(StopCommand.new(player_faction, _selected_entities()))
-		get_viewport().set_input_as_handled()
-	elif key.is_action_pressed(&"order_attack_move"):
-		_attack_move_armed = true
-		Input.set_default_cursor_shape(Input.CURSOR_CROSS)
 		get_viewport().set_input_as_handled()
 
 
@@ -211,18 +216,24 @@ func _select_same_type(screen_position: Vector2) -> void:
 	set_selection(same)
 
 
-func _issue_move(kind: StringName, screen_position: Vector2, queued: bool) -> void:
+func _issue_move(screen_position: Vector2, queued: bool) -> void:
 	if selection.is_empty():
 		return
 	var target: Vector3 = camera.ground_point(screen_position)
 	if target == Vector3.INF:
 		Events.ui_feedback.emit(&"invalid_target")
 		return
-	_push(MoveCommand.new(kind, player_faction, _selected_entities(), target, queued))
-	var color: Color = (
-		ATTACK_MARKER_COLOR if kind == MoveCommand.KIND_ATTACK_MOVE else MOVE_MARKER_COLOR
+	_push(
+		MoveCommand.new(MoveCommand.KIND_MOVE, player_faction, _selected_entities(), target, queued)
 	)
-	OrderMarker.spawn(world, target, color)
+	OrderMarker.spawn(world, target, MOVE_MARKER_COLOR)
+
+
+func _issue_attack(target: Unit, queued: bool) -> void:
+	if selection.is_empty():
+		return
+	_push(AttackCommand.new(player_faction, _selected_entities(), target, queued))
+	OrderMarker.spawn(world, target.global_position, ATTACK_MARKER_COLOR)
 
 
 func _push(command: Command) -> void:
@@ -235,10 +246,40 @@ func _selected_entities() -> Array[Node3D]:
 	return entities
 
 
-func _disarm() -> void:
-	if _attack_move_armed:
-		_attack_move_armed = false
-		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+func _show_attack_cursor(show: bool) -> void:
+	if show == _attack_cursor_shown:
+		return
+	_attack_cursor_shown = show
+	if not show:
+		Input.set_custom_mouse_cursor(null)
+		return
+	if _attack_cursor == null:
+		_attack_cursor = _build_attack_cursor()
+	var centre: float = ATTACK_CURSOR_SIZE * 0.5
+	Input.set_custom_mouse_cursor(_attack_cursor, Input.CURSOR_ARROW, Vector2(centre, centre))
+
+
+## A red reticle: a ring with four ticks pointing in and a centre dot, outlined dark.
+static func _build_attack_cursor() -> Texture2D:
+	var size: int = ATTACK_CURSOR_SIZE
+	var image: Image = Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	var red: Color = Color(1.0, 0.22, 0.15)
+	var dark: Color = Color(0.08, 0.02, 0.02, 0.9)
+	var centre: Vector2 = Vector2(size, size) * 0.5 - Vector2(0.5, 0.5)
+	for pass_index: int in 2:
+		var color: Color = dark if pass_index == 0 else red
+		var grow: float = 1.0 if pass_index == 0 else 0.0
+		for y: int in size:
+			for x: int in size:
+				var offset: Vector2 = Vector2(x, y) - centre
+				var r: float = offset.length()
+				var ring: bool = absf(r - 10.0) <= 1.0 + grow
+				var on_axis: bool = absf(offset.x) <= 0.5 + grow or absf(offset.y) <= 0.5 + grow
+				var tick: bool = on_axis and r >= 5.0 - grow and r <= 15.0 + grow
+				var dot: bool = r <= 1.5 + grow
+				if ring or tick or dot:
+					image.set_pixel(x, y, color)
+	return ImageTexture.create_from_image(image)
 
 
 func _set_ring(unit: Unit, selected: bool) -> void:

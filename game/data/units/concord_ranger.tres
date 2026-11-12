@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
 [ext_resource type="PackedScene" path="res://sim/entities/units/concord_ranger.tscn" id="2_scene"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_unit_ranger.png" id="3_icon"]
 
 [resource]
 script = ExtResource("1_def")
@@ -15,4 +16,5 @@ id = &"concord_ranger"
 display_name = "Ranger"
 faction = 0
 scene = ExtResource("2_scene")
+icon = ExtResource("3_icon")
 sound_set = &"ranger"

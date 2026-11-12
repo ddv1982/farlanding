@@ -41,6 +41,8 @@ var _best_corner_distance: float = INF
 var _stuck_corner: int = -1
 var _reported_speed: float = 0.0
 var _repaths: int = 0
+var _facing: bool = false
+var _face_point: Vector3 = Vector3.ZERO
 
 
 ## Configures the component from a definition and places it. Call once after the
@@ -76,6 +78,7 @@ func _exit_tree() -> void:
 ## when no path exists.
 func move_to(target: Vector3) -> bool:
 	_repaths = 0
+	_facing = false
 	return _request_path(target)
 
 
@@ -83,6 +86,7 @@ func move_to(target: Vector3) -> bool:
 ## empty path.
 func follow_path(path: PackedVector3Array) -> bool:
 	_repaths = 0
+	_facing = false
 	return _start_path(path)
 
 
@@ -90,6 +94,17 @@ func follow_path(path: PackedVector3Array) -> bool:
 func stop() -> void:
 	mover.clear_path()
 	_travelling = false
+	_facing = false
+
+
+## While standing, turn the body toward `point` (until the next move or stop).
+func face(point: Vector3) -> void:
+	_face_point = point
+	_facing = true
+
+
+func is_facing() -> bool:
+	return _facing
 
 
 ## True while heading for a destination.
@@ -115,6 +130,8 @@ func tick(dt: float) -> void:
 	else:
 		mover.integrate(mover.velocity, dt)
 	var reached: bool = mover.plan(dt)
+	if _facing and not mover.has_path():
+		_turn_toward_face_point(dt)
 	mover.position = _on_ground(mover.position)
 	if reached:
 		_finish()
@@ -203,6 +220,16 @@ func _check_stuck(dt: float) -> void:
 	_repaths += 1
 	if _repaths > MAX_REPATHS or not _request_path(_destination):
 		_finish()
+
+
+func _turn_toward_face_point(dt: float) -> void:
+	var direction: Vector3 = Vector3(
+		_face_point.x - mover.position.x, 0.0, _face_point.z - mover.position.z
+	)
+	if direction.length_squared() < 0.01:
+		return
+	var wanted: float = Mover.yaw_for(direction)
+	mover.yaw = wrapf(rotate_toward(mover.yaw, wanted, mover.turn_speed * dt), -PI, PI)
 
 
 func _reset_stuck() -> void:

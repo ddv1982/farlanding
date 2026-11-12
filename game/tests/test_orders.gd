@@ -37,9 +37,9 @@ func _tick(units: Array[Unit], ticks: int) -> void:
 func test_move_command_has_kind_and_target() -> void:
 	var unit: Unit = _unit(Vector3.ZERO)
 	var command: MoveCommand = MoveCommand.new(
-		MoveCommand.KIND_ATTACK_MOVE, 0, [unit], Vector3(1, 0, 2), true
+		MoveCommand.KIND_MOVE, 0, [unit], Vector3(1, 0, 2), true
 	)
-	assert_eq(command.kind, &"attack_move")
+	assert_eq(command.kind, &"move")
 	assert_eq(command.target_position, Vector3(1, 0, 2))
 	assert_true(command.queued)
 	assert_eq(command.entities, [unit] as Array[Node3D])

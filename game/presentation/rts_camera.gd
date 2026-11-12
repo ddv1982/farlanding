@@ -3,9 +3,9 @@ extends Node3D
 ## RTS camera rig. The rig sits on the ground at the focus point; its Camera3D orbits
 ## it at a distance and pitch set by a smoothed zoom (0 = closest, 1 = furthest).
 ##
-## Pan: arrows (always), WASD (only while `wasd_enabled`), screen edges, middle-mouse
-## drag. Zoom: mouse wheel. Rotate: Q/E. The focus is clamped to `bounds`. Every frame
-## it reports the focus and zoom to the Audio listener.
+## Pan: WASD or arrows, screen edges, middle-mouse drag. Zoom: mouse wheel. Rotate:
+## Q/E. The focus is clamped to `bounds`. Every frame it reports the focus and zoom to
+## the Audio listener.
 
 ## Map area (world X/Z) the focus may move within.
 @export var bounds: Rect2 = Rect2(-105.0, -105.0, 210.0, 210.0)
@@ -26,9 +26,6 @@ extends Node3D
 ## Start zoom in [0, 1].
 @export_range(0.0, 1.0, 0.01) var start_zoom: float = 0.45
 
-## WASD pans only while true; the selection controller turns it off while units are
-## selected so A and S can be order hotkeys.
-var wasd_enabled: bool = true
 ## Ground heights for the focus point; flat at y = 0 when null.
 var heights: HeightField = null
 
@@ -94,16 +91,15 @@ func _process(delta: float) -> void:
 	var pan: Vector2 = Input.get_vector(
 		&"camera_pan_left", &"camera_pan_right", &"camera_pan_back", &"camera_pan_forward"
 	)
-	if wasd_enabled:
-		pan += (
-			Input
-			. get_vector(
-				&"camera_pan_left_alt",
-				&"camera_pan_right_alt",
-				&"camera_pan_back_alt",
-				&"camera_pan_forward_alt",
-			)
+	pan += (
+		Input
+		. get_vector(
+			&"camera_pan_left_alt",
+			&"camera_pan_right_alt",
+			&"camera_pan_back_alt",
+			&"camera_pan_forward_alt",
 		)
+	)
 	pan += _edge_pan()
 	pan = pan.limit_length(1.0)
 	if pan != Vector2.ZERO:
