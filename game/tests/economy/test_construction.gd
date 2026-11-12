@@ -174,3 +174,10 @@ func test_an_idle_fabricator_standing_on_a_new_site_walks_out() -> void:
 	var site: Building = _place(_f.reactor, Vector3.ZERO, _builders(1))
 	_f.tick(60)
 	assert_false(_inside(site, idle), "left the footprint")
+
+
+func test_a_builder_standing_on_its_own_site_steps_out_and_still_builds() -> void:
+	var builder: Unit = _f.world.spawn_unit(_f.fabricator, 0, Vector3.ZERO)
+	var site: Building = _place(_f.reactor, Vector3.ZERO, [builder])
+	assert_ne(_ticks_to_finish(site), -1, "the site gets built")
+	assert_false(_inside(site, builder), "from outside the footprint")

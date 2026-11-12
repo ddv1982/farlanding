@@ -90,7 +90,7 @@ func spawn_building(def: BuildingDef, faction: int, at: Vector3, complete: bool)
 	buildings.append(building)
 	building.tree_exiting.connect(_on_building_exiting.bind(building))
 	_blocks[building.entity_id] = paths.block_area(building.footprint())
-	_clear_units_from(building.footprint())
+	evacuate(building.footprint())
 	Events.entity_spawned.emit(building)
 	return building
 
@@ -295,7 +295,7 @@ func _release_unit(building: Building, def: UnitDef) -> Unit:
 
 ## Units standing inside `area` (a new building) walk out of it first, then carry
 ## on with whatever they were doing. Builders too: they build from the edge.
-func _clear_units_from(area: Rect2) -> void:
+func evacuate(area: Rect2) -> void:
 	var grown: Rect2 = area.grow(1.0)
 	for unit: Unit in units:
 		var at: Vector3 = unit.sim_position()

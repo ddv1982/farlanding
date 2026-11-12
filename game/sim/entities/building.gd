@@ -140,6 +140,8 @@ func from_dict(data: Dictionary) -> void:
 	if construction != null and not construction_data.is_empty():
 		construction.from_dict(construction_data)
 		_was_complete = construction.is_complete()
+		# The visual was set up from the unsaved state in _ready(); show the loaded one.
+		build_progress_changed.emit(construction.progress())
 	var producer_data: Dictionary = data.get("producer", {})
 	if producer != null and not producer_data.is_empty():
 		producer.from_dict(producer_data)

@@ -43,6 +43,9 @@ func execute() -> void:
 	if is_player:
 		Events.advisor_alert.emit(&"building_placed")
 	BuildCommand.give_build_orders(entities, issuer_faction, placed, queued)
+	# The build order just replaced the walk-out a builder standing on the site was
+	# given, and a builder is "in range" even from inside: send it out again first.
+	world.evacuate(placed.footprint())
 
 
 ## The world of the first receiver that knows it, or null.
