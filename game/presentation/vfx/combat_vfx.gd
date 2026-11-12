@@ -65,7 +65,8 @@ func _on_projectile_launched(projectile: Node3D, weapon: Resource) -> void:
 
 
 func _on_projectile_impacted(weapon: Resource, at: Vector3, victim: Node3D) -> void:
-	if victim != null and _hidden(victim):
+	# Splash shots arrive without a victim, so the place decides, not the victim.
+	if (victim != null and _hidden(victim)) or _point_hidden(at):
 		return
 	var size: float = _float(weapon, &"impact_size", 0.0)
 	if size > 0.0:
@@ -311,6 +312,15 @@ static func _tint(mesh: MeshInstance3D, color: Color) -> void:
 	material.vertex_color_use_as_albedo = false
 	material.albedo_color = color
 	mesh.material_override = material
+
+
+## True when the player cannot currently see `at` (fog of war).
+func _point_hidden(at: Vector3) -> bool:
+	var fog: Node = get_tree().get_first_node_in_group(&"fog_of_war")
+	if fog == null or not fog.has_method(&"is_point_visible_to_player"):
+		return false
+	var seen: Variant = fog.call(&"is_point_visible_to_player", at)
+	return seen is bool and not seen
 
 
 static func _hidden(entity: Node3D) -> bool:
