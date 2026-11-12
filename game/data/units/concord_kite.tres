@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/concord_kite.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+max_health = 220
+move_speed = 13.0
+turn_speed = 300.0
+vision_range = 26.0
+radius = 1.2
+acceleration = 18.0
+id = &"concord_kite"
+display_name = "Kite"
+faction = 0
+scene = ExtResource("2_scene")
+sound_set = &"kite"

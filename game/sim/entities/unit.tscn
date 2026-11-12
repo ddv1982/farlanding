@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://sim/entities/unit.gd" id="1_unit"]
+[ext_resource type="Script" path="res://sim/components/locomotion.gd" id="2_loco"]
+[ext_resource type="Script" path="res://sim/components/unit_orders.gd" id="3_orders"]
+[ext_resource type="Script" path="res://presentation/unit_visual.gd" id="4_visual"]
+
+[node name="Unit" type="Node3D"]
+script = ExtResource("1_unit")
+
+[node name="Locomotion" type="Node" parent="."]
+script = ExtResource("2_loco")
+
+[node name="Orders" type="Node" parent="."]
+script = ExtResource("3_orders")
+
+[node name="Visual" type="Node3D" parent="."]
+script = ExtResource("4_visual")
+
+[connection signal="motion_changed" from="Locomotion" to="Visual" method="set_motion"]

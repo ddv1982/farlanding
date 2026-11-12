@@ -1,0 +1,32 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://presentation/shaders/terrain.gdshader" id="1"]
+
+[sub_resource type="FastNoiseLite" id="noise_a"]
+seed = 7
+frequency = 0.012
+fractal_octaves = 5
+
+[sub_resource type="NoiseTexture2D" id="tex_noise"]
+width = 512
+height = 512
+seamless = true
+noise = SubResource("noise_a")
+
+[sub_resource type="FastNoiseLite" id="noise_b"]
+seed = 21
+frequency = 0.02
+fractal_octaves = 4
+
+[sub_resource type="NoiseTexture2D" id="tex_normal"]
+width = 512
+height = 512
+seamless = true
+as_normal_map = true
+bump_strength = 5.0
+noise = SubResource("noise_b")
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/noise_tex = SubResource("tex_noise")
+shader_parameter/detail_normal = SubResource("tex_normal")

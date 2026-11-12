@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://maps/kessel_proving/kessel_proving.gd" id="1_map"]
+[ext_resource type="PackedScene" path="res://maps/kessel_proving/kessel_visuals.tscn" id="2_visuals"]
+[ext_resource type="NavigationMesh" path="res://maps/kessel_proving/kessel_proving_navmesh.res" id="3_navmesh"]
+[ext_resource type="Script" path="res://core/mission_context.gd" id="4_context"]
+[ext_resource type="Script" path="res://sim/systems/sim_world.gd" id="5_world"]
+[ext_resource type="Script" path="res://presentation/rts_camera.gd" id="6_camera"]
+[ext_resource type="Script" path="res://presentation/selection/selection_controller.gd" id="7_selection"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="8_hud"]
+[ext_resource type="Resource" path="res://data/units/concord_kite.tres" id="9_kite"]
+[ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="10_ranger"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="11_surveyor"]
+[ext_resource type="Resource" path="res://data/units/concord_bulwark.tres" id="12_bulwark"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="13_unit_def"]
+
+[node name="KesselProving" type="Node3D" node_paths=PackedStringArray("context", "world", "camera", "navigation_region")]
+script = ExtResource("1_map")
+context = NodePath("MissionContext")
+world = NodePath("SimWorld")
+camera = NodePath("RtsCamera")
+navigation_region = NodePath("NavigationRegion3D")
+start_roster = Array[ExtResource("13_unit_def")]([ExtResource("9_kite"), ExtResource("9_kite"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("11_surveyor"), ExtResource("11_surveyor"), ExtResource("12_bulwark"), ExtResource("12_bulwark")])
+
+[node name="MissionContext" type="Node" parent="."]
+script = ExtResource("4_context")
+
+[node name="KesselVisuals" parent="." instance=ExtResource("2_visuals")]
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = ExtResource("3_navmesh")
+
+[node name="SimWorld" type="Node3D" parent="."]
+script = ExtResource("5_world")
+
+[node name="RtsCamera" type="Node3D" parent="."]
+script = ExtResource("6_camera")
+
+[node name="Camera3D" type="Camera3D" parent="RtsCamera"]
+fov = 45.0
+far = 600.0
+
+[node name="SelectionController" type="Node" parent="." node_paths=PackedStringArray("camera", "world")]
+script = ExtResource("7_selection")
+camera = NodePath("../RtsCamera")
+world = NodePath("../SimWorld")
+
+[node name="Hud" parent="." node_paths=PackedStringArray("world") instance=ExtResource("8_hud")]
+world = NodePath("../SimWorld")
