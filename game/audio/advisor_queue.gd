@@ -10,9 +10,14 @@ extends RefCounted
 ##   equals. An alert that waited longer than MAX_WAIT is stale and dropped.
 ## - Opposites cancel: power restored arriving while a low-power warning still
 ##   waits drops both (and the other way round); the state flapped unheard.
+## - Seen already: alerts about a place (under attack) are dropped while the
+##   listener focus is within ON_SCREEN_RADIUS of it; the player is looking at
+##   the fight. A dropped alert does not start the throttle, so the warning
+##   still comes once the camera moves away.
 ##
-## Use: `push(kind, now)` when an alert arrives; every frame, `pop_ready(now)`
-## and, if it returns a kind, play it and call `started(now, seconds)`.
+## Use: `push(kind, now, position)` when an alert arrives (set `focus` first);
+## every frame, `pop_ready(now)` and, if it returns a kind, play it and call
+## `started(now, seconds)`.
 
 const DEFAULT_THROTTLE: float = 6.0
 const THROTTLE: Dictionary[StringName, float] = {
@@ -23,9 +28,11 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"construction_complete": 3.0,
 	&"unit_ready": 4.0,
 	&"building_placed": 3.0,
+	&"under_attack": 20.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
+	&"under_attack": 120,
 	&"low_power": 100,
 	&"power_restored": 80,
 	&"construction_complete": 60,
@@ -44,6 +51,13 @@ const GAP: float = 0.35
 ## Queued alerts older than this are dropped instead of played late.
 const MAX_WAIT: float = 4.0
 const MAX_QUEUED: int = 3
+## Alert kinds about a place, skipped while the camera already shows it.
+const PLACE_KINDS: Array[StringName] = [&"under_attack"]
+## Ground distance (m) from the listener focus within which a place is on screen.
+const ON_SCREEN_RADIUS: float = 40.0
+
+## Listener focus (the camera's ground point); INF when unknown.
+var focus: Vector3 = Vector3.INF
 
 var _last_accepted: Dictionary[StringName, float] = {}
 var _kinds: Array[StringName] = []
@@ -61,13 +75,23 @@ static func priority_of(kind: StringName) -> int:
 	return priority
 
 
-## Offers an alert. Returns true if it was queued, false if throttled or the
-## queue is full of more important alerts.
-func push(kind: StringName, now: float) -> bool:
+## True if `position` is known and within ON_SCREEN_RADIUS of the focus.
+func is_on_screen(position: Vector3) -> bool:
+	if not position.is_finite() or not focus.is_finite():
+		return false
+	return Vector2(position.x - focus.x, position.z - focus.z).length() <= ON_SCREEN_RADIUS
+
+
+## Offers an alert, optionally about a world `position`. Returns true if it was
+## queued, false if throttled, already on screen, or the queue is full of more
+## important alerts.
+func push(kind: StringName, now: float, position: Vector3 = Vector3.INF) -> bool:
 	if kind == &"":
 		return false
 	var last: float = _last_accepted.get(kind, -INF)
 	if now - last < throttle_of(kind):
+		return false
+	if kind in PLACE_KINDS and is_on_screen(position):
 		return false
 	_expire(now)
 	var stale: StringName = SUPERSEDES.get(kind, &"")

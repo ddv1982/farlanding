@@ -32,6 +32,7 @@ var _focus: Vector3 = Vector3.ZERO
 var _zoom: float = 0.5
 var _applied_zoom: float = -1.0
 var _router: AudioEventRouter
+var _combat: CombatSoundRouter
 var _loops: MovementLoops
 var _base_loops: BaseLoops
 var _music: MusicDirector
@@ -51,6 +52,17 @@ func _ready() -> void:
 		var event: SoundEvent = get_event(event_id)
 		return event.longest_seconds() if event != null else 0.0
 	add_child(_router)
+	_combat = CombatSoundRouter.new()
+	_combat.name = &"CombatRouter"
+	_combat.resolve_event = get_event
+	_combat.play_at = play_at
+	_combat.offer_alert = func(kind: StringName, at: Vector3) -> void:
+		_router.offer_advisor_alert(kind, _now(), at)
+	_combat.set_music_state = set_music_state
+	_combat.end_music = _end_music
+	_router.alert_position = func(_kind: StringName) -> Vector3:
+		return _combat.last_hurt_position(_now())
+	add_child(_combat)
 	_loops = MovementLoops.new()
 	_loops.name = &"MovementLoops"
 	_loops.resolve_event = get_event
@@ -94,6 +106,8 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 		_listener_active = true
 	_loops.focus = focus
 	_base_loops.focus = focus
+	_router.focus = focus
+	_combat.focus = focus
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 
@@ -124,6 +138,12 @@ func get_event(event_id: StringName) -> SoundEvent:
 	return event
 
 
+## Plays a positional event with an extra volume offset (combat ducking).
+## Returns true if it started.
+func play_at(event_id: StringName, position: Vector3, volume_offset_db: float = 0.0) -> bool:
+	return _start(event_id, position, volume_offset_db)
+
+
 ## Plays the first candidate that exists as an event; returns its id or &"".
 func play_first(candidates: Array[StringName], position: Vector3 = Vector3.INF) -> StringName:
 	for event_id: StringName in candidates:
@@ -141,7 +161,7 @@ func active_voices() -> int:
 # --- Internals ----------------------------------------------------------------
 
 
-func _start(event_id: StringName, position: Vector3) -> bool:
+func _start(event_id: StringName, position: Vector3, volume_offset_db: float = 0.0) -> bool:
 	var event: SoundEvent = _events.get(event_id, null)
 	if event == null or event.streams.is_empty():
 		return false
@@ -177,7 +197,7 @@ func _start(event_id: StringName, position: Vector3) -> bool:
 		player3d.stop()
 		player3d.stream = stream
 		player3d.bus = event.bus
-		player3d.volume_db = event.volume_db
+		player3d.volume_db = event.volume_db + volume_offset_db
 		player3d.pitch_scale = pitch
 		player3d.max_distance = event.max_distance
 		player3d.global_position = position
@@ -187,7 +207,7 @@ func _start(event_id: StringName, position: Vector3) -> bool:
 		player.stop()
 		player.stream = stream
 		player.bus = event.bus
-		player.volume_db = event.volume_db
+		player.volume_db = event.volume_db + volume_offset_db
 		player.pitch_scale = pitch
 		player.play()
 	return true
@@ -237,6 +257,13 @@ func _apply_volumes() -> void:
 			if value is float:
 				setting = value
 		AudioServer.set_bus_volume_db(i, AudioMix.bus_volume_db(bus, setting, _zoom))
+
+
+## Mission over: the music settles into its victory or defeat state (quieter
+## layers, at once) and the matching sting plays over it.
+func _end_music(won: bool) -> void:
+	_music.force_state(MusicMood.VICTORY if won else MusicMood.DEFEAT)
+	play(&"mus_sting_victory" if won else &"mus_sting_defeat")
 
 
 func _now() -> float:

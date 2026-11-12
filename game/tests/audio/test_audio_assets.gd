@@ -9,6 +9,9 @@ const LOOPS: Array[String] = [
 	"res://assets/audio/movement/move_hover.wav",
 	"res://assets/audio/movement/move_sixwheel.wav",
 	"res://assets/audio/movement/move_drone.wav",
+	"res://assets/audio/movement/move_skitter.wav",
+	"res://assets/audio/movement/move_stinger.wav",
+	"res://assets/audio/movement/move_mauler.wav",
 	"res://assets/audio/base/loops/loop_construct.wav",
 	"res://assets/audio/base/loops/loop_produce.wav",
 	"res://assets/audio/base/loops/loop_mine.wav",
@@ -17,6 +20,12 @@ const LOOPS: Array[String] = [
 	"res://assets/audio/music/kessel/mus_kessel_explore_pad.ogg",
 	"res://assets/audio/music/kessel/mus_kessel_explore_pulse.ogg",
 	"res://assets/audio/music/kessel/mus_kessel_explore_melody.ogg",
+	"res://assets/audio/music/kessel/mus_kessel_tension_drive.ogg",
+	"res://assets/audio/music/kessel/mus_kessel_combat_drums.ogg",
+	"res://assets/audio/music/kessel/mus_kessel_combat_brass.ogg",
+]
+const WEAPON_SETS: Array[String] = [
+	"repeater", "cannon", "light_gun", "sentry", "skitter_gun", "lance", "siege"
 ]
 const MIX_RATE: float = 44100.0
 
@@ -87,6 +96,47 @@ func test_economy_events_exist() -> void:
 			assert_true(event.positional, "%s is positional" % id)
 			var wav: AudioStreamWAV = event.streams[0] as AudioStreamWAV
 			assert_eq(wav.loop_mode, AudioStreamWAV.LOOP_FORWARD, "%s loops" % id)
+
+
+func test_combat_events_exist_with_their_buses() -> void:
+	var expected: Dictionary[String, StringName] = {}
+	for sound_set: String in WEAPON_SETS:
+		expected["weapon/weapon_%s_fire" % sound_set] = &"Weapons"
+	for kind: String in ["spark", "armour", "ground"]:
+		expected["impact/impact_%s" % kind] = &"Weapons"
+	for size: String in ["small", "medium", "large"]:
+		expected["explosion/explosion_%s" % size] = &"Explosions"
+	for kind: String in ["light", "heavy", "building"]:
+		expected["explosion/death_%s" % kind] = &"Explosions"
+	for path: String in expected:
+		var event: SoundEvent = load("%s/%s.tres" % [EVENTS_DIR, path]) as SoundEvent
+		assert_not_null(event, path)
+		if event == null:
+			continue
+		assert_eq(event.bus, expected[path], "%s bus" % path)
+		assert_true(event.positional, "%s is positional" % path)
+		if not path.begins_with("explosion/death_building"):
+			assert_eq(event.streams.size(), 3, "%s variations" % path)
+	for id: String in [
+		"movement/move_skitter",
+		"movement/move_stinger",
+		"movement/move_mauler",
+		"building/building_sentry_select",
+		"base/base_turret_traverse",
+		"advisor/advisor_under_attack",
+		"sting/mus_sting_victory",
+		"sting/mus_sting_defeat",
+	]:
+		assert_true(ResourceLoader.exists("%s/%s.tres" % [EVENTS_DIR, id]), id)
+
+
+func test_heavier_weapons_outrank_light_ones() -> void:
+	var light: SoundEvent = load(EVENTS_DIR + "/weapon/weapon_repeater_fire.tres")
+	var heavy: SoundEvent = load(EVENTS_DIR + "/weapon/weapon_cannon_fire.tres")
+	var blast: SoundEvent = load(EVENTS_DIR + "/explosion/explosion_large.tres")
+	assert_lt(light.priority, CombatMixer.LIGHT_PRIORITY, "repeater is ducked under blasts")
+	assert_gte(heavy.priority, CombatMixer.LIGHT_PRIORITY, "cannon is not")
+	assert_gt(blast.priority, heavy.priority)
 
 
 ## Plays across the loop point with Godot's own decoder and checks that the

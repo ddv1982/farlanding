@@ -58,6 +58,14 @@ EVENT_DEFAULTS = {
     "baseloop": dict(bus="Buildings", priority=30, max_instances=2, cooldown=0.0, positional=True, max_distance=40.0),
     "advisor": dict(bus="Advisor", priority=100, max_instances=1, cooldown=1.0, positional=False, max_distance=0.0),
     "ambience": dict(bus="Ambience", priority=100, max_instances=1, cooldown=0.0, positional=False, max_distance=0.0),
+    # Combat. Priority doubles as "heaviness": the combat mixer keeps the
+    # heaviest and nearest when a fight asks for more than the budget.
+    "weapon": dict(bus="Weapons", priority=40, max_instances=3, cooldown=0.05, positional=True, max_distance=70.0),
+    "impact": dict(bus="Weapons", priority=36, max_instances=3, cooldown=0.04, positional=True, max_distance=55.0,
+                   pitch_variation=1.0),
+    "explosion": dict(bus="Explosions", priority=64, max_instances=2, cooldown=0.08, positional=True,
+                      max_distance=120.0, pitch_variation=0.8),
+    "sting": dict(bus="Music", priority=100, max_instances=1, cooldown=1.0, positional=False, max_distance=0.0),
 }
 EVENT_OVERRIDES = {
     "ui_hover": dict(priority=20, max_instances=1, cooldown=0.06),
@@ -71,6 +79,25 @@ EVENT_OVERRIDES = {
     "base_place": dict(max_distance=150.0, priority=80),
     "base_complete": dict(max_distance=120.0, priority=75, cooldown=0.4),
     "base_unload": dict(max_distance=60.0, cooldown=0.3),
+    "base_turret_traverse": dict(max_distance=60.0, cooldown=0.2, priority=45),
+    "advisor_under_attack": dict(cooldown=5.0),
+    # Concord weapons are tonal and in key: no detune. Combine ones may wander.
+    "weapon_repeater_fire": dict(priority=40, max_instances=3, cooldown=0.06),
+    "weapon_light_gun_fire": dict(priority=40, max_instances=3, cooldown=0.06),
+    "weapon_sentry_fire": dict(priority=46, max_instances=2, cooldown=0.1),
+    "weapon_cannon_fire": dict(priority=58, max_instances=2, cooldown=0.15, max_distance=90.0),
+    "weapon_skitter_gun_fire": dict(priority=38, max_instances=3, cooldown=0.06, pitch_variation=1.0),
+    "weapon_lance_fire": dict(priority=50, max_instances=2, cooldown=0.1, pitch_variation=0.7),
+    "weapon_siege_fire": dict(priority=58, max_instances=2, cooldown=0.2, max_distance=90.0, pitch_variation=0.7),
+    "impact_spark": dict(priority=34),
+    "impact_armour": dict(priority=40, max_instances=2),
+    "impact_ground": dict(priority=36, max_instances=2),
+    "explosion_small": dict(priority=62, max_instances=3, cooldown=0.06),
+    "explosion_medium": dict(priority=66),
+    "explosion_large": dict(priority=70, max_instances=2, cooldown=0.15, max_distance=150.0),
+    "death_light": dict(priority=66, max_instances=2, cooldown=0.1),
+    "death_heavy": dict(priority=72, max_instances=2, cooldown=0.15, max_distance=140.0),
+    "death_building": dict(priority=78, max_instances=1, cooldown=0.3, max_distance=160.0),
 }
 
 
@@ -161,6 +188,9 @@ def scaffold_events(sounds: list[Sound]) -> list[str]:
             f"positional = {'true' if cfg['positional'] else 'false'}",
             f"max_distance = {cfg['max_distance']}",
         ]
+        for key in ("volume_db", "pitch_variation"):
+            if cfg.get(key):
+                body.append(f"{key} = {cfg[key]}")
         text = '[gd_resource type="Resource" script_class="SoundEvent" format=3]\n\n'
         text += "\n".join(ext) + "\n\n" + "\n".join(body) + "\n"
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -8,7 +8,9 @@ extends Node
 ## Buildings are entities in group &"buildings"; their set names the machine
 ## identity `building_<set>_select`. Economy one-shots play only for the
 ## player's faction (resource_depleted for anyone: deposits are neutral).
-## Advisor alerts go through an AdvisorQueue (throttled, never stacked).
+## Advisor alerts go through an AdvisorQueue (throttled, never stacked, and
+## place alerts such as under_attack skipped while the camera shows the place).
+## Combat events (fire, impacts, deaths) are the CombatSoundRouter's.
 
 const BUILDINGS_GROUP: StringName = &"buildings"
 ## A production_started this soon after the same producer finished a unit is
@@ -24,6 +26,11 @@ var play_first: Callable = func(_ids: Array[StringName], _at: Vector3) -> String
 ## Length in seconds of an event (its longest variation):
 ## `func(event_id: StringName) -> float`. Used to keep Advisor phrases apart.
 var event_seconds: Callable = func(_id: StringName) -> float: return 1.5
+## Where an Advisor alert raised by gameplay happened, if known:
+## `func(kind: StringName) -> Vector3` (Vector3.INF when unknown).
+var alert_position: Callable = func(_kind: StringName) -> Vector3: return Vector3.INF
+## Listener focus on the ground; set by the AudioService.
+var focus: Vector3 = Vector3.INF
 
 var _selector: AudioCueSelector = AudioCueSelector.new()
 var _advisor: AdvisorQueue = AdvisorQueue.new()
@@ -35,7 +42,6 @@ func _ready() -> void:
 	Events.command_issued.connect(_on_command_issued)
 	Events.ui_feedback.connect(_on_ui_feedback)
 	Events.entity_spawned.connect(_on_entity_spawned)
-	Events.entity_died.connect(_on_entity_died)
 	Events.building_placed.connect(_on_building_placed)
 	Events.construction_completed.connect(_on_construction_completed)
 	Events.production_started.connect(_on_production_started)
@@ -63,10 +69,14 @@ func pump_advisor(now: float) -> StringName:
 	return kind
 
 
-## Offers an Advisor alert at time `now` (tests drive time directly).
-func offer_advisor_alert(kind: StringName, now: float) -> void:
-	if _advisor.push(kind, now):
+## Offers an Advisor alert at time `now` (tests drive time directly), about a
+## world `position` if it has one.
+func offer_advisor_alert(kind: StringName, now: float, position: Vector3 = Vector3.INF) -> bool:
+	_advisor.focus = focus
+	if _advisor.push(kind, now, position):
 		pump_advisor(now)
+		return true
+	return false
 
 
 static func sound_sets_of(entities: Array[Node3D]) -> Array[StringName]:
@@ -133,15 +143,6 @@ func _on_entity_spawned(entity: Node3D) -> void:
 		_play([AudioCueSelector.unit_event(sound_set, &"ready")], Vector3.INF)
 
 
-func _on_entity_died(entity: Node3D) -> void:
-	if not is_instance_valid(entity):
-		return
-	var sound_set: StringName = MovementLoops.sound_set_of(entity)
-	if sound_set != &"":
-		var at: Vector3 = entity.global_position if entity.is_inside_tree() else Vector3.INF
-		_play([AudioCueSelector.unit_event(sound_set, &"death")], at)
-
-
 func _on_building_placed(building: Node3D) -> void:
 	if _is_player(building):
 		_play([&"base_place"], _position_of(building))
@@ -181,7 +182,8 @@ func _on_resource_depleted(node: Node3D) -> void:
 
 
 func _on_advisor_alert(kind: StringName) -> void:
-	offer_advisor_alert(kind, _now())
+	var at: Vector3 = alert_position.call(kind)
+	offer_advisor_alert(kind, _now(), at)
 
 
 func _is_player(entity: Node) -> bool:

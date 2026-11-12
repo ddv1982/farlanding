@@ -11,6 +11,8 @@ instruments. Each phrase owns a contour and a rhythm a player can learn:
   unit_ready              ready: a high leap of a fifth, short-LONG ('da-DAA'), crisp
   deposit_depleted        running dry: three dyads falling and fading, each darker
   building_placed         acknowledged: one soft high dyad with an echo
+  under_attack            ALARM: two fast bursts of four staccato tritone dyads hammering
+                          a semitone apart, the second burst a step higher and louder
 """
 
 from __future__ import annotations
@@ -100,3 +102,21 @@ def advisor_deposit_depleted(rng: np.random.Generator) -> np.ndarray:
 def advisor_building_placed(rng: np.random.Generator) -> np.ndarray:
     x = advisor_dyad(H(81), H(86), 0.07)
     return _phrase([(0.0, 1.0, x), (0.13, 0.35, dsp.lowpass(x, 2500.0))], rng, 0.8, room=0.1)
+
+
+@sound("advisor_under_attack", "advisor", ADVISOR_LUFS + 1.0, max_seconds=1.6)
+def advisor_under_attack(rng: np.random.Generator) -> np.ndarray:
+    """The most urgent phrase: no glide, no sag, just hammering. Each burst
+    alternates C+F# and C#+G (tritones a semitone apart) in 65 ms staccato
+    hits; the second burst sits a whole step higher and louder, so it climbs."""
+    parts = []
+    for burst, (lift, gain) in enumerate([(0, 0.85), (2, 1.0)]):
+        for k in range(4):
+            lo = 72 + lift + (k % 2)
+            x = advisor_dyad(H(lo), H(lo + 6), 0.05)
+            parts.append((burst * 0.42 + k * 0.075, gain * (1.0 if k % 2 == 0 else 0.9), x))
+    # A hard low pulse under each burst start gives it a jolt.
+    n = dsp.samples(0.12)
+    jolt = 0.35 * dsp.sine(H(60), n) * dsp.perc(n, 0.004, 0.05)
+    parts += [(0.0, 1.0, jolt), (0.42, 1.0, jolt)]
+    return _phrase(parts, rng, 1.4, room=0.1)
