@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="BuildingDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/buildings/concord_lander.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_building_lander.png" id="3"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="4"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_building_lander.glb" id="20"]
+[ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="5"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="6"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Lander"
+description = "Your HQ: the dropship that landed you. Gives some Power, takes Alloy until a Refinery stands, and builds Fabricators and Haulers."
+max_health = 3000
+footprint = Rect2(-5.5, -5.5, 11, 12)
+height = 11.0
+placeable = false
+power_output = 10
+power_use = 0
+queue_limit = 5
+door = Vector3(0, 0, 10)
+accepts_alloy = true
+dock = Vector3(9, 0, 0)
+dropoff_priority = 0
+cost_alloy = 0
+cost_flux = 0
+build_time = 60.0
+produces = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6")])
+scene = ExtResource("2")
+icon = ExtResource("3")
+sound_set = &"lander"
+id = &"concord_lander"
+faction = 0
+model = ExtResource("20")

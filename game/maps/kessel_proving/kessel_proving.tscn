@@ -8,11 +8,15 @@
 [ext_resource type="Script" path="res://presentation/rts_camera.gd" id="6_camera"]
 [ext_resource type="Script" path="res://presentation/selection/selection_controller.gd" id="7_selection"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="8_hud"]
-[ext_resource type="Resource" path="res://data/units/concord_kite.tres" id="9_kite"]
 [ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="10_ranger"]
-[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="11_surveyor"]
-[ext_resource type="Resource" path="res://data/units/concord_bulwark.tres" id="12_bulwark"]
 [ext_resource type="Script" path="res://core/defs/unit_def.gd" id="13_unit_def"]
+[ext_resource type="Resource" path="res://data/economy/kessel_rules.tres" id="14_rules"]
+[ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="15_lander"]
+[ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="16_fabricator"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="17_hauler"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit.tres" id="18_deposit"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="19_rich"]
+[ext_resource type="Resource" path="res://data/resources/kessel_flux_vent.tres" id="20_vent"]
 
 [node name="KesselProving" type="Node3D" node_paths=PackedStringArray("context", "world", "camera", "navigation_region")]
 script = ExtResource("1_map")
@@ -20,7 +24,15 @@ context = NodePath("MissionContext")
 world = NodePath("SimWorld")
 camera = NodePath("RtsCamera")
 navigation_region = NodePath("NavigationRegion3D")
-start_roster = Array[ExtResource("13_unit_def")]([ExtResource("9_kite"), ExtResource("9_kite"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("11_surveyor"), ExtResource("11_surveyor"), ExtResource("12_bulwark"), ExtResource("12_bulwark")])
+economy_rules = ExtResource("14_rules")
+lander = ExtResource("15_lander")
+start_roster = Array[ExtResource("13_unit_def")]([ExtResource("16_fabricator"), ExtResource("16_fabricator"), ExtResource("17_hauler")])
+deposit = ExtResource("18_deposit")
+deposit_positions = PackedVector3Array(-102, 0, 66, -56, 0, 98, -94, 0, 50)
+rich_deposit = ExtResource("19_rich")
+rich_deposit_positions = PackedVector3Array(-20, 0, 92, 36, 0, 34, -96, 0, -30, 88, 0, -88, 55, 0, 90)
+vent = ExtResource("20_vent")
+vent_positions = PackedVector3Array(-60, 0, 70, -100, 0, 95, -28, 0, 30, 70, 0, 10, -30, 0, -85, 25, 0, -30)
 hostile_roster = Array[ExtResource("13_unit_def")]([ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger")])
 
 [node name="MissionContext" type="Node" parent="."]
@@ -46,5 +58,6 @@ script = ExtResource("7_selection")
 camera = NodePath("../RtsCamera")
 world = NodePath("../SimWorld")
 
-[node name="Hud" parent="." node_paths=PackedStringArray("world") instance=ExtResource("8_hud")]
+[node name="Hud" parent="." node_paths=PackedStringArray("world", "selection_controller") instance=ExtResource("8_hud")]
 world = NodePath("../SimWorld")
+selection_controller = NodePath("../SelectionController")

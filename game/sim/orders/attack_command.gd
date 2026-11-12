@@ -1,7 +1,8 @@
 class_name AttackCommand
 extends Command
-## Attack one enemy unit. Each receiver closes on `target_entity` and holds at
-## `engage_range`, the group spread in an arc on the side it approaches from. There
+## Attack one enemy unit or building. Each receiver closes on `target_entity` and
+## holds at `engage_range` (from a building's edge), the group spread in an arc on
+## the side it approaches from. There
 ## is no combat yet: holding means facing the target. With `queued`, the attack runs
 ## after each unit's current orders.
 
@@ -23,12 +24,26 @@ func _init(
 	queued = p_queued
 
 
-## True when `target` may be attacked by `faction`: a live unit of another faction.
+## True when `target` may be attacked by `faction`: a live unit or building of
+## another faction.
 static func is_valid_target(target: Variant, faction: int) -> bool:
-	if not is_instance_valid(target) or not target is Unit:
+	if not is_instance_valid(target):
 		return false
-	var unit: Unit = target
-	return unit.is_inside_tree() and unit.faction != faction
+	if target is Unit:
+		var unit: Unit = target
+		return unit.is_inside_tree() and unit.faction != faction
+	if target is Building:
+		var building: Building = target
+		return building.is_inside_tree() and building.faction != faction
+	return false
+
+
+## How far the target's body reaches from its origin: a building's footprint.
+static func body_radius(target: Node3D) -> float:
+	var building: Building = target as Building
+	if building != null and building.def != null:
+		return building.def.footprint_radius()
+	return 0.0
 
 
 ## Simulation position of an entity (the mover's, which leads the drawn node).
@@ -98,7 +113,10 @@ func execute() -> void:
 		starts.append(start)
 		radii.append(unit.def.radius if unit.def != null else 0.5)
 	var offsets: PackedVector3Array = engage_offsets(
-		target_position, starts, engage_range, Formation.spacing_for(radii)
+		target_position,
+		starts,
+		engage_range + body_radius(target_entity),
+		Formation.spacing_for(radii)
 	)
 	for i: int in units.size():
 		var order: Order = Order.new(kind, target_position)

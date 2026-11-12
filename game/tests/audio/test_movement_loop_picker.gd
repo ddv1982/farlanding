@@ -35,3 +35,14 @@ func test_ignores_units_out_of_range_and_height() -> void:
 		positions, events, caps, Vector3.ZERO, 6, 45.0
 	)
 	assert_eq(chosen, PackedInt32Array([0]), "height is ignored, distance is on the ground")
+
+
+func test_penalties_rank_without_changing_range() -> void:
+	var positions: PackedVector3Array = [Vector3(2, 0, 0), Vector3(10, 0, 0)]
+	var events: Array[StringName] = [&"loop_hum", &"loop_construct"]
+	var caps: Dictionary[StringName, int] = {}
+	var penalties: PackedFloat32Array = [20.0, 0.0]
+	var chosen: PackedInt32Array = MovementLoopPicker.pick(
+		positions, events, caps, Vector3.ZERO, 1, 15.0, penalties
+	)
+	assert_eq(chosen, PackedInt32Array([1]))

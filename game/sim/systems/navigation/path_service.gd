@@ -3,6 +3,12 @@ extends RefCounted
 ## The one interface ground movement uses to find its way. The base class is the
 ## trivial backend (straight lines, no obstacles), used by tests; the game uses
 ## NavmeshPathService. A flow-field backend would implement the same methods.
+##
+## Buildings and deposits block areas with `block_area()`: paths go around them and
+## `is_walkable()` is false inside. The base class only records the areas.
+
+var _blocked: Dictionary[int, Rect2] = {}
+var _next_block_id: int = 1
 
 
 ## Returns world-space corner points from `from` to (the reachable point nearest)
@@ -24,8 +30,50 @@ func find_group_paths(
 
 
 ## True if a unit may stand at `point`. Must be cheap: called per unit per tick.
-func is_walkable(_point: Vector3) -> bool:
+func is_walkable(point: Vector3) -> bool:
+	return not is_blocked(point)
+
+
+## True if the terrain alone lets a unit stand at `point` (blocked areas ignored).
+## Used for building placement.
+func is_terrain_walkable(_point: Vector3) -> bool:
 	return true
+
+
+## Makes `area` (world X/Z) impassable. Returns a handle for `unblock_area()`.
+func block_area(area: Rect2) -> int:
+	var id: int = _next_block_id
+	_next_block_id += 1
+	_blocked[id] = area
+	_on_blocked(id, area)
+	return id
+
+
+## Makes an area blocked by `block_area()` passable again.
+func unblock_area(id: int) -> void:
+	if not _blocked.has(id):
+		return
+	var area: Rect2 = _blocked[id]
+	_blocked.erase(id)
+	_on_unblocked(id, area)
+
+
+## True if `point` lies in a blocked area.
+func is_blocked(point: Vector3) -> bool:
+	for area: Rect2 in _blocked.values():
+		if area.has_point(Vector2(point.x, point.z)):
+			return true
+	return false
+
+
+## Backend hook: `area` was just blocked under `id`.
+func _on_blocked(_id: int, _area: Rect2) -> void:
+	pass
+
+
+## Backend hook: the area of `id` is passable again.
+func _on_unblocked(_id: int, _area: Rect2) -> void:
+	pass
 
 
 ## The nearest walkable point to `point`. Can be expensive; not for per-tick use.

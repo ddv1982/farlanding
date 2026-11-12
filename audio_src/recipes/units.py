@@ -8,6 +8,8 @@ but each unit type owns a register, a rhythm and an interval:
   ranger    middle (A4-A5), two or three crisp marimba strokes, fourths and fifths
   bulwark   low (A1-A3), slow brassy reed with a sub, octaves and fifths, weight
   kite      upper-middle (E5-B5), gliding swoops with air, slides of a fifth/sixth
+  hauler    low-middle (D3-B3), dotted short-long reed 'horn' dyads with a knock, steps
+  fabricator upper (F#5-F#6), busy marimba grace-note flicks with tool ticks, seconds/fourths
 
 The three kinds of reply follow one grammar for every unit, so players learn it
 once: select rises (a question), move falls and resolves (an answer), attack
@@ -156,6 +158,68 @@ KITE = {
     "attack": [[(76, 83, 0.07), (76, 83, 0.09)], [(74, 81, 0.07), (74, 81, 0.09)], [(78, 85, 0.07), (78, 85, 0.09)]],
 }
 
+# --------------------------------------------------------------------------- hauler
+
+
+def hauler(rng: np.random.Generator, midi: list[int], times: list[float], accent: bool = False) -> np.ndarray:
+    """Six-wheeled harvester: a low reed 'horn' dyad (a third in key) with a
+    wooden knock an octave up, dotted short-long rhythm, stepwise intervals."""
+    third = {50: 54, 52: 56, 54: 57, 56: 59, 57: 61, 59: 62, 61: 64, 62: 66}
+    total = times[-1] + 1.4
+    buf = np.zeros(dsp.samples(total))
+    for i, (m, at) in enumerate(zip(midi, times)):
+        last = i == len(midi) - 1
+        dur = 0.24 if last else 0.07
+        hard = 1.5 if accent and not last else 1.0
+        lo = reed(dsp.midi_hz(m), dur, rng, brightness=9.0 * hard, attack=0.012, release=0.09,
+                  breath=0.03, vibrato_hz=4.0, vibrato_cents=3.0)
+        hi = 0.7 * reed(dsp.midi_hz(third[m]), dur, rng, brightness=8.0, attack=0.014, release=0.09,
+                        breath=0.0, vibrato_hz=4.3, vibrato_cents=3.0)
+        knock = 0.9 * hard * marimba(dsp.midi_hz(m + 12), 0.06, rng, hardness=1.3, decay=0.09, tail=0.25)
+        note = dsp.mix(dsp.saturate(dsp.mix(lo, hi) * 1.3, 1.2), knock)
+        dsp.place(buf, note, dsp.samples(at))
+    buf = dsp.biquad(buf, "peak", 900.0, 0.8, 4.0)
+    return _finish(dsp.highpass(buf, 90.0), rng)
+
+
+HAULER = {
+    "select": [([50, 54], [0.0, 0.1]), ([52, 56], [0.0, 0.1]), ([50, 52, 54], [0.0, 0.08, 0.17])],
+    "move": [([54, 50], [0.0, 0.1]), ([56, 52], [0.0, 0.1]), ([57, 54, 50], [0.0, 0.08, 0.17])],
+    "attack": [([50, 50, 57], [0.0, 0.08, 0.16]), ([52, 52, 57], [0.0, 0.08, 0.16]), ([54, 54, 50], [0.0, 0.08, 0.16])],
+}
+
+# --------------------------------------------------------------------------- fabricator
+
+
+def fabricator(rng: np.random.Generator, notes: list[tuple[int, float]], accent: bool = False) -> np.ndarray:
+    """Builder drone: busy little marimba 'hands' with a grace-note flick into
+    each landing note, a tool tick under every stroke and a soft chime on the
+    last. Upper register (F#5-F#6), seconds and fourths."""
+    total = notes[-1][1] + 0.9
+    buf = np.zeros(dsp.samples(total))
+    for i, (m, at) in enumerate(notes):
+        last = i == len(notes) - 1
+        f = dsp.midi_hz(m)
+        hard = 1.4 if accent and not last else 0.9
+        wood = marimba(f, 0.04, rng, hardness=hard, decay=0.12 if last else 0.035, tail=0.3)
+        n = dsp.samples(0.03)
+        tool = 0.35 * dsp.bandpass(dsp.white(n, rng), 5200.0, 3.0) * dsp.perc(n, 0.0003, 0.0025)
+        note = dsp.mix(wood * (1.0 if last else 0.75), tool)
+        if last:
+            note = dsp.mix(note, 0.45 * chime(f, 0.05, rng, brightness=0.6, decay=0.16, tail=0.4))
+        dsp.place(buf, note, dsp.samples(at))
+    return _finish(dsp.highpass(buf, 280.0), rng, dict(seconds=0.6, mix=0.14, predelay_ms=6.0, damp=0.6))
+
+
+FABRICATOR = {
+    "select": [[(81, 0.0), (83, 0.032), (88, 0.12)], [(80, 0.0), (81, 0.03), (85, 0.11)],
+               [(83, 0.0), (85, 0.032), (90, 0.12)]],
+    "move": [[(88, 0.0), (86, 0.032), (81, 0.12)], [(85, 0.0), (83, 0.03), (78, 0.11)],
+             [(90, 0.0), (88, 0.032), (83, 0.12)]],
+    "attack": [[(83, 0.0), (83, 0.065), (83, 0.13), (88, 0.2)], [(81, 0.0), (81, 0.065), (81, 0.13), (86, 0.2)],
+               [(85, 0.0), (85, 0.065), (85, 0.13), (90, 0.2)]],
+}
+
 
 # --------------------------------------------------------------------------- registry
 
@@ -181,6 +245,16 @@ def _register() -> None:
             sound(f"unit_kite_{kind}_{i}", "unit", UNIT_LUFS, folder="units/kite", max_seconds=1.6,
                   params={"recipe": f"kite({glides}, gap=0.03)"})(
                 lambda rng, g=glides: kite(rng, g, 0.03))
+    for kind, variants in HAULER.items():
+        for i, (notes, times) in enumerate(variants, start=1):
+            sound(f"unit_hauler_{kind}_{i}", "unit", UNIT_LUFS, folder="units/hauler", max_seconds=1.8,
+                  params={"recipe": f"hauler({notes}, {times})"})(
+                lambda rng, n=notes, t=times, k=kind: hauler(rng, n, t, accent=k == "attack"))
+    for kind, variants in FABRICATOR.items():
+        for i, notes in enumerate(variants, start=1):
+            sound(f"unit_fabricator_{kind}_{i}", "unit", UNIT_LUFS, folder="units/fabricator", max_seconds=1.4,
+                  params={"recipe": f"fabricator({notes})"})(
+                lambda rng, n=notes, k=kind: fabricator(rng, n, accent=k == "attack"))
 
 
 _register()

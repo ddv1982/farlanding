@@ -7,7 +7,9 @@ atlas. Run recipes live through the Blender MCP or headless with
 `blender -b -P art/pipeline/build_all.py`.
 
 Conventions
-- 1 Blender unit = 1 metre. Models face -Y in Blender (= -Z, "forward", in Godot).
+- 1 Blender unit = 1 metre. Recipes face -Y in Blender. Exported units face
+  -Z ("forward") in Godot; exported buildings keep their door towards +Z, the
+  side the default camera looks at.
 - Origin on the ground at the footprint centre.
 - Moving parts are separate child objects with reserved names that the game
   animates in code: turret, barrel, wheel_*, leg_*, dish, rotor, track_*.
@@ -43,7 +45,7 @@ SWATCHES: dict[str, tuple[tuple[float, float, float], float, float, float, float
     # shared
     "team": ((1.00, 1.00, 1.00), 0.50, 0.0, 0.0, 1.0),
     "team_glow": ((1.00, 1.00, 1.00), 0.40, 0.0, 3.0, 1.0),
-    "glow_orange": ((1.00, 0.55, 0.12), 0.40, 0.0, 4.0, 0.0),
+    "glow_orange": ((1.00, 0.36, 0.05), 0.40, 0.0, 2.4, 0.0),
     "hazard": ((0.95, 0.72, 0.05), 0.55, 0.0, 0.0, 0.0),
     "copper": ((0.72, 0.38, 0.20), 0.35, 1.0, 0.0, 0.0),
     "white": ((0.92, 0.92, 0.92), 0.50, 0.0, 0.0, 0.0),
@@ -212,18 +214,20 @@ class Part:
 
 
 # ----------------------------------------------------------------- export ---
-def _apply_and_atlas(obj: bpy.types.Object) -> None:
+def _apply_and_atlas(obj: bpy.types.Object, turn: bool) -> None:
     """Apply modifiers, then replace material slots with palette-atlas UVs."""
     depsgraph = bpy.context.evaluated_depsgraph_get()
     evaluated = obj.evaluated_get(depsgraph)
     mesh = bpy.data.meshes.new_from_object(evaluated, preserve_all_data_layers=True,
                                            depsgraph=depsgraph)
     obj.modifiers.clear()
-    # Recipes face -Y (Blender's front view); the game's forward is glTF -Z,
-    # which is Blender +Y, so turn everything half a turn about Z.
-    flip = Matrix.Rotation(math.pi, 4, "Z")
-    mesh.transform(flip)
-    obj.location = flip @ obj.location
+    # Recipes face -Y (Blender's front view). Units are turned half a turn so
+    # their front is the game's forward (glTF -Z = Blender +Y). Buildings are
+    # not: their door side stays glTF +Z, towards the default camera.
+    if turn:
+        flip = Matrix.Rotation(math.pi, 4, "Z")
+        mesh.transform(flip)
+        obj.location = flip @ obj.location
     old_mesh = obj.data
     slot_names = [s.material.name[3:] if s.material else "ceramic" for s in obj.material_slots]
     obj.data = mesh
@@ -255,8 +259,9 @@ def export(root_obj: bpy.types.Object, subdir: str) -> str:
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, root_obj.name + ".glb")
     children = [o for o in root_obj.children_recursive if o.type == "MESH"]
+    turn = "_building_" not in root_obj.name
     for obj in children:
-        _apply_and_atlas(obj)
+        _apply_and_atlas(obj, turn)
     for obj in bpy.context.scene.objects:
         obj.select_set(obj is root_obj or obj in children)
     bpy.context.view_layer.objects.active = root_obj

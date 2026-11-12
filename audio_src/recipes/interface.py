@@ -92,3 +92,52 @@ def ui_group_recall(rng: np.random.Generator) -> np.ndarray:
     parts = [(0.0, tick(rng, 2637.0, 0.005)), (0.035, tick(rng, 2637.0, 0.005))]
     parts.append((0.05, 0.6 * chime(dsp.midi_hz(90), 0.03, rng, brightness=0.5, decay=0.06, tail=0.12)))
     return _done(_seq(parts, 0.25))
+
+
+# --------------------------------------------------------------------------- base building
+
+
+@sound("ui_build_button", "ui", UI_LUFS, max_seconds=0.15)
+def ui_build_button(rng: np.random.Generator) -> np.ndarray:
+    """Build-menu button: woodier than ui_click, a tick with a low marimba 'tock'."""
+    tock = marimba(dsp.midi_hz(74), 0.02, rng, hardness=1.1, decay=0.025, tail=0.06)
+    return _done(_seq([(0.0, 0.7 * tick(rng, 1760.0, 0.005)), (0.004, tock)], 0.15))
+
+
+@sound("ui_queue", "ui", UI_LUFS, max_seconds=0.25)
+def ui_queue(rng: np.random.Generator) -> np.ndarray:
+    """A unit is queued: two ratchet ticks and a small marimba E, 'added'."""
+    parts = [(0.0, tick(rng, 2637.0, 0.004, 0.4)), (0.03, tick(rng, 2637.0, 0.004, 0.4)),
+             (0.06, marimba(dsp.midi_hz(88), 0.03, rng, hardness=0.7, decay=0.05, tail=0.1))]
+    return _done(_seq(parts, 0.25))
+
+
+@sound("ui_rally_set", "ui", UI_LUFS, max_seconds=0.3)
+def ui_rally_set(rng: np.random.Generator) -> np.ndarray:
+    """Rally point set: a tick and a planted-flag chime fifth, A up to E."""
+    parts = [(0.0, tick(rng, 2350.0, 0.005)),
+             (0.015, 0.7 * chime(dsp.midi_hz(81), 0.03, rng, brightness=0.6, decay=0.04, tail=0.1)),
+             (0.07, chime(dsp.midi_hz(88), 0.03, rng, brightness=0.6, decay=0.08, tail=0.15))]
+    return _done(_seq(parts, 0.3))
+
+
+@sound("ui_invalid_placement", "ui", UI_LUFS + 1.0, max_seconds=0.3)
+def ui_invalid_placement(rng: np.random.Generator) -> np.ndarray:
+    """Cannot build here: one muted buzzing thunk on a C#-D cluster. Shorter
+    and lower than ui_invalid, so it can repeat while the cursor moves."""
+    n = dsp.samples(0.14)
+    x = dsp.soft_square(dsp.midi_hz(49), n, 4.0) + 0.8 * dsp.soft_square(dsp.midi_hz(50), n, 4.0)
+    x = dsp.lowpass(x, 1100.0) * dsp.perc(n, 0.003, 0.045)
+    thunk = 0.5 * dsp.lowpass(dsp.white(n, rng), 600.0) * dsp.perc(n, 0.001, 0.01)
+    return dsp.fade(dsp.trim_tail(dsp.dc_block(dsp.highpass(x + thunk, 100.0)), -55.0), 0.0005, 0.01)
+
+
+@sound("ui_not_enough_resources", "ui", UI_LUFS + 1.0, max_seconds=0.3)
+def ui_not_enough_resources(rng: np.random.Generator) -> np.ndarray:
+    """Cannot afford: two dull marimba notes falling a third (F#-D) and a
+    hollow 'empty' tick, softer than a hard 'no'."""
+    a = marimba(dsp.midi_hz(66), 0.03, rng, hardness=0.3, decay=0.05, tail=0.1)
+    b = marimba(dsp.midi_hz(62), 0.03, rng, hardness=0.3, decay=0.08, tail=0.12)
+    empty = 0.5 * tick(rng, 900.0, 0.01, 0.3)
+    buf = _seq([(0.0, empty), (0.01, a), (0.09, b)], 0.3)
+    return dsp.fade(dsp.trim_tail(dsp.dc_block(dsp.highpass(buf, 150.0)), -55.0), 0.0005, 0.01)

@@ -54,7 +54,8 @@ slope, height and world-space noise, so any heightfield is shaded for free.
 ### Model conventions
 
 - 1 unit = 1 metre; origin on the ground at the footprint centre.
-- Recipes face -Y (Blender front view); export turns them to the game's forward.
+- Recipes face -Y (Blender front view). Export turns units to the game's forward
+  (-Z); buildings keep their door towards +Z, the side the default camera sees.
 - Moving parts are separate objects with reserved names, animated in code by
   `UnitVisual`: `wheel_*`, `leg_*`, `turret`, `barrel`, `dish`.
 - A `-col` suffix on an object name makes Godot generate a static collider.

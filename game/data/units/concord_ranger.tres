@@ -18,3 +18,7 @@ faction = 0
 scene = ExtResource("2_scene")
 icon = ExtResource("3_icon")
 sound_set = &"ranger"
+description = "Light infantry walker. Trained at the Muster Bay."
+cost_alloy = 75
+cost_flux = 0
+build_time = 10.0

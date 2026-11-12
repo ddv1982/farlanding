@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="BuildingDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/buildings/concord_refinery.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_building_refinery.png" id="3"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="4"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_building_refinery.glb" id="20"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="5"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Refinery"
+description = "Haulers unload Alloy here. Comes with one free Hauler."
+max_health = 1200
+footprint = Rect2(-4.5, -5, 9, 10)
+height = 6.9
+power_use = 4
+accepts_alloy = true
+dock = Vector3(-1.5, 0, 8.5)
+dropoff_priority = 1
+door = Vector3(0, 0, 8.5)
+cost_alloy = 250
+cost_flux = 0
+build_time = 25.0
+free_units = Array[ExtResource("4")]([ExtResource("5")])
+scene = ExtResource("2")
+icon = ExtResource("3")
+sound_set = &"refinery"
+id = &"concord_refinery"
+faction = 0
+model = ExtResource("20")

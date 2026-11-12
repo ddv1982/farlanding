@@ -9,6 +9,9 @@ const CLICK_NONE: StringName = &"none"
 const CLICK_SELECT: StringName = &"select"
 const CLICK_ATTACK: StringName = &"attack"
 const CLICK_MOVE: StringName = &"move"
+## Right click on one of these with units selected.
+const CLICK_HARVEST: StringName = &"harvest"
+const CLICK_ASSIST: StringName = &"assist"
 
 
 static func is_selectable(unit: Variant, player_faction: int) -> bool:
@@ -95,3 +98,37 @@ static func same_type(candidates: Array[Unit], like: Unit, player_faction: int) 
 		if unit.def == like.def:
 			result.append(unit)
 	return result
+
+
+## What a right click on `target` (a building or resource node; null = ground) asks
+## of the selected units: harvest a deposit (if any can harvest), help build an own
+## site (if any can build), attack an enemy building, or move there.
+static func right_click_target(
+	current: Array[Unit], target: Node3D, player_faction: int
+) -> StringName:
+	var units: Array[Unit] = selectable(current, player_faction)
+	if units.is_empty():
+		return CLICK_NONE
+	var node: ResourceNode = target as ResourceNode
+	if node != null and node.is_minable() and _any_can(units, Harvester.KIND):
+		return CLICK_HARVEST
+	var building: Building = target as Building
+	if building != null and is_instance_valid(building) and building.is_inside_tree():
+		if building.faction != player_faction:
+			return CLICK_ATTACK
+		if building.is_under_construction and _any_can(units, Builder.KIND):
+			return CLICK_ASSIST
+	return CLICK_MOVE
+
+
+## The units in `units` that can carry out orders of `kind`.
+static func able(units: Array[Unit], kind: StringName) -> Array[Unit]:
+	var result: Array[Unit] = []
+	for unit: Unit in units:
+		if unit.orders != null and unit.orders.can_do(kind):
+			result.append(unit)
+	return result
+
+
+static func _any_can(units: Array[Unit], kind: StringName) -> bool:
+	return not able(units, kind).is_empty()

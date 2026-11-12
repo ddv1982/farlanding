@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="BuildingDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/buildings/concord_reactor.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_building_reactor.png" id="3"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="4"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_building_reactor.glb" id="20"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Reactor"
+description = "Produces Power. Build more when Power used exceeds Power produced."
+max_health = 900
+footprint = Rect2(-3.5, -3.5, 7, 7)
+height = 5.7
+power_output = 15
+power_use = 0
+cost_alloy = 150
+cost_flux = 0
+build_time = 20.0
+scene = ExtResource("2")
+icon = ExtResource("3")
+sound_set = &"reactor"
+id = &"concord_reactor"
+faction = 0
+model = ExtResource("20")

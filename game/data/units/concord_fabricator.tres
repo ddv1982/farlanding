@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/concord_fabricator.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_unit_fabricator.png" id="3"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="4"]
+[ext_resource type="Resource" path="res://data/buildings/concord_reactor.tres" id="5"]
+[ext_resource type="Resource" path="res://data/buildings/concord_refinery.tres" id="6"]
+[ext_resource type="Resource" path="res://data/buildings/concord_flux_tap.tres" id="7"]
+[ext_resource type="Resource" path="res://data/buildings/concord_muster_bay.tres" id="8"]
+[ext_resource type="Resource" path="res://data/buildings/concord_foundry.tres" id="9"]
+
+[resource]
+script = ExtResource("1")
+max_health = 160
+move_speed = 6.5
+turn_speed = 400.0
+vision_range = 18.0
+radius = 1.1
+acceleration = 12.0
+builds = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("9")])
+build_rate = 1.0
+work_range = 5.0
+id = &"concord_fabricator"
+display_name = "Fabricator"
+description = "Builder drone. Select it to open the build menu; right-click a construction site to help build."
+faction = 0
+scene = ExtResource("2")
+icon = ExtResource("3")
+sound_set = &"fabricator"
+cost_alloy = 100
+cost_flux = 0
+build_time = 12.0

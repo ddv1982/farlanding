@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/buildings/building_flux_tap_select.wav" id="2_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"building_flux_tap_select"
+streams = Array[AudioStream]([ExtResource("2_stream")])
+bus = &"Buildings"
+priority = 70
+max_instances = 1
+cooldown = 0.25
+positional = false
+max_distance = 0.0
