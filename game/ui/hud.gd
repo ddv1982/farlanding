@@ -1,19 +1,22 @@
 class_name Hud
 extends CanvasLayer
 ## In-mission HUD: the resource bar (top), the command panel (bottom centre: build
-## menu, production, hints), a selection panel with one chip per type, a controls
-## panel (F1) and a debug overlay (F3). Built in code from HudStyle so every panel
-## reads as the same survey-instrument family.
+## menu, production, hints), a selection panel with one chip per type, the minimap
+## (bottom right) with the controls panel (F1) above it, the end-of-mission panel and
+## a debug overlay (F3). Built in code from HudStyle so every panel reads as the same
+## survey-instrument family.
 
 const HINT: String = (
 	"LEFT     select: click, drag, double-click type  ·  building: click it\n"
-	+ "         enemy: attack  ·  buttons: build, queue units\n"
-	+ "RIGHT    move  ·  enemy: attack  ·  deposit: harvest (Haulers)\n"
+	+ "         enemy in sight: attack  ·  buttons: build, queue units\n"
+	+ "RIGHT    move  ·  enemy in sight: attack  ·  deposit: harvest (Haulers)\n"
 	+ "         site: help build (Fabricators)  ·  building selected: rally point\n"
 	+ "         unit button: cancel one  ·  while placing: cancel (or Esc)\n"
 	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  X stop\n"
 	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
-	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn"
+	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn\n"
+	+ "MAP      left: look there (drag)  ·  right: move selected units there\n"
+	+ "COMBAT   armed units fire on enemies in range by themselves"
 )
 const MARGIN := HudStyle.MARGIN
 
@@ -23,6 +26,10 @@ const MARGIN := HudStyle.MARGIN
 ## Where build and production buttons send their requests.
 @export var selection_controller: SelectionController
 @export var player_faction: int = 0
+## The camera the minimap moves and outlines.
+@export var camera: RtsCamera
+## World X/Z area the minimap shows.
+@export var map_area: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
 
 var _selection_panel: PanelContainer
 var _selection_title: Label
@@ -34,12 +41,17 @@ var _debug: Label
 var _tick: int = 0
 var _resource_bar: ResourceBar
 var _command_panel: CommandPanel
+var _corner: VBoxContainer
+var _minimap: Minimap
+var _end_panel: EndPanel
 
 
 func _ready() -> void:
 	_build_selection_panel()
 	_build_hint()
 	_build_debug()
+	_end_panel = EndPanel.new()
+	add_child(_end_panel)
 	# The world sets up its economy in the map's _ready, after this HUD's.
 	_build_economy_panels.call_deferred()
 	Events.selection_changed.connect(_on_selection_changed)
@@ -70,6 +82,9 @@ func _process(_delta: float) -> void:
 	]
 	if world != null:
 		lines.append("Sim tick cost %.2f ms" % (world.last_tick_usec / 1000.0))
+		lines.append("Projectiles %d" % world.combat.projectiles.size())
+		if world.vision != null:
+			lines.append("Vision update %.2f ms" % (world.vision.last_update_usec / 1000.0))
 	_debug.text = "\n".join(lines)
 
 
@@ -135,6 +150,10 @@ func _build_economy_panels() -> void:
 	)
 	_command_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_command_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_minimap = Minimap.new()
+	_minimap.name = &"Minimap"
+	_minimap.setup(world, camera, selection_controller, player_faction, map_area)
+	_corner.add_child(_minimap)
 
 
 func _build_selection_panel() -> void:
@@ -149,13 +168,21 @@ func _build_selection_panel() -> void:
 	column.add_child(_chips)
 
 
+## Bottom-right column: the controls panel (F1) or its toggle, above the minimap.
 func _build_hint() -> void:
-	_hint_panel = _make_panel(Control.PRESET_BOTTOM_RIGHT)
+	_corner = VBoxContainer.new()
+	_corner.alignment = BoxContainer.ALIGNMENT_END
+	_corner.add_theme_constant_override(&"separation", 6)
+	_corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_corner)
+	_place(_corner, Control.PRESET_BOTTOM_RIGHT)
+	_hint_panel = HudStyle.make_panel()
 	_hint_panel.add_child(_make_label(12, HudStyle.TEXT_COLOR, HINT))
 	_hint_panel.visible = false
+	_corner.add_child(_hint_panel)
 	_hint_toggle = _make_label(11, HudStyle.MUTED_COLOR, "F1  CONTROLS")
-	add_child(_hint_toggle)
-	_place(_hint_toggle, Control.PRESET_BOTTOM_RIGHT)
+	_hint_toggle.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_corner.add_child(_hint_toggle)
 
 
 func _build_debug() -> void:

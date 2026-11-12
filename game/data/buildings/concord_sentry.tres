@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="BuildingDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/buildings/concord_sentry.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_building_sentry.png" id="3"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_building_sentry.glb" id="20"]
+[ext_resource type="Resource" path="res://data/weapons/sentry_repeater.tres" id="w_weapon"]
+
+[resource]
+script = ExtResource("1")
+id = &"concord_sentry"
+display_name = "Sentry"
+description = "Defence turret. Fires on enemies in range by itself while it has Power."
+faction = 0
+max_health = 700
+footprint = Rect2(-2.2, -2.2, 4.4, 4.4)
+height = 3.3
+armour_type = &"structure"
+vision_range = 24.0
+weapon = ExtResource("w_weapon")
+power_output = 0
+power_use = 3
+cost_alloy = 150
+cost_flux = 0
+build_time = 18.0
+scene = ExtResource("2")
+icon = ExtResource("3")
+model = ExtResource("20")
+sound_set = &"sentry"

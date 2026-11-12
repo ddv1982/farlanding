@@ -10,6 +10,12 @@ extends EntityDef
 @export_range(0.1, 20.0, 0.05, "suffix:m") var radius: float = 0.5
 ## Also used for braking.
 @export_range(0.1, 200.0, 0.1, "suffix:m/s²") var acceleration: float = 10.0
+@export_group("Combat")
+## Column of the DamageTable: &"light" or &"heavy". Empty = not stated (taken as
+## light by combat; audio then guesses the weight class from the unit).
+@export var armour_type: StringName = &""
+## The unit's gun, or null for an unarmed unit (it only moves near an attack target).
+@export var weapon: WeaponDef = null
 @export_group("Builder")
 ## Buildings this unit can construct (shown in its build menu): BuildingDefs, typed
 ## as EntityDef because BuildingDef already refers to UnitDef (a cycle between the
@@ -36,3 +42,13 @@ func can_build() -> bool:
 ## True if this unit can harvest Alloy.
 func can_harvest() -> bool:
 	return carry_capacity > 0
+
+
+## The armour combat uses: `armour_type`, or light when it is not stated.
+func armour() -> StringName:
+	return armour_type if armour_type != &"" else DamageTable.ARMOUR_LIGHT
+
+
+## True if this unit carries a weapon.
+func is_armed() -> bool:
+	return weapon != null

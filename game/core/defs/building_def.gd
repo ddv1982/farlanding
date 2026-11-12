@@ -12,6 +12,13 @@ extends EntityDef
 @export var placeable: bool = true
 ## The bare model, shown as the placement preview.
 @export var model: PackedScene
+@export_group("Combat")
+## Column of the DamageTable (buildings are &"structure").
+@export var armour_type: StringName = &"structure"
+## How far the building sees, in metres (fog of war).
+@export_range(0.0, 200.0, 0.5, "suffix:m") var vision_range: float = 14.0
+## A defence weapon (Sentry), or null. It fires only while the building is powered.
+@export var weapon: WeaponDef = null
 @export_group("Power")
 ## Power capacity this building adds once operational.
 @export_range(0, 1000, 1) var power_output: int = 0

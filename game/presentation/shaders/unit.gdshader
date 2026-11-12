@@ -21,6 +21,14 @@ instance uniform float build_progress : hint_range(0.0, 1.0) = 1.0;
 instance uniform float build_height = 10.0;
 uniform vec3 build_glow : source_color = vec3(0.25, 0.95, 1.0);
 
+#include "fog.gdshaderinc"
+
+varying vec3 world_pos;
+
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
 void fragment() {
 	vec3 base = texture(palette_albedo, UV).rgb;
 	vec4 surface = texture(palette_surface, UV);
@@ -38,13 +46,16 @@ void fragment() {
 	float grey = dot(base, vec3(0.299, 0.587, 0.114));
 	base = mix(base, vec3(grey) * 0.45, damage * 0.7);
 
-	ALBEDO = base;
+	vec2 fog = fog_at(world_pos);
+	ALBEDO = fog_color(base, fog);
 	ROUGHNESS = mix(surface.r, 0.95, damage * 0.6);
 	METALLIC = surface.g;
 	EMISSION = base * surface.b * 8.0 * (1.0 - damage);
 	// Soft rim so silhouettes read against terrain from RTS height.
 	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	EMISSION += base * rim * rim_strength;
+	// Lights and rim belong to what is seen now, not to a remembered building.
+	EMISSION *= fog.r;
 	if (build_progress < 1.0) {
 		EMISSION += build_glow * (1.0 - smoothstep(0.0, 0.35, build_front - height)) * 3.0;
 	}

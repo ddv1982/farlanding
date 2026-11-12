@@ -17,6 +17,8 @@ var entity_id: int = -1
 var remaining: int = 0
 ## The Flux Tap standing on this vent, or null.
 var tap: Building = null
+## False while the player cannot see this node now. Read by audio and UI.
+var is_visible_to_player: bool = true
 
 
 func _enter_tree() -> void:

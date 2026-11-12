@@ -80,7 +80,7 @@ func update_power(buildings: Array[Building]) -> void:
 	for faction: int in _stockpiles:
 		totals[faction] = Vector2i.ZERO
 	for building: Building in buildings:
-		if building.def == null or not building.is_operational():
+		if building.def == null or not building.is_operational() or building.is_dead:
 			continue
 		var total: Vector2i = totals.get(building.faction, Vector2i.ZERO)
 		total += Vector2i(building.def.power_output, building.def.power_use)

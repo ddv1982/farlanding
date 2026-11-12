@@ -10,6 +10,7 @@
 
 [resource]
 script = ExtResource("1")
+vision_range = 26.0
 display_name = "Lander"
 description = "Your HQ: the dropship that landed you. Gives some Power, takes Alloy until a Refinery stands, and builds Fabricators and Haulers."
 max_health = 3000

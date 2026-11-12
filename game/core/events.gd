@@ -50,7 +50,27 @@ signal resource_depleted(node: Node3D)
 
 ## Something the player's advisor should announce, e.g. &"low_power",
 ## &"insufficient_resources", &"construction_complete", &"unit_ready",
-## &"deposit_depleted". Player-facing only: never emitted for other factions.
+## &"deposit_depleted", &"under_attack". Player-facing only: never emitted for other factions.
 signal advisor_alert(kind: StringName)
+
+## A weapon fired. `weapon` is the WeaponDef; `muzzle` and `target` are world points.
+signal weapon_fired(shooter: Node3D, weapon: WeaponDef, muzzle: Vector3, target: Vector3)
+
+## A projectile entered the world, so presentation can give it a look. The sim moves
+## it every frame, oriented along its travel (-Z forward); it leaves the tree on impact.
+signal projectile_launched(projectile: Node3D, weapon: WeaponDef)
+
+## A shot landed at `position`. `victim` is null when it hit the ground.
+signal projectile_impacted(weapon: WeaponDef, position: Vector3, victim: Node3D)
+
+## An entity lost `amount` health. `attacker` may be null.
+signal entity_damaged(entity: Node3D, amount: float, attacker: Node3D)
+
+## A mission began (also after "Play again"). Mission-scoped state held by
+## autoloads, such as audio, resets on this.
+signal mission_started
+
+## The mission is over: `won` is true when the player won.
+signal mission_ended(won: bool)
 
 @warning_ignore_restore("unused_signal")

@@ -8,8 +8,10 @@ extends Node
 ## building) attacks it, right click on a deposit sends Haulers to harvest it, right
 ## click on an own construction site sends Fabricators to help, and right click on the
 ## ground moves there (Shift queues). With a producer building selected, right click
-## on the ground sets its rally point. While placing a building (BuildPlacement), left
-## click places it and right click or Esc cancels. X stops. Ctrl+1..9 stores a control
+## on the ground sets its rally point. Enemies out of sight cannot be clicked: hidden
+## ones are not there for the mouse, remembered buildings count as ground. While
+## placing a building (BuildPlacement), left click places it and right click or Esc
+## cancels. X stops. Ctrl+1..9 stores a control
 ## group, 1..9 recalls it, a quick second press centres the camera on it. The cursor
 ## turns into a red reticle over an enemy while units are selected. Every order goes
 ## through the mission's CommandQueue.
@@ -146,6 +148,8 @@ func building_at(screen_position: Vector2) -> Building:
 	var best: Building = null
 	var best_distance: float = INF
 	for building: Building in world.buildings:
+		if not building.visible or building.is_dead:
+			continue
 		var area: Rect2 = building.footprint()
 		var box: AABB = AABB(
 			Vector3(area.position.x, building.position.y - 0.5, area.position.y),
@@ -167,6 +171,8 @@ func resource_node_at(screen_position: Vector2) -> ResourceNode:
 	var origin: Vector3 = camera.camera.project_ray_origin(screen_position)
 	var direction: Vector3 = camera.camera.project_ray_normal(screen_position)
 	for node: ResourceNode in world.resource_nodes:
+		if not node.visible:
+			continue
 		var radius: float = node.def.radius
 		var box: AABB = AABB(
 			node.position - Vector3(radius, 0.5, radius),
@@ -203,6 +209,8 @@ func unit_at(screen_position: Vector2) -> Unit:
 	var best: Unit = null
 	var best_distance: float = INF
 	for unit: Unit in world.units:
+		if not unit.is_visible_to_player or unit.is_dead:
+			continue
 		var centre: Vector3 = unit.global_position + Vector3.UP * PICK_HEIGHT
 		var along: float = (centre - origin).dot(direction)
 		if along <= 0.0:
@@ -333,10 +341,11 @@ func _left_click(screen_position: Vector2, shift: bool) -> void:
 	var clicked: Unit = unit_at(screen_position)
 	if clicked == null:
 		var building: Building = building_at(screen_position)
-		if building != null:
-			if building.faction == player_faction:
-				select_building(building)
-			elif not selection.is_empty():
+		if building != null and building.faction == player_faction:
+			select_building(building)
+			return
+		if building != null and building.is_visible_to_player:
+			if not selection.is_empty():
 				_issue_attack(building, shift)
 			return
 	match SelectionRules.left_click(selection, clicked, player_faction):
@@ -395,12 +404,27 @@ func _select_same_type(screen_position: Vector2) -> void:
 	set_selection(same)
 
 
+## Orders the selected units to move to a ground point (the minimap's right click).
+## A selected producer building gets its rally point there instead.
+func move_selection_to(target: Vector3, queued: bool) -> void:
+	if selected_building != null and selected_building.producer != null:
+		_push(RallyCommand.new(player_faction, [selected_building] as Array[Node3D], target))
+		return
+	_move_to(target, queued)
+
+
 func _issue_move(screen_position: Vector2, queued: bool) -> void:
 	if selection.is_empty():
 		return
 	var target: Vector3 = camera.ground_point(screen_position)
 	if target == Vector3.INF:
 		Events.ui_feedback.emit(&"invalid_target")
+		return
+	_move_to(target, queued)
+
+
+func _move_to(target: Vector3, queued: bool) -> void:
+	if selection.is_empty():
 		return
 	_push(
 		MoveCommand.new(MoveCommand.KIND_MOVE, player_faction, _selected_entities(), target, queued)

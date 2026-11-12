@@ -1,0 +1,174 @@
+class_name VisionSystem
+extends RefCounted
+## Runs the VisionGrid for a mission (PLAN 3.4). Staggered: each sim tick updates
+## one faction's grid from all its units' and buildings' `vision_range`, round robin,
+## so with two factions each sees anew five times a second. After the player's
+## update it applies the player's view to the world: enemy units are shown only on
+## visible cells, enemy buildings once they have been seen (then they stay, as last
+## seen), resource nodes once explored. Every entity gets `is_visible_to_player`.
+## A unit or building that hits another faction is exposed to that faction for
+## EXPOSE_TICKS (a small disc around it on their grid), so attackers firing from
+## beyond the defenders' sight can still be seen and answered.
+
+## `faction`'s grid was just recomputed (presentation re-uploads the fog).
+signal updated(faction: int)
+
+const SAVE_VERSION: int = 1
+## How long a shooter stays exposed to the faction it hit (2 s).
+const EXPOSE_TICKS: int = 20
+## Radius of the disc an exposed shooter shows, in metres.
+const EXPOSE_RADIUS: float = 3.0
+
+var grid: VisionGrid
+var player_faction: int = 0
+## Wall-clock cost of the last faction update (grid plus applying the view), in µs.
+var last_update_usec: int = 0
+
+var _factions: Array[int] = []
+## Per faction: exposed entity -> sim tick its exposure ends.
+var _exposed: Dictionary[int, Dictionary] = {}
+var _tick: int = 0
+
+
+func _init(area: Rect2, cell_size: float = 2.0, p_player_faction: int = 0) -> void:
+	grid = VisionGrid.new(area, cell_size)
+	player_faction = p_player_faction
+	add_faction(player_faction)
+
+
+## Lets `faction` see (called for every spawned unit or building's faction).
+func add_faction(faction: int) -> void:
+	if faction >= 0 and not _factions.has(faction):
+		_factions.append(faction)
+		_factions.sort()
+
+
+func factions() -> Array[int]:
+	return _factions.duplicate()
+
+
+## The faction whose grid is updated on sim tick `tick`.
+func faction_for_tick(tick: int) -> int:
+	return _factions[posmod(tick, _factions.size())]
+
+
+## One sim tick: updates one faction (round robin) and, for the player, the view.
+func tick(
+	tick_number: int,
+	units: Array[Unit],
+	buildings: Array[Building],
+	nodes: Array[ResourceNode] = [],
+) -> int:
+	_tick = tick_number
+	var faction: int = faction_for_tick(tick_number)
+	update_faction(faction, units, buildings, nodes)
+	return faction
+
+
+## Recomputes `faction`'s grid now from its living units and buildings.
+func update_faction(
+	faction: int,
+	units: Array[Unit],
+	buildings: Array[Building],
+	nodes: Array[ResourceNode] = [],
+) -> void:
+	var started: int = Time.get_ticks_usec()
+	grid.begin_update(faction)
+	for unit: Unit in units:
+		if unit.faction == faction and not unit.is_dead and unit.def != null:
+			grid.reveal(faction, unit.sim_position(), unit.def.vision_range)
+	for building: Building in buildings:
+		if building.faction == faction and not building.is_dead and building.def != null:
+			grid.reveal(faction, building.position, building.def.vision_range)
+	_reveal_exposed(faction)
+	grid.end_update(faction)
+	if faction == player_faction:
+		apply_player_view(units, buildings, nodes)
+	last_update_usec = Time.get_ticks_usec() - started
+	updated.emit(faction)
+
+
+## `shooter` hit something of `faction`: that faction sees it for EXPOSE_TICKS.
+func expose(shooter: Node3D, faction: int) -> void:
+	if shooter == null or faction < 0:
+		return
+	if not _exposed.has(faction):
+		_exposed[faction] = {}
+	_exposed[faction][shooter] = _tick + EXPOSE_TICKS
+
+
+## True if `faction` sees `entity` now (buildings: any part of the footprint).
+func can_see(faction: int, entity: Node3D) -> bool:
+	var building: Building = entity as Building
+	if building != null:
+		return grid.is_area_visible(faction, building.footprint())
+	return grid.is_visible(faction, AttackCommand.position_of(entity))
+
+
+## Shows or hides every non-player entity by what the player knows.
+func apply_player_view(
+	units: Array[Unit], buildings: Array[Building], nodes: Array[ResourceNode]
+) -> void:
+	for unit: Unit in units:
+		refresh_unit(unit)
+	for building: Building in buildings:
+		refresh_building(building)
+	for node: ResourceNode in nodes:
+		refresh_node(node)
+
+
+func refresh_unit(unit: Unit) -> void:
+	var seen: bool = (
+		unit.faction == player_faction or grid.is_visible(player_faction, unit.sim_position())
+	)
+	unit.is_visible_to_player = seen
+	unit.visible = seen
+
+
+func refresh_building(building: Building) -> void:
+	if building.faction == player_faction:
+		building.is_visible_to_player = true
+		building.seen_by_player = true
+		building.visible = true
+		return
+	var seen: bool = grid.is_area_visible(player_faction, building.footprint())
+	building.is_visible_to_player = seen
+	if seen:
+		building.seen_by_player = true
+	building.visible = building.seen_by_player
+
+
+func refresh_node(node: ResourceNode) -> void:
+	var rect: Rect2 = node.blocked_area()
+	node.is_visible_to_player = grid.is_area_visible(player_faction, rect)
+	if not node.visible and grid.is_area_explored(player_faction, rect):
+		node.visible = true
+
+
+func _reveal_exposed(faction: int) -> void:
+	if not _exposed.has(faction):
+		return
+	var exposed: Dictionary = _exposed[faction]
+	for key: Variant in exposed.keys():
+		var until: int = exposed[key]
+		if not Combat.is_alive(key) or until < _tick:
+			exposed.erase(key)
+			continue
+		var shooter: Node3D = key
+		grid.reveal(faction, AttackCommand.position_of(shooter), EXPOSE_RADIUS)
+
+
+func to_dict() -> Dictionary:
+	return {"version": SAVE_VERSION, "factions": _factions.duplicate(), "grid": grid.to_dict()}
+
+
+func from_dict(data: Dictionary) -> void:
+	var version: int = data.get("version", 0)
+	assert(version == SAVE_VERSION, "Unsupported VisionSystem save version")
+	var saved: Array = data.get("factions", [])
+	for entry: Variant in saved:
+		var faction: int = entry
+		add_faction(faction)
+	var grid_data: Dictionary = data.get("grid", {})
+	if not grid_data.is_empty():
+		grid.from_dict(grid_data)

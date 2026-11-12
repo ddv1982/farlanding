@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/weapon_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"sentry_repeater"
+display_name = "Twin repeater"
+damage = 10.0
+damage_type = &"light"
+splash_radius = 0.0
+max_range = 20.0
+cooldown = 0.8
+salvo = 2
+salvo_spacing = 0.8
+projectile_speed = 70.0
+arc_height = 0.0
+fire_while_moving = false
+turret = true
+turn_speed = 240.0
+fire_arc = 8.0
+muzzle = Vector3(0, 2.3, -1.6)
+projectile_style = &"bolt"
+impact_size = 0.0
+sound_set = &"sentry_repeater"

@@ -3,9 +3,12 @@
 [ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
 [ext_resource type="PackedScene" path="res://sim/entities/units/concord_kite.tscn" id="2_scene"]
 [ext_resource type="Texture2D" path="res://assets/icons/concord_unit_kite.png" id="3_icon"]
+[ext_resource type="Resource" path="res://data/weapons/kite_autogun.tres" id="w_weapon"]
 
 [resource]
 script = ExtResource("1_def")
+armour_type = &"light"
+weapon = ExtResource("w_weapon")
 max_health = 220
 move_speed = 13.0
 turn_speed = 300.0

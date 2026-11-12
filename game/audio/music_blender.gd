@@ -33,6 +33,11 @@ func request(state: StringName, intensity: int, now: float) -> bool:
 	return false
 
 
+## Enters `state` at once, ignoring the hold time (mission end).
+func force(state: StringName, intensity: int, now: float) -> void:
+	_enter(state, intensity, now)
+
+
 ## Returns a deferred state that is now due (and enters it), or &"".
 func poll(now: float) -> StringName:
 	if _pending == &"" or now - _since < min_hold:

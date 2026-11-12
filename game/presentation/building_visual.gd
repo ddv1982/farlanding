@@ -5,6 +5,7 @@ extends Node3D
 
 const RING_SHADER: Shader = preload("res://presentation/shaders/selection_ring.gdshader")
 const DISH_SPEED := 0.6
+const TURRET_TURN_SPEED := 4.0
 const SITE_COLOR := Color(0.25, 0.95, 1.0, 0.22)
 ## Share of the model already showing when construction starts, so a new site
 ## is never invisible.
@@ -16,7 +17,11 @@ const SITE_START := 0.07
 
 var _meshes: Array[MeshInstance3D] = []
 var _dish: Node3D
+var _turret: Node3D
+var _aim_point: Vector3 = Vector3.ZERO
+var _has_aim: bool = false
 var _ring: MeshInstance3D
+var _health_bar: HealthBar
 var _site: MeshInstance3D
 var _height: float = 1.0
 
@@ -34,12 +39,21 @@ func _ready() -> void:
 	add_child(_ring)
 	_site = _build_site_plate()
 	add_child(_site)
+	_health_bar = HealthBar.create(footprint_radius * 1.2, _height + 1.2)
+	add_child(_health_bar)
 	set_selected(false)
 
 
 func _process(delta: float) -> void:
 	if _dish != null:
 		_dish.rotate_y(DISH_SPEED * delta)
+	if _turret != null:
+		# Building models keep their front towards +Z (see art/pipeline/fl.py).
+		var target_yaw := 0.0
+		if _has_aim:
+			var local := to_local(_aim_point)
+			target_yaw = atan2(local.x, local.z)
+		_turret.rotation.y = lerp_angle(_turret.rotation.y, target_yaw, TURRET_TURN_SPEED * delta)
 
 
 func set_team_color(color: Color) -> void:
@@ -65,6 +79,23 @@ func set_damage(amount: float) -> void:
 
 func set_selected(selected: bool) -> void:
 	_ring.visible = selected
+	_health_bar.set_selected(selected)
+
+
+## 1 = full health, 0 = dead. Also drives the worn look of the model.
+func set_health(fraction: float) -> void:
+	_health_bar.set_fraction(fraction)
+	set_damage(1.0 - clampf(fraction, 0.0, 1.0))
+
+
+## World-space point a turret should track; clear_aim() returns it to rest.
+func aim_at(point: Vector3) -> void:
+	_aim_point = point
+	_has_aim = true
+
+
+func clear_aim() -> void:
+	_has_aim = false
 
 
 func _collect(node: Node) -> void:
@@ -73,6 +104,8 @@ func _collect(node: Node) -> void:
 		_meshes.append(mesh)
 	if String(node.name) == "dish":
 		_dish = node as Node3D
+	elif String(node.name) == "turret":
+		_turret = node as Node3D
 	for child in node.get_children():
 		_collect(child)
 

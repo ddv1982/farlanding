@@ -11,6 +11,7 @@
 
 [resource]
 script = ExtResource("1")
+vision_range = 16.0
 display_name = "Foundry"
 description = "Builds vehicles: Surveyors, Kites and Bulwarks."
 max_health = 1400

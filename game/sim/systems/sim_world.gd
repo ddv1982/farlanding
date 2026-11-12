@@ -1,12 +1,14 @@
 class_name SimWorld
 extends Node3D
-## Owns the entities of one mission — units, buildings and resource nodes — and the
-## faction economies. Spawns entities, ticks them on the sim clock (power first, then
-## units, then buildings) and moves unit nodes between ticks. Registered on the
-## MissionContext as `SERVICE_KEY`; the Economy as `Economy.SERVICE_KEY`.
+## Owns the entities of one mission — units, buildings and resource nodes — the
+## faction economies, combat and (once enabled) vision. Spawns entities, ticks them
+## on the sim clock (power, combat grid, one faction's vision, units, buildings,
+## projectiles), moves unit and projectile nodes between ticks, and removes entities
+## whose health runs out. Registered on the MissionContext as `SERVICE_KEY`; the
+## Economy as `Economy.SERVICE_KEY`, Combat as `Combat.SERVICE_KEY`.
 
 const SERVICE_KEY: StringName = &"world"
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
 ## Produced units without a rally point walk this far out of the door.
 const DOOR_CLEARANCE: float = 4.0
 
@@ -17,6 +19,10 @@ var units: Array[Unit] = []
 var buildings: Array[Building] = []
 var resource_nodes: Array[ResourceNode] = []
 var economy: Economy = null
+## Shots, projectiles and damage (created by setup()).
+var combat: Combat = null
+## Fog of war, or null when the mission has none (everything is seen).
+var vision: VisionSystem = null
 var rules: EconomyRules = EconomyRules.new()
 var player_faction: int = 0
 ## Area buildings may be placed in (world X/Z).
@@ -36,6 +42,7 @@ func setup(
 	p_heights: HeightField,
 	p_rules: EconomyRules = null,
 	p_player_faction: int = 0,
+	p_damage_table: DamageTable = null,
 ) -> void:
 	context = p_context
 	paths = p_paths
@@ -46,7 +53,19 @@ func setup(
 	economy = Economy.new(rules, player_faction)
 	context.set_service(SERVICE_KEY, self)
 	context.set_service(Economy.SERVICE_KEY, economy)
+	combat = Combat.new()
+	combat.name = &"Combat"
+	combat.setup(self, p_damage_table, player_faction)
+	add_child(combat)
+	context.set_service(Combat.SERVICE_KEY, combat)
 	context.sim_clock.ticked.connect(_on_ticked)
+
+
+## Turns on fog of war over `area` (world X/Z) with `cell_size` metre cells. Call
+## before spawning. Every faction then sees only what its units and buildings see.
+func enable_vision(area: Rect2, cell_size: float = 2.0) -> VisionSystem:
+	vision = VisionSystem.new(area, cell_size, player_faction)
+	return vision
 
 
 ## Creates a unit of type `def` for `faction` standing at `at` facing `yaw`. A def
@@ -63,6 +82,11 @@ func spawn_unit(def: UnitDef, faction: int, at: Vector3, yaw: float = 0.0) -> Un
 		unit.locomotion.setup(def, at, yaw, paths, heights)
 	units.append(unit)
 	unit.tree_exiting.connect(_on_unit_exiting.bind(unit))
+	if unit.health != null:
+		unit.health.died.connect(_on_entity_killed.bind(unit))
+	if vision != null:
+		vision.add_faction(faction)
+		vision.refresh_unit(unit)
 	Events.entity_spawned.emit(unit)
 	return unit
 
@@ -91,6 +115,11 @@ func spawn_building(def: BuildingDef, faction: int, at: Vector3, complete: bool)
 	building.tree_exiting.connect(_on_building_exiting.bind(building))
 	_blocks[building.entity_id] = paths.block_area(building.footprint())
 	evacuate(building.footprint())
+	building.health.died.connect(_on_entity_killed.bind(building))
+	if vision != null:
+		vision.add_faction(faction)
+		building.seen_by_player = faction == player_faction
+		vision.refresh_building(building)
 	Events.entity_spawned.emit(building)
 	return building
 
@@ -110,6 +139,9 @@ func spawn_resource_node(def: ResourceNodeDef, at: Vector3) -> ResourceNode:
 	node.tree_exiting.connect(_on_node_exiting.bind(node))
 	if def.blocks_movement:
 		_blocks[node.entity_id] = paths.block_area(node.blocked_area())
+	if vision != null:
+		node.visible = false
+		vision.refresh_node(node)
 	return node
 
 
@@ -225,21 +257,29 @@ func _process(_delta: float) -> void:
 	for unit: Unit in units:
 		if unit.locomotion != null:
 			unit.locomotion.interpolate(fraction)
+	combat.interpolate(fraction)
 
 
-func _on_ticked(_tick: int) -> void:
+func _on_ticked(tick: int) -> void:
 	var started: int = Time.get_ticks_usec()
 	var dt: float = context.sim_clock.get_tick_delta()
 	economy.update_power(buildings)
+	combat.begin_tick(units, buildings)
+	if vision != null:
+		vision.tick(tick, units, buildings, resource_nodes)
 	for unit: Unit in units:
 		unit.sim_tick(dt)
 	for building: Building in buildings.duplicate():
 		_tick_building(building, dt)
+	combat.tick_projectiles(dt)
 	last_tick_usec = Time.get_ticks_usec() - started
 
 
 func _tick_building(building: Building, dt: float) -> void:
+	if building.is_dead:
+		return
 	var rate: float = economy.work_rate(building.faction)
+	building.tick_weapon(dt)
 	if building.sim_tick():
 		_on_construction_completed(building)
 		return
@@ -356,6 +396,25 @@ func _on_ground(point: Vector3) -> Vector3:
 	return point
 
 
+## Health ran out: announce the death, take the entity out of play at once (its
+## navmesh cut-out is freed now) and free it after the frame.
+func _on_entity_killed(_attacker: Node3D, entity: Node3D) -> void:
+	if not is_instance_valid(entity) or entity.is_queued_for_deletion():
+		return
+	var unit: Unit = entity as Unit
+	if unit != null and unit.orders != null:
+		unit.orders.stop()
+	var building: Building = entity as Building
+	if building != null:
+		_unblock(building.entity_id)
+		if building.vent != null and is_instance_valid(building.vent):
+			building.vent.tap = null
+	Events.entity_died.emit(entity)
+	if building != null:
+		economy.update_power(buildings)
+	entity.queue_free()
+
+
 func _on_unit_exiting(unit: Unit) -> void:
 	units.erase(unit)
 	_entities.erase(unit.entity_id)
@@ -398,6 +457,8 @@ func to_dict() -> Dictionary:
 		"buildings": saved_buildings,
 		"resource_nodes": saved_nodes,
 		"units": saved_units,
+		"combat": combat.to_dict(),
+		"vision": vision.to_dict() if vision != null else {},
 	}
 
 
@@ -405,7 +466,7 @@ func to_dict() -> Dictionary:
 ## buildings and units with their ids, then reconnects orders to their targets.
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
-	assert(version == SAVE_VERSION, "Unsupported SimWorld save version")
+	assert(version >= 1 and version <= SAVE_VERSION, "Unsupported SimWorld save version")
 	var economy_data: Dictionary = data.get("economy", {})
 	if not economy_data.is_empty():
 		economy.from_dict(economy_data)
@@ -442,6 +503,12 @@ func from_dict(data: Dictionary) -> void:
 	for unit: Unit in units:
 		if unit.orders != null:
 			unit.orders.resolve_targets(entity)
+	var vision_data: Dictionary = data.get("vision", {})
+	if vision != null and not vision_data.is_empty():
+		vision.from_dict(vision_data)
+	var combat_data: Dictionary = data.get("combat", {})
+	if not combat_data.is_empty():
+		combat.from_dict(combat_data, entity)
 
 
 func _restore_id(node: Node3D, current_id: int, data: Dictionary) -> void:

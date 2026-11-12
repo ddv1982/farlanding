@@ -62,7 +62,7 @@ func step(_order: Order, dt: float) -> bool:
 		unit.locomotion.face(site.position)
 		if not _working:
 			_working = true
-		unit.orders.aim_changed.emit(site.position + Vector3.UP * site.def.height * 0.5)
+		unit.aim_changed.emit(site.position + Vector3.UP * site.def.height * 0.5)
 		return site.construction.is_complete()
 	_working = false
 	if not unit.locomotion.is_travelling():
@@ -75,7 +75,7 @@ func step(_order: Order, dt: float) -> bool:
 
 func end(_order: Order) -> void:
 	if _working:
-		unit.orders.aim_cleared.emit()
+		unit.aim_cleared.emit()
 	_working = false
 	site = null
 

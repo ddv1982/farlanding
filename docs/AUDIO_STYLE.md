@@ -45,10 +45,41 @@ loudness targets and the naming, and says how to add a sound.
   | `unit_ready` | a high leap of a fifth, short-long, crisp |
   | `deposit_depleted` | three dyads falling and fading, each darker |
   | `building_placed` | one soft high dyad with an echo (−23) |
+  | `under_attack` | alarm: two fast bursts of four staccato tritone dyads a semitone apart, the second a step higher (−19) |
 
   Alert discipline (`AdvisorQueue`): one phrase at a time (others wait up to 4 s, most
-  important first), each kind throttled (insufficient resources and low power 15 s), and an
-  unheard low-power warning cancels out against a following power-restored.
+  important first), each kind throttled (insufficient resources and low power 15 s,
+  under attack 20 s), and an unheard low-power warning cancels out against a following
+  power-restored. `under_attack` outranks every other alert and is skipped (without starting
+  its throttle) while the listener focus is within 40 m of the damaged entity: the player is
+  already looking at the fight.
+- **Combat tells the factions apart by ear.** Concord weapons are clean, tonal and tight: sine
+  and FM bolts landing on D Lydian notes, controlled noise, no distortion (spectral flatness
+  ≤ 0.05). Combine weapons are harsher, lower and dirtier: detuned saws, ring modulation at
+  inharmonic ratios, saturated and decimated noise, crackle (flatness 0.10–0.18). Rapid weapons
+  are ≤ 0.2 s with nothing below ~500 Hz; heavy ones carry a sub thump and a tail.
+
+  | Sound set | Weapon | Sound |
+  |---|---|---|
+  | `repeater` | Ranger | FM bolt chirping down an octave onto A5/B5/C#6, 0.15 s |
+  | `light_gun` | Kite | double-tap of tight tonal "tak"s on E6/F#6 |
+  | `sentry` | Sentry turret | twin bolts a fifth/fourth apart over a soft body |
+  | `cannon` | Bulwark | deep thump, tight crack, barrel ringing on D/A/E, breech clack |
+  | `skitter_gun` | Combine drone | buzzy ring-modulated snap with decimated grit |
+  | `lance` | Combine Stinger | 0.3 s beam: beating saw cluster, rising whine, crackle, sizzle cut-off |
+  | `siege` | Combine Mauler | two saturated booms, a mistuned clang, loose rattle |
+
+  Impacts say what was hit (`impact_spark` light target, `impact_armour` heavy armour or
+  structure, `impact_ground` a miss; lances always spark); an `impact_size` of 1 m or more plays
+  an explosion instead (small < 2.5 m ≤ medium < 5 m ≤ large). Deaths: `death_light`, `death_heavy`
+  (by `def.armour_type`), `death_building` (a 3.8 s collapse).
+- **Combat music** is more synchronised layers of the Kessel explore clip (same 48 s grid and
+  chords): `drive` (tension: low ostinato, off-beat tick, phrase swells), `drums` and `brass`
+  (combat: taiko and toms; reed stabs and the Trail motif augmented as a call to arms). States
+  are layer mixes: explore, calm, tension, combat, aftermath (pad, soft melody, a trace of drive),
+  victory and defeat (quiet pads under the sting). The stings (`mus_sting_victory`: the motif
+  answered, rising to the high D; `mus_sting_defeat`: the motif darkened, D A Bb falling to the
+  low D) play flat on the Music bus.
 - **The Trail motif** — D A B G# (scale degrees 1, 5, 6, #4), short-long-short-long — means
   *discovery*. It ends on the raised fourth so it hangs like a question. Music quotes it
   transposed through the scale; the stinger `mus_trail_motif` plays it alone.
@@ -71,7 +102,11 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `building` | WAV mono | −22 | flat, Buildings bus (machine identities) |
 | `base` | WAV mono | −23 (complete −22) | positional, Buildings bus (place, complete, unit ready, unload, depleted) |
 | `baseloop` | WAV mono, loop | construct −25, mine −26, produce −29, hum −33 | positional, seamless |
-| `movement` | WAV mono, loop | −24 | positional, seamless |
+| `movement` | WAV mono, loop | −24 | positional, seamless (Combine: skitter, stinger, mauler) |
+| `weapon` | WAV mono | rapid −26, sentry −25, lance −24, heavy −22 | positional, Weapons bus |
+| `impact` | WAV mono | spark −27, armour/ground −26 | positional, Weapons bus |
+| `explosion` | WAV mono | small −23, medium −21, large −19; deaths −23/−21, building −20 | positional, Explosions bus |
+| `sting` | Ogg stereo | −22 | flat, Music bus, 3–6 s |
 | `ambience` | Ogg stereo, loop | −30 | ≥ 30 s, seamless |
 | `music` layers | Ogg stereo, loop | pad −25, pulse −29, melody −27 | one tempo, same length |
 | `music` stinger | Ogg stereo | −22 | |
@@ -98,6 +133,22 @@ The event router looks events up by these names: a unit's `def.sound_set` picks
 `advisor_alert`); `Events.ui_feedback(kind)` plays `ui_<kind>` (kinds starting with
 `invalid`/`not_enough`/`insufficient` or ending in `_invalid` fall back to `ui_invalid`;
 aliases such as `placement_invalid` → `ui_invalid_placement` are in `AudioCueSelector`).
+
+Combat (`CombatSoundRouter`): `weapon_fired` plays `weapon_<weapon.sound_set>_fire` at the
+muzzle, or the sound family a data name is aliased to in `CombatCues.FIRE_ALIASES`
+(`ranger_repeater` → `repeater`, `mauler_twin_cannon` → `siege`, ...); `projectile_impacted` the impact or explosion (above); `entity_died` the death sound;
+nothing plays for an entity whose `is_visible_to_player` is false, and ground impacts ask the
+fog (`fog_of_war` group: `is_point_visible_to_player(position)`). A Sentry that fires after
+3 s of silence also plays `base_turret_traverse`. Mass-combat discipline (`CombatMixer`):
+offers are arbitrated once per frame, out-of-range ones dropped, the rest ranked by
+`priority − distance in metres` (priority is the weight: rapid 38–40, sentry 46, lance 50,
+heavy 58, impacts 34–40, explosions 62–70, deaths 66–78), and each category may start at most
+fire 8 / impact 5 / blast 4 sounds per 0.5 s; per-event caps and cooldowns apply on top.
+Blasts play first and duck light fire (priority < 50) by 4 dB for 0.45 s.
+The combat music (`MusicMood`) runs on *heat* from player-involved fire, damage and deaths
+(near = within 45 m of the focus counts more; halves every 6 s): tension at 2.5, combat at 12;
+stepping down needs 6 s below 1 (tension) or 4 (combat); combat always passes through 20 s of
+aftermath. `mission_ended` forces victory/defeat and plays the sting.
 
 Base loops (`BaseLoops`) sit on the player's entities, at most six, nearest first, hums ranked
 last: `loop_construct` (`is_under_construction`, else building_placed → construction_completed),

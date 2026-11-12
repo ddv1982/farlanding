@@ -2,7 +2,8 @@ class_name SelectionRules
 extends RefCounted
 ## Pure selection rules: who may be selected, how clicks and boxes change a
 ## selection, and what a mouse click means. Only living units of the player's faction
-## are selectable; units of other factions are enemies.
+## are selectable; units of other factions are enemies, and only enemies the player
+## can see now may be targeted (a click on one out of sight means the ground).
 
 ## What a click does.
 const CLICK_NONE: StringName = &"none"
@@ -21,12 +22,17 @@ static func is_selectable(unit: Variant, player_faction: int) -> bool:
 	return node.is_inside_tree() and node.faction == player_faction
 
 
-## True for a living unit of another faction.
+## True for a living unit of another faction that the player can see now.
 static func is_enemy(unit: Variant, player_faction: int) -> bool:
 	if not is_instance_valid(unit) or not unit is Unit:
 		return false
 	var node: Unit = unit
-	return node.is_inside_tree() and node.faction != player_faction
+	return (
+		node.is_inside_tree()
+		and node.faction != player_faction
+		and node.is_visible_to_player
+		and not node.is_dead
+	)
 
 
 ## Left click on `clicked` (null = ground): an enemy is attacked when units are
@@ -115,7 +121,7 @@ static func right_click_target(
 	var building: Building = target as Building
 	if building != null and is_instance_valid(building) and building.is_inside_tree():
 		if building.faction != player_faction:
-			return CLICK_ATTACK
+			return CLICK_ATTACK if building.is_visible_to_player else CLICK_MOVE
 		if building.is_under_construction and _any_can(units, Builder.KIND):
 			return CLICK_ASSIST
 	return CLICK_MOVE

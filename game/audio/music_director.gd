@@ -76,6 +76,17 @@ func set_state(state_name: StringName) -> void:
 		_apply(state_name)
 
 
+## Switches to `state_name` at once, without waiting for the hold time.
+func force_state(state_name: StringName) -> void:
+	if score == null:
+		return
+	var state: MusicState = score.find_state(state_name)
+	if state == null:
+		return
+	_blender.force(state_name, state.intensity, _now())
+	_apply(state_name)
+
+
 func current_state() -> StringName:
 	return _blender.current_state
 

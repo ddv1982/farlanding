@@ -1,19 +1,26 @@
 class_name KesselProving
 extends Node3D
-## Kessel Reach proving ground: wires the mission services together, lands the
-## player's Lander (it becomes the HQ) with a small starting crew, places the Alloy
-## deposits and Flux vents, and a small idle hostile group to practise orders on.
-## Every spawn is data in the scene's exported properties.
+## Kessel Reach proving ground: wires the mission services together (combat, fog of
+## war, win/lose), lands the player's Lander (it becomes the HQ) with a small starting
+## crew, places the Alloy deposits and Flux vents, and a Combine garrison standing
+## guard behind the fog. The player wins by destroying every Combine unit and
+## building and loses with the Lander. Every spawn is data in the exported properties.
 
 ## The terrain is 240 m square, centred on the origin.
 const TERRAIN_AREA: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
 const HEIGHT_SPACING: float = 1.0
+## Vision grid cell size, in metres.
+const VISION_CELL: float = 2.0
 
 @export var context: MissionContext
 @export var world: SimWorld
 @export var camera: RtsCamera
 @export var navigation_region: NavigationRegion3D
 @export var economy_rules: EconomyRules
+## Armour x damage multipliers for this mission.
+@export var damage_table: DamageTable
+## Fog of war on (off shows the whole map, for testing).
+@export var fog_of_war: bool = true
 @export var player_faction: int = 0
 ## Where the Lander stands (its centre).
 @export var player_start: Vector3 = Vector3(-80.0, 0.0, 85.0)
@@ -31,18 +38,24 @@ const HEIGHT_SPACING: float = 1.0
 @export var vent_positions: PackedVector3Array = PackedVector3Array()
 @export_group("Hostiles")
 @export var hostile_faction: int = 1
-## Centre of the hostile group (about 45 m from the player start, on open ground).
-@export var hostile_start: Vector3 = Vector3(-48.0, 0.0, 53.0)
+## Centre of the Combine garrison (far from the player start, behind the fog).
+@export var hostile_start: Vector3 = Vector3(40.0, 0.0, -30.0)
 @export var hostile_facing: Vector3 = Vector3(-1.0, 0.0, 1.0)
-## One entry per hostile unit. They stand idle.
+## One entry per garrison unit. They stand guard: they fight what comes in range
+## but never go looking for the player.
 @export var hostile_roster: Array[UnitDef] = []
 
 var heights: HeightField
 var walk_grid: WalkGrid
+var outcome: ConquestOutcome
+var fog: FogOfWar
+
+var _outcome_check_pending: bool = false
 
 
 func _ready() -> void:
 	var started: int = Time.get_ticks_msec()
+	Events.mission_started.emit()
 	heights = HeightField.from_physics(
 		get_world_3d().direct_space_state, TERRAIN_AREA, HEIGHT_SPACING
 	)
@@ -52,8 +65,10 @@ func _ready() -> void:
 	var paths: NavmeshPathService = NavmeshPathService.new(
 		get_world_3d().navigation_map, walk_grid, navigation_region
 	)
-	world.setup(context, paths, heights, economy_rules, player_faction)
+	world.setup(context, paths, heights, economy_rules, player_faction, damage_table)
 	world.build_bounds = build_bounds
+	if fog_of_war:
+		world.enable_vision(TERRAIN_AREA, VISION_CELL)
 	camera.heights = heights
 	# Look a little in front of the Lander so its door and the units it
 	# produces are not hidden behind the command panel.
@@ -78,6 +93,17 @@ func _ready() -> void:
 		if unit.harvester != null:
 			world.auto_harvest(unit, unit.sim_position())
 	spawn_group(hostile_roster, hostile_faction, hostile_start, hostile_facing)
+	if world.vision != null:
+		# See the landing site from the first frame, not one sim tick later.
+		world.vision.update_faction(
+			player_faction, world.units, world.buildings, world.resource_nodes
+		)
+		fog = FogOfWar.new()
+		fog.name = &"FogOfWar"
+		add_child(fog)
+		fog.setup(world.vision, player_faction)
+	outcome = ConquestOutcome.new(player_faction, lander)
+	Events.entity_died.connect(_on_entity_died)
 
 
 ## Spawns `defs` as one formation centred on `center`, facing `facing`.
@@ -97,6 +123,20 @@ func spawn_group(
 	for i: int in defs.size():
 		spawned.append(world.spawn_unit(defs[i], faction, formation.slots[i], yaw))
 	return spawned
+
+
+# Judged once the frame's deaths are all in, not per death: if the Lander and the
+# last enemy die together, the order they died in must not decide the mission.
+func _on_entity_died(_entity: Node3D) -> void:
+	if _outcome_check_pending:
+		return
+	_outcome_check_pending = true
+	_check_outcome.call_deferred()
+
+
+func _check_outcome() -> void:
+	_outcome_check_pending = false
+	outcome.check(world)
 
 
 func _spawn_nodes(def: ResourceNodeDef, positions: PackedVector3Array) -> void:
