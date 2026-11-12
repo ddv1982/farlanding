@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="BuildingDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/buildings/combine_spire.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/combine_building_spire.png" id="3"]
+[ext_resource type="PackedScene" path="res://assets/models/combine/combine_building_spire.glb" id="20"]
+[ext_resource type="Resource" path="res://data/weapons/spire_lance.tres" id="w_weapon"]
+
+[resource]
+script = ExtResource("1")
+id = &"combine_spire"
+display_name = "Spire"
+description = "Combine defence tower. Its lance fires on enemies in range while it has Power."
+faction = 1
+max_health = 600
+footprint = Rect2(-2.2, -2.2, 4.4, 4.4)
+height = 4.8
+armour_type = &"structure"
+vision_range = 24.0
+weapon = ExtResource("w_weapon")
+power_output = 0
+power_use = 3
+cost_alloy = 130
+cost_flux = 0
+build_time = 16.0
+scene = ExtResource("2")
+icon = ExtResource("3")
+model = ExtResource("20")
+sound_set = &"spire"

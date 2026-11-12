@@ -87,6 +87,22 @@ func find_target(faction: int, from: Vector3, reach: float) -> Node3D:
 	return best
 
 
+## Living enemies of `faction` whose bodies come within `radius` of `center` and that
+## `faction` can see now (through the spatial grid, so only nearby cells are touched).
+## This is what one pair of eyes reports; the enemy AI perceives through it and never
+## reads the world's unit or building lists.
+func seen_enemies_near(faction: int, center: Vector3, radius: float) -> Array[Node3D]:
+	var seen: Array[Node3D] = []
+	for candidate: Node3D in _grid.query(center, radius + MAX_BODY_RADIUS):
+		var candidate_faction: int = faction_of(candidate)
+		if candidate_faction == faction or candidate_faction < 0:
+			continue
+		if reach_to(candidate, center) > radius or not can_target(faction, candidate):
+			continue
+		seen.append(candidate)
+	return seen
+
+
 ## Fires one projectile (or an instant hit) of `def` from `muzzle` at `target`.
 func fire(
 	def: WeaponDef,

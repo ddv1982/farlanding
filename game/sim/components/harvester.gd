@@ -115,7 +115,7 @@ func _step_to_deposit(order: Order) -> bool:
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
 		if _attempts > MAX_ATTEMPTS:
-			return _after_depletion(order)
+			return _give_up_deposit(order)
 		unit.locomotion.move_to(deposit.position)
 	return false
 
@@ -175,6 +175,25 @@ func _after_depletion(order: Order) -> bool:
 		return false
 	var from: Vector3 = deposit.position if is_instance_valid(deposit) else order.target_position
 	var next: ResourceNode = _find_deposit(from)
+	if next == null:
+		return true
+	deposit = next
+	order.target_entity = next
+	order.target_position = next.position
+	_go_deposit()
+	return false
+
+
+## The deposit cannot be reached: try the nearest other one, or end the order.
+func _give_up_deposit(order: Order) -> bool:
+	if cargo > 0:
+		_go_dock()
+		return false
+	var next: ResourceNode = null
+	if unit.world != null:
+		next = unit.world.nearest_deposit(
+			deposit.position, unit.world.rules.deposit_search_radius, deposit
+		)
 	if next == null:
 		return true
 	deposit = next

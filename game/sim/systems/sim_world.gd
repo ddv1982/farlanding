@@ -182,12 +182,15 @@ func placement_rules() -> PlacementRules:
 	return placement
 
 
-## The nearest Alloy deposit with something left within `max_distance` of `from`.
-func nearest_deposit(from: Vector3, max_distance: float = INF) -> ResourceNode:
+## The nearest Alloy deposit with something left within `max_distance` of `from`,
+## other than `exclude`.
+func nearest_deposit(
+	from: Vector3, max_distance: float = INF, exclude: ResourceNode = null
+) -> ResourceNode:
 	var best: ResourceNode = null
 	var best_distance: float = max_distance
 	for node: ResourceNode in resource_nodes:
-		if not node.is_minable():
+		if not node.is_minable() or node == exclude:
 			continue
 		var distance: float = _flat_distance(node.position, from)
 		if distance <= best_distance:

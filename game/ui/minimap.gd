@@ -2,7 +2,8 @@ class_name Minimap
 extends PanelContainer
 ## Bottom-right map of the whole mission area: terrain (hill-shaded, impassable ground
 ## dark) under the fog of war, resource nodes the player has explored, the player's
-## units and buildings in team colour, enemies the player sees in red, and the
+## units and buildings in team colour, enemies the player sees in red (enemy buildings
+## seen before but not in sight now stay, dimmed, where they were last seen), and the
 ## camera's view. Left click or drag moves the camera there; right click orders the
 ## selected units to move there (Shift queues). Built from HudStyle.
 
@@ -10,6 +11,8 @@ const SIZE: float = 212.0
 ## Terrain image pixels per side.
 const TERRAIN_PIXELS: int = 120
 const ENEMY_COLOR: Color = Color(1.0, 0.25, 0.18)
+## Enemy buildings remembered from an earlier sighting.
+const REMEMBERED_COLOR: Color = Color(0.62, 0.22, 0.18, 0.75)
 const NODE_COLOR: Color = Color(0.72, 0.84, 0.95)
 const VENT_COLOR: Color = Color(0.45, 0.85, 1.0)
 const VIEW_COLOR: Color = Color(1.0, 1.0, 1.0, 0.85)
@@ -139,7 +142,10 @@ func _draw_overlay() -> void:
 		var rect: Rect2 = building.footprint()
 		var corner: Vector2 = to_map(Vector3(rect.position.x, 0.0, rect.position.y))
 		var box: Rect2 = Rect2(corner, (rect.size * scale).max(Vector2(3.0, 3.0)))
-		_overlay.draw_rect(box, _color_for(building.faction))
+		var color: Color = _color_for(building.faction)
+		if building.faction != faction and not building.is_visible_to_player:
+			color = REMEMBERED_COLOR
+		_overlay.draw_rect(box, color)
 		_overlay.draw_rect(box, Color(0, 0, 0, 0.6), false, 1.0)
 	for unit: Unit in world.units:
 		if not unit.visible or unit.is_dead:

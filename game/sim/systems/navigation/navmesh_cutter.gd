@@ -25,7 +25,9 @@ const MIN_AREA: float = 0.05
 ## Distance from an edge at which a point counts as lying on it.
 const ON_EDGE: float = 0.02
 ## Rectangle growths (metres) tried in turn until a cut adds no conflicting edge.
-const OFFSETS: PackedFloat32Array = [0.0, 0.11, -0.07, 0.19, 0.27, -0.13, 0.35, 0.43]
+const OFFSETS: PackedFloat32Array = [
+	0.0, 0.11, -0.07, 0.19, 0.27, -0.13, 0.35, 0.43, 0.52, -0.21, 0.61, 0.73, -0.29, 0.86, 1.0
+]
 
 var vertices: PackedVector3Array = PackedVector3Array()
 var polygons: Array[PackedInt32Array] = []

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/combine_scrapper.tscn" id="2_scene"]
+[ext_resource type="Texture2D" path="res://assets/icons/combine_unit_scrapper.png" id="3_icon"]
+
+[resource]
+script = ExtResource("1_def")
+max_health = 220
+move_speed = 5.5
+turn_speed = 240.0
+vision_range = 16.0
+radius = 1.3
+acceleration = 9.0
+armour_type = &"light"
+carry_capacity = 30
+mine_time = 4.5
+unload_time = 1.2
+id = &"combine_scrapper"
+display_name = "Scrapper"
+description = "Combine harvester. A wheeled truck that strips Alloy and hauls it to a Hub."
+faction = 1
+scene = ExtResource("2_scene")
+icon = ExtResource("3_icon")
+sound_set = &"scrapper"
+cost_alloy = 90
+cost_flux = 0
+build_time = 11.0
