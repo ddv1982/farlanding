@@ -42,7 +42,9 @@ Code lives in `game/ai/`; data in `game/data/ai/`.
   iterates the world's unit or building lists for enemies. Attack targets are the
   remembered building nearest home, else the most recently seen armed unit; with
   nothing seen there is no attack, and scouting scores high instead. Deposits it may
-  harvest are those on cells its grid has explored.
+  harvest are those on cells its grid has explored. The building-site search is
+  judged on the same knowledge (see the decision loop): it never reads the live
+  footprints of buildings it has not seen.
 - **Own forces in full.** It reads its own units, buildings, queues and stockpile, as
   the player does through the HUD.
 - **No rebuilding of the HQ.** The Hub is not placeable and Riggers only come from a
@@ -86,6 +88,13 @@ On tick `(t + phase) % decision_interval == 0` (phase staggered per faction):
    deposits, and have open ground for 6 m all round (90 % of a sampled ring), so the
    base never builds into its own exit corridors. A building with no free site backs
    off for 20 s.
+   The search knows only terrain (walkability, slope, map bounds), its own buildings,
+   the enemy buildings it remembers seeing (`AiKnowledge` sightings), resource nodes on
+   explored ground, and sites refused lately (`Commander.known_placement_rules()`).
+   The real placement rules still judge the `PlaceBuildingCommand` when it runs; if
+   something unseen stands there the command is refused (`refused` says why, as the
+   player hears it), and the commander keeps out of that footprint for 2 minutes, so
+   it picks another spot next time instead of repeating the refused one.
 
 Behaviours tick every `behaviour_interval_ticks` (5 = twice a second):
 

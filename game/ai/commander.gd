@@ -33,6 +33,9 @@ const OPEN_MARGIN: float = 6.0
 const OPEN_SHARE: float = 0.9
 ## Perception: own sight sources are merged per cell of this size.
 const SOURCE_CELL: float = 8.0
+## A site the placement rules refused (something it had not seen was in the way) is
+## not tried again for this long, in sim ticks.
+const REFUSED_SITE_TICKS: int = 1200
 
 var context: MissionContext
 var world: SimWorld
@@ -66,6 +69,8 @@ var _phase: int = 0
 var _map_area: Rect2 = Rect2()
 var _last_ordered: Dictionary[int, int] = {}
 var _view: CommanderView = null
+## Footprints of sites the placement rules refused -> sim tick they are forgotten.
+var _refused_sites: Dictionary[Rect2, int] = {}
 
 
 ## Starts commanding `p_faction` in `p_world`. `difficulty_id` is &"easy", &"normal"
@@ -96,6 +101,7 @@ func setup(
 	# Home and staging are found on the first decision: the navigation map is only
 	# ready to answer queries after its first synchronisation.
 	context.sim_clock.ticked.connect(_on_ticked)
+	context.command_queue.command_executed.connect(_on_command_executed)
 
 
 ## Average decision cost so far, in microseconds.
@@ -114,6 +120,23 @@ func _on_ticked(tick: int) -> void:
 		_tick_behaviours(tick)
 	if (tick + _phase) % difficulty.decision_interval_ticks == 0:
 		_decide(tick)
+
+
+## A placement of ours was refused by the real rules: something it did not know of
+## stands there. Leave that ground alone for a while (the refusal is what the player
+## would hear too).
+func _on_command_executed(command: Command) -> void:
+	var placing: PlaceBuildingCommand = command as PlaceBuildingCommand
+	if placing == null or placing.issuer_faction != faction or placing.building_def == null:
+		return
+	if (
+		placing.refused == PlacementRules.OK
+		or placing.refused == PlaceBuildingCommand.NOT_AFFORDABLE
+	):
+		return
+	var area: Rect2 = placing.building_def.world_footprint(placing.target_position)
+	_refused_sites[area] = port.now() + REFUSED_SITE_TICKS
+	_log("placing %s refused (%s)" % [placing.building_def.id, placing.refused])
 
 
 func _decide(tick: int) -> void:
@@ -363,24 +386,50 @@ func _launch(action: AiAction) -> void:
 ## Minable deposits the faction has explored within `radius` of `from`.
 func _known_deposits(from: Vector3, radius: float) -> Array[ResourceNode]:
 	var found: Array[ResourceNode] = []
-	for node: ResourceNode in world.resource_nodes:
+	for node: ResourceNode in _explored_nodes():
 		if not node.is_minable() or node.resource() != &"alloy":
 			continue
 		if AiGroup.flat_distance(node.position, from) > radius:
-			continue
-		if (
-			world.vision != null
-			and not world.vision.grid.is_area_explored(faction, node.blocked_area())
-		):
 			continue
 		found.append(node)
 	return found
 
 
-## A free spot for `def` near `near`: rings outward, the first spot the placement
-## rules accept that keeps doors, docks and deposits clear. Vector3.INF if none.
-func find_site(def: BuildingDef, near: Vector3) -> Vector3:
+## Resource nodes (deposits and vents) on ground the faction has explored.
+func _explored_nodes() -> Array[ResourceNode]:
+	var found: Array[ResourceNode] = []
+	for node: ResourceNode in world.resource_nodes:
+		if world.vision == null or world.vision.grid.is_area_explored(faction, node.blocked_area()):
+			found.append(node)
+	return found
+
+
+## Placement rules over what the faction may know: terrain, bounds, its own
+## buildings, the enemy buildings it remembers seeing, sites refused lately, and the
+## resource nodes it has explored. Never the live footprints of unseen buildings; the
+## real rules still judge the PlaceBuildingCommand when it runs.
+func known_placement_rules() -> PlacementRules:
 	var rules: PlacementRules = world.placement_rules()
+	rules.footprints = []
+	for building: Building in world.buildings_of(faction):
+		rules.footprints.append(building.footprint())
+	for sighting: AiSighting in knowledge.known_buildings():
+		rules.footprints.append(sighting.footprint)
+	var now: int = port.now()
+	for area: Rect2 in _refused_sites.keys():
+		if _refused_sites[area] > now:
+			rules.footprints.append(area)
+		else:
+			_refused_sites.erase(area)
+	rules.nodes = _explored_nodes()
+	return rules
+
+
+## A free spot for `def` near `near`: rings outward, the first spot the placement
+## rules accept that keeps doors, docks and deposits clear, judged only on what the
+## faction knows (`known_placement_rules`). Vector3.INF if none.
+func find_site(def: BuildingDef, near: Vector3) -> Vector3:
+	var rules: PlacementRules = known_placement_rules()
 	var keep_clear: Array[Vector3] = []
 	for building: Building in world.buildings_of(faction):
 		if building.def.is_producer():
@@ -410,7 +459,7 @@ func _site_ok(
 	for point: Vector3 in keep_clear:
 		if area.has_point(Vector2(point.x, point.z)):
 			return false
-	for node: ResourceNode in world.resource_nodes:
+	for node: ResourceNode in rules.nodes:
 		var reach: float = node.def.radius + def.footprint_radius() + 4.0
 		if AiGroup.flat_distance(node.position, spot) < reach:
 			return false
@@ -450,8 +499,8 @@ func _is_open(ring: Rect2, rules: PlacementRules) -> bool:
 	return float(open) / samples >= OPEN_SHARE
 
 
-## True if units can stand at `point`: walkable ground clear of every building (with
-## the navmesh cut margin around them).
+## True if units can stand at `point`: walkable ground clear of every building in
+## `rules` (with the navmesh cut margin around them).
 func _reachable(point: Vector3, rules: PlacementRules) -> bool:
 	if not world.paths.is_terrain_walkable(point):
 		return false
