@@ -182,6 +182,11 @@ func perceive(tick: int) -> void:
 	for building: Building in world.buildings_of(faction):
 		if not building.is_dead and building.def != null:
 			_add_source(sources, building.position, building.def.vision_range)
+	if world.vision == null:
+		# Fog switched off: the faction sees the whole map, so look at all of it.
+		# Forgetting below then also treats everything as visible, consistently.
+		var centre: Vector2 = _map_area.get_center()
+		sources = {Vector2i.ZERO: Vector4(centre.x, home.y, centre.y, _map_area.size.length())}
 	var seen: Dictionary[Node3D, bool] = {}
 	for source: Vector4 in sources.values():
 		var at: Vector3 = Vector3(source.x, source.y, source.z)

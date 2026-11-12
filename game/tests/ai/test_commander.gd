@@ -110,3 +110,16 @@ func test_sight_sources_sharing_a_cell_still_cover_both_sight_areas() -> void:
 	# The far edge of the second source's sight, directly away from the first.
 	var edge: Vector3 = second + (second - first).normalized() * 14.0
 	assert_lte(centre.distance_to(edge), merged.w, "the merged query reaches it")
+
+
+func test_without_fog_a_distant_living_building_is_remembered() -> void:
+	# This fixture world has no vision grid, i.e. fog of war is off.
+	_f.building(_f.hub, Vector3.ZERO)
+	_f.building(_f.forge, Vector3(90, 0, -90), 0)
+	_start_commander()
+	_f.tick()
+	_commander.perceive(1)
+	_commander.perceive(2)
+	assert_eq(
+		_commander.knowledge.known_buildings().size(), 1, "far out of sight range, still known"
+	)
