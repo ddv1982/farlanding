@@ -7,6 +7,12 @@ const LOOPS: Array[String] = [
 	"res://assets/audio/movement/move_walker.wav",
 	"res://assets/audio/movement/move_tracks.wav",
 	"res://assets/audio/movement/move_hover.wav",
+	"res://assets/audio/movement/move_sixwheel.wav",
+	"res://assets/audio/movement/move_drone.wav",
+	"res://assets/audio/base/loops/loop_construct.wav",
+	"res://assets/audio/base/loops/loop_produce.wav",
+	"res://assets/audio/base/loops/loop_mine.wav",
+	"res://assets/audio/base/loops/loop_hum.wav",
 	"res://assets/audio/ambience/amb_kessel_wind.ogg",
 	"res://assets/audio/music/kessel/mus_kessel_explore_pad.ogg",
 	"res://assets/audio/music/kessel/mus_kessel_explore_pulse.ogg",
@@ -42,7 +48,7 @@ func test_every_sound_event_is_playable() -> void:
 
 
 func test_every_unit_sound_set_has_its_replies() -> void:
-	for sound_set: String in ["surveyor", "ranger", "bulwark", "kite"]:
+	for sound_set: String in ["surveyor", "ranger", "bulwark", "kite", "hauler", "fabricator"]:
 		for kind: String in ["select", "move", "attack"]:
 			var path: String = "%s/unit/unit_%s_%s.tres" % [EVENTS_DIR, sound_set, kind]
 			var event: SoundEvent = load(path) as SoundEvent
@@ -51,6 +57,36 @@ func test_every_unit_sound_set_has_its_replies() -> void:
 				assert_eq(event.streams.size(), 3, "%s variations" % path)
 				assert_eq(event.pitch_variation, 0.0, "tonal replies stay in key")
 		assert_true(ResourceLoader.exists("%s/movement/move_%s.tres" % [EVENTS_DIR, sound_set]))
+
+
+func test_economy_events_exist() -> void:
+	var ids: Array[String] = []
+	for sound_set: String in ["lander", "reactor", "refinery", "flux_tap", "muster_bay", "foundry"]:
+		ids.append("building/building_%s_select" % sound_set)
+	for kind: String in [
+		"low_power",
+		"power_restored",
+		"insufficient_resources",
+		"construction_complete",
+		"unit_ready",
+		"deposit_depleted",
+		"building_placed",
+	]:
+		ids.append("advisor/advisor_%s" % kind)
+	for id: String in ["place", "complete", "unit_ready", "unload", "depleted"]:
+		ids.append("base/base_%s" % id)
+	for id: String in ["construct", "produce", "mine", "hum"]:
+		ids.append("baseloop/loop_%s" % id)
+	for id: String in ["build_button", "queue", "rally_set", "invalid_placement"]:
+		ids.append("ui/ui_%s" % id)
+	ids.append("ui/ui_not_enough_resources")
+	for id: String in ids:
+		var event: SoundEvent = load("%s/%s.tres" % [EVENTS_DIR, id]) as SoundEvent
+		assert_not_null(event, id)
+		if event != null and id.begins_with("baseloop/"):
+			assert_true(event.positional, "%s is positional" % id)
+			var wav: AudioStreamWAV = event.streams[0] as AudioStreamWAV
+			assert_eq(wav.loop_mode, AudioStreamWAV.LOOP_FORWARD, "%s loops" % id)
 
 
 ## Plays across the loop point with Godot's own decoder and checks that the

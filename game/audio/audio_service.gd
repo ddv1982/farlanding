@@ -7,7 +7,9 @@
 ## pool of players behind a VoiceBudget (priority stealing, per-event caps and
 ## cooldowns). An AudioListener3D sits above the camera's ground focus point;
 ## zoom moves it up and reshapes bus levels (AudioMix). Child nodes: the
-## AudioEventRouter (Events -> sounds), MovementLoops and the MusicDirector.
+## AudioEventRouter (Events -> sounds, Advisor alert queue), MovementLoops,
+## BaseLoops (construction, production, mining, building hum) and the
+## MusicDirector.
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -31,6 +33,7 @@ var _zoom: float = 0.5
 var _applied_zoom: float = -1.0
 var _router: AudioEventRouter
 var _loops: MovementLoops
+var _base_loops: BaseLoops
 var _music: MusicDirector
 
 
@@ -44,11 +47,18 @@ func _ready() -> void:
 	_router = AudioEventRouter.new()
 	_router.name = &"EventRouter"
 	_router.play_first = play_first
+	_router.event_seconds = func(event_id: StringName) -> float:
+		var event: SoundEvent = get_event(event_id)
+		return event.longest_seconds() if event != null else 0.0
 	add_child(_router)
 	_loops = MovementLoops.new()
 	_loops.name = &"MovementLoops"
 	_loops.resolve_event = get_event
 	add_child(_loops)
+	_base_loops = BaseLoops.new()
+	_base_loops.name = &"BaseLoops"
+	_base_loops.resolve_event = get_event
+	add_child(_base_loops)
 	_music = MusicDirector.new()
 	_music.name = &"MusicDirector"
 	add_child(_music)
@@ -83,6 +93,7 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 		_listener.make_current()
 		_listener_active = true
 	_loops.focus = focus
+	_base_loops.focus = focus
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 

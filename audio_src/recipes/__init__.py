@@ -54,6 +54,6 @@ def sound(id: str, group: str, target_lufs: float, **kwargs) -> Callable:
 
 
 def load_all() -> list[Sound]:
-    from . import ambience, interface, movement, music_kessel, units, world  # noqa: F401
+    from . import advisor, ambience, buildings, interface, movement, music_kessel, units, world  # noqa: F401
 
     return REGISTRY

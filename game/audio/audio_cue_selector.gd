@@ -16,7 +16,22 @@ const MIN_GAP: float = 0.12
 ## Command kinds that answer with the `attack` reply.
 const ATTACK_KINDS: Array[StringName] = [&"attack", &"attack_move", &"force_attack"]
 ## Command kinds that place a ground marker ping at `target_position`.
-const GROUND_KINDS: Array[StringName] = [&"move", &"attack_move", &"patrol", &"rally"]
+const GROUND_KINDS: Array[StringName] = [
+	&"move", &"attack_move", &"patrol", &"rally", &"set_rally", &"rally_point"
+]
+## Command kinds that set a producer's rally point.
+const RALLY_KINDS: Array[StringName] = [&"rally", &"set_rally", &"rally_point"]
+
+## `ui_feedback` kinds whose event is not simply `ui_<kind>`.
+const FEEDBACK_ALIASES: Dictionary[StringName, StringName] = {
+	&"placement_invalid": &"ui_invalid_placement",
+	&"insufficient_resources": &"ui_not_enough_resources",
+	&"build_menu": &"ui_build_button",
+	&"build": &"ui_build_button",
+	&"production_queued": &"ui_queue",
+	&"queued": &"ui_queue",
+	&"rally": &"ui_rally_set",
+}
 
 var _last_reply_time: float = -INF
 var _last_reply: StringName = &""
@@ -58,6 +73,15 @@ static func unit_event(sound_set: StringName, kind: StringName) -> StringName:
 	return StringName("unit_%s_%s" % [sound_set, kind])
 
 
+static func building_event(sound_set: StringName) -> StringName:
+	return StringName("building_%s_select" % sound_set)
+
+
+## Advisor phrase for an alert kind, falling back to the generic alert.
+static func advisor_events(kind: StringName) -> Array[StringName]:
+	return [StringName("advisor_%s" % kind), &"advisor_alert"]
+
+
 ## Candidates for a new selection. Empty selection plays the deselect tick
 ## (only if something was selected before).
 func on_selection(sound_sets: Array[StringName], now: float) -> Array[StringName]:
@@ -76,10 +100,25 @@ func on_selection(sound_sets: Array[StringName], now: float) -> Array[StringName
 	return [unit_event(sound_set, &"select"), &"ui_select"]
 
 
+## Candidates for a selection of buildings only (any unit in the selection
+## takes precedence and goes through `on_selection`): the machine identity of
+## the most common building type, once, throttled like unit replies.
+func on_building_selection(sound_sets: Array[StringName], now: float) -> Array[StringName]:
+	if sound_sets.is_empty():
+		return on_selection(sound_sets, now)
+	_had_selection = true
+	var sound_set: StringName = dominant_sound_set(sound_sets)
+	if sound_set == &"" or not _allow_reply(&"building", sound_set, now):
+		return [&"ui_select"]
+	return [building_event(sound_set), &"ui_select"]
+
+
 ## Candidates for a command issued by the player.
 func on_command(
 	sound_sets: Array[StringName], command_kind: StringName, now: float
 ) -> Array[StringName]:
+	if command_kind in RALLY_KINDS:
+		return [&"ui_rally_set", &"ui_order"]
 	var kind: StringName = reply_kind(command_kind)
 	var sound_set: StringName = dominant_sound_set(sound_sets)
 	if kind == &"" or sound_set == &"":
@@ -93,8 +132,16 @@ func on_command(
 ## `ui_` event, plus a few aliases, otherwise `ui_<kind>`.
 static func feedback_event(kind: StringName) -> Array[StringName]:
 	var text: String = String(kind)
-	var direct: StringName = StringName(text if text.begins_with("ui_") else "ui_" + text)
-	if text.begins_with("invalid") or text.begins_with("not_enough") or text.ends_with("_denied"):
+	var direct: StringName = FEEDBACK_ALIASES.get(
+		kind, StringName(text if text.begins_with("ui_") else "ui_" + text)
+	)
+	if (
+		text.begins_with("invalid")
+		or text.ends_with("_invalid")
+		or text.begins_with("not_enough")
+		or text.begins_with("insufficient")
+		or text.ends_with("_denied")
+	):
 		return [direct, &"ui_invalid"]
 	return [direct]
 

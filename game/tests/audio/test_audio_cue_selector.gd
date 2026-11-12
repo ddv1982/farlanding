@@ -82,3 +82,26 @@ func test_feedback_event_names() -> void:
 		AudioCueSelector.feedback_event(&"not_enough_resources"),
 		[&"ui_not_enough_resources", &"ui_invalid"] as Array[StringName]
 	)
+
+
+func test_building_selection_and_feedback_aliases() -> void:
+	var selector: AudioCueSelector = AudioCueSelector.new()
+	var sets: Array[StringName] = [&"refinery"]
+	assert_eq(
+		selector.on_building_selection(sets, 5.0),
+		[&"building_refinery_select", &"ui_select"] as Array[StringName]
+	)
+	assert_eq(
+		selector.on_building_selection(sets, 5.1), [&"ui_select"] as Array[StringName], "throttled"
+	)
+	assert_eq(
+		AudioCueSelector.feedback_event(&"placement_invalid"),
+		[&"ui_invalid_placement", &"ui_invalid"] as Array[StringName]
+	)
+	assert_eq(
+		AudioCueSelector.feedback_event(&"not_enough_resources"),
+		[&"ui_not_enough_resources", &"ui_invalid"] as Array[StringName]
+	)
+	assert_eq(
+		AudioCueSelector.feedback_event(&"build_button"), [&"ui_build_button"] as Array[StringName]
+	)

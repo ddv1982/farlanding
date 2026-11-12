@@ -5,7 +5,9 @@ extends RefCounted
 ## `caps[event]` per loop type (identical loops stacked sound phasey, not bigger).
 
 
-## Returns candidate indices, nearest first.
+## Returns candidate indices, nearest first. `penalties` (optional, metres per
+## candidate) is added to the distance for ranking only, so a less important
+## loop yields its slot to a more important one a little further away.
 static func pick(
 	positions: PackedVector3Array,
 	events: Array[StringName],
@@ -13,15 +15,17 @@ static func pick(
 	focus: Vector3,
 	max_count: int,
 	max_distance: float,
+	penalties: PackedFloat32Array = PackedFloat32Array(),
 ) -> PackedInt32Array:
 	var order: Array[int] = []
-	var distances: PackedFloat32Array = []
-	distances.resize(positions.size())
+	var ranks: PackedFloat32Array = []
+	ranks.resize(positions.size())
 	for i: int in positions.size():
-		distances[i] = _ground_distance(positions[i], focus)
-		if max_distance <= 0.0 or distances[i] <= max_distance:
+		var distance: float = _ground_distance(positions[i], focus)
+		ranks[i] = distance + (penalties[i] if i < penalties.size() else 0.0)
+		if max_distance <= 0.0 or distance <= max_distance:
 			order.append(i)
-	order.sort_custom(func(a: int, b: int) -> bool: return distances[a] < distances[b])
+	order.sort_custom(func(a: int, b: int) -> bool: return ranks[a] < ranks[b])
 	var used: Dictionary[StringName, int] = {}
 	var chosen: PackedInt32Array = []
 	for i: int in order:

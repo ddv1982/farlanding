@@ -53,6 +53,9 @@ EVENT_DEFAULTS = {
     "unit": dict(bus="Barks", priority=70, max_instances=1, cooldown=0.25, positional=False, max_distance=0.0),
     "movement": dict(bus="Units", priority=30, max_instances=3, cooldown=0.0, positional=True, max_distance=45.0),
     "world": dict(bus="UI", priority=60, max_instances=2, cooldown=0.08, positional=True, max_distance=90.0),
+    "building": dict(bus="Buildings", priority=70, max_instances=1, cooldown=0.25, positional=False, max_distance=0.0),
+    "base": dict(bus="Buildings", priority=60, max_instances=2, cooldown=0.1, positional=True, max_distance=90.0),
+    "baseloop": dict(bus="Buildings", priority=30, max_instances=2, cooldown=0.0, positional=True, max_distance=40.0),
     "advisor": dict(bus="Advisor", priority=100, max_instances=1, cooldown=1.0, positional=False, max_distance=0.0),
     "ambience": dict(bus="Ambience", priority=100, max_instances=1, cooldown=0.0, positional=False, max_distance=0.0),
 }
@@ -60,6 +63,14 @@ EVENT_OVERRIDES = {
     "ui_hover": dict(priority=20, max_instances=1, cooldown=0.06),
     "ui_invalid": dict(cooldown=0.15, max_instances=1),
     "ui_select": dict(cooldown=0.08),
+    "ui_invalid_placement": dict(cooldown=0.25, max_instances=1),
+    "ui_not_enough_resources": dict(cooldown=0.3, max_instances=1),
+    "loop_mine": dict(max_instances=3),
+    "loop_hum": dict(max_instances=3, max_distance=30.0),
+    "loop_construct": dict(max_distance=50.0),
+    "base_place": dict(max_distance=150.0, priority=80),
+    "base_complete": dict(max_distance=120.0, priority=75, cooldown=0.4),
+    "base_unload": dict(max_distance=60.0, cooldown=0.3),
 }
 
 
