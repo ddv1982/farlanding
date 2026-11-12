@@ -117,7 +117,9 @@ func is_terrain_walkable(point: Vector3) -> bool:
 func _on_blocked(id: int, area: Rect2) -> void:
 	var cut: Rect2 = area.grow(CUT_MARGIN)
 	_set_cells(cut, false)
-	_obstacles[id] = _create_obstacle(area)
+	var obstacle: RID = _create_obstacle(area)
+	if obstacle.is_valid():
+		_obstacles[id] = obstacle
 	if _base_navmesh == null:
 		return
 	_pending_cuts.append(cut)

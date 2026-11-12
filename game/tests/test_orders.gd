@@ -197,3 +197,16 @@ func test_unreachable_waypoint_does_not_drop_the_rest_of_the_queue() -> void:
 		_queue.push(command)
 	_tick([unit], 80)
 	assert_almost_eq(unit.locomotion.mover.position.z, -10.0, 0.5)
+
+
+func test_an_interruption_that_cannot_start_does_not_lose_the_current_order() -> void:
+	var unit: Unit = Unit.new()
+	unit.def = _def
+	unit.add_child(Locomotion.new())
+	unit.add_child(UnitOrders.new())
+	add_child_autofree(unit)
+	unit.locomotion.setup(_def, Vector3.ZERO, 0.0, GappyPaths.new(), null)
+	unit.orders.give(Order.new(MoveCommand.KIND_MOVE, Vector3(0, 0, -10)))
+	unit.orders.interrupt(Order.new(MoveCommand.KIND_MOVE, Vector3(500, 0, 0)))
+	_tick([unit], 60)
+	assert_almost_eq(unit.locomotion.mover.position.z, -10.0, 0.5)

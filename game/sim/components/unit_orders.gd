@@ -72,6 +72,9 @@ func interrupt(order: Order) -> void:
 	if resume != null:
 		queue.push_front(resume)
 	_start(order)
+	if current == null:
+		# The interruption could not start (no path): carry on with what was queued.
+		_advance()
 
 
 func stop() -> void:

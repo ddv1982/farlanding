@@ -272,9 +272,10 @@ func _handle_mouse_button(button: InputEventMouseButton) -> void:
 
 
 func _right_click_world(screen_position: Vector2, queued: bool) -> void:
-	var target: Node3D = resource_node_at(screen_position)
+	# Buildings first: a Flux Tap stands on its vent, and the click means the Tap.
+	var target: Node3D = building_at(screen_position)
 	if target == null:
-		target = building_at(screen_position)
+		target = resource_node_at(screen_position)
 	match SelectionRules.right_click_target(selection, target, player_faction):
 		SelectionRules.CLICK_ATTACK:
 			_issue_attack(target, queued)
