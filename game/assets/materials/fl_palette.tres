@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://presentation/shaders/unit.gdshader" id="1"]
+[ext_resource type="Texture2D" path="res://assets/textures/palette_albedo.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/textures/palette_surface.png" id="3"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/palette_albedo = ExtResource("2")
+shader_parameter/palette_surface = ExtResource("3")
+shader_parameter/rim_strength = 0.25

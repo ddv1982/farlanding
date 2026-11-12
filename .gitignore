@@ -1,0 +1,28 @@
+# Godot 4: editor/import cache. Note: *.import and *.uid files ARE committed.
+.godot/
+game/.godot/
+*.translation
+export_presets.cfg.bak
+/build/
+/export/
+
+# Godot-generated crash and mono artefacts
+*.tmp
+mono_crash.*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Blender backups
+*.blend1
+*.blend2
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,8 @@
+# gdformat (gdtoolkit 4.5.0) configuration. Run from game/: uvx --from gdtoolkit==4.5.0 gdformat --check .
+excluded_directories: !!set
+  .git: null
+  .godot: null
+  addons: null
+line_length: 100
+safety_checks: null
+use_spaces: null
