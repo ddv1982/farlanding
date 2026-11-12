@@ -66,6 +66,7 @@ SWATCHES: dict[str, tuple[tuple[float, float, float], float, float, float, float
     "kessel_rock_pale": ((0.72, 0.52, 0.36), 0.90, 0.0, 0.0, 0.0),
 }
 ATLAS_MATERIAL = "fl_palette"
+HEIGHT_RANGE = 8.0  # metres mapped onto the vertex-colour red channel
 
 
 def swatch_uv(name: str) -> tuple[float, float]:
@@ -229,6 +230,14 @@ def _apply_and_atlas(obj: bpy.types.Object) -> None:
     name = old_mesh.name
     bpy.data.meshes.remove(old_mesh)
     mesh.name = name
+    # Height above the model origin (red, metres / HEIGHT_RANGE) lets the shader
+    # ground units: contact shading and planet dust on the lower hull.
+    pivot_z = Vector(obj.get("fl_pivot", (0.0, 0.0, 0.0))).z
+    heights = mesh.color_attributes.new("Color", "FLOAT_COLOR", "POINT")
+    for vertex in mesh.vertices:
+        level = min(max((vertex.co.z + pivot_z) / HEIGHT_RANGE, 0.0), 1.0)
+        heights.data[vertex.index].color = (level, 1.0, 1.0, 1.0)
+    mesh.color_attributes.active_color = heights
     uv = mesh.uv_layers.new(name="palette") if not mesh.uv_layers else mesh.uv_layers[0]
     for poly in mesh.polygons:
         u, v = swatch_uv(slot_names[poly.material_index] if slot_names else "ceramic")
@@ -254,7 +263,8 @@ def export(root_obj: bpy.types.Object, subdir: str) -> str:
     bpy.ops.export_scene.gltf(
         filepath=path, export_format="GLB", use_selection=True,
         export_yup=True, export_apply=False, export_materials="EXPORT",
-        export_animations=False,
+        export_animations=False, export_vertex_color="ACTIVE",
+        export_all_vertex_colors=False,
     )
     return path
 

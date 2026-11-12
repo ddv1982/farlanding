@@ -27,6 +27,7 @@ diffable and rebuildable.
 | `art/models/<faction>_<kind>_<name>.py` | One recipe per model |
 | `art/terrain/<map>.py` | Heightfield terrain and scatter per map |
 | `art/pipeline/build_all.py` | Rebuilds every model and the palette |
+| `art/pipeline/build_icons.py` | Renders a HUD icon per model into `game/assets/icons/` |
 
 Rebuild everything: `blender -b -P art/pipeline/build_all.py`.
 
@@ -42,6 +43,10 @@ in a shared 8x8 atlas:
 One shader (`game/presentation/shaders/unit.gdshader`) and one material serve
 every unit and building, with team colour and damage as per-instance values.
 Add swatches only at the end of the table: order is the atlas layout.
+
+Each vertex also carries its height above the model origin (vertex colour, red
+channel). The shader uses it to ground units: darker near the contact point
+and a tint of planet dust on the lower hull.
 
 Terrain uses no painted textures either: `terrain.gdshader` derives colour from
 slope, height and world-space noise, so any heightfield is shaded for free.

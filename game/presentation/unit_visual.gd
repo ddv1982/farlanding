@@ -13,6 +13,9 @@ const LEG_SWING := 0.5
 const STRIDE_LENGTH := 2.2
 const DISH_SPEED := 1.6
 const TURRET_TURN_SPEED := 4.0
+const DUST_COLOR := Color(0.78, 0.58, 0.40, 0.55)
+## Speed in m/s at which a unit starts raising dust.
+const DUST_MIN_SPEED := 1.0
 
 @export var model_scene: PackedScene
 ## Radius of the selection ring in metres.
@@ -27,6 +30,7 @@ var _legs: Array[Node3D] = []
 var _turret: Node3D
 var _dish: Node3D
 var _ring: MeshInstance3D
+var _dust: GPUParticles3D
 var _speed: float = 0.0
 var _stride_phase: float = 0.0
 var _time: float = 0.0
@@ -41,6 +45,8 @@ func _ready() -> void:
 		_collect_parts(_model)
 	_ring = _build_ring()
 	add_child(_ring)
+	_dust = _build_dust()
+	add_child(_dust)
 	set_selected(false)
 
 
@@ -67,6 +73,7 @@ func _process(delta: float) -> void:
 ## Speed along the unit's facing, in metres per second.
 func set_motion(speed: float) -> void:
 	_speed = speed
+	_dust.emitting = absf(speed) > DUST_MIN_SPEED
 
 
 func set_team_color(color: Color) -> void:
@@ -134,3 +141,59 @@ func _build_ring() -> MeshInstance3D:
 	ring.position.y = 0.08
 	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return ring
+
+
+func _build_dust() -> GPUParticles3D:
+	var fade := Gradient.new()
+	fade.set_color(0, DUST_COLOR)
+	fade.set_color(1, Color(DUST_COLOR, 0.0))
+	var fade_texture := GradientTexture1D.new()
+	fade_texture.gradient = fade
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 0.35))
+	grow.add_point(Vector2(1.0, 1.0))
+	var grow_texture := CurveTexture.new()
+	grow_texture.curve = grow
+	var process := ParticleProcessMaterial.new()
+	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	process.emission_box_extents = Vector3(footprint_radius * 0.5, 0.05, footprint_radius * 0.3)
+	process.direction = Vector3.UP
+	process.spread = 60.0
+	process.initial_velocity_min = 0.3
+	process.initial_velocity_max = 1.0
+	process.gravity = Vector3(0.0, 0.25, 0.0)
+	process.damping_min = 0.6
+	process.damping_max = 1.0
+	process.scale_min = 0.7
+	process.scale_max = 1.3
+	process.scale_curve = grow_texture
+	process.color_ramp = fade_texture
+	var puff := GradientTexture2D.new()
+	var soft := Gradient.new()
+	soft.set_color(0, Color.WHITE)
+	soft.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+	puff.gradient = soft
+	puff.fill = GradientTexture2D.FILL_RADIAL
+	puff.fill_from = Vector2(0.5, 0.5)
+	puff.fill_to = Vector2(1.0, 0.5)
+	puff.width = 64
+	puff.height = 64
+	var surface := StandardMaterial3D.new()
+	surface.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	surface.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	surface.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	surface.vertex_color_use_as_albedo = true
+	surface.albedo_texture = puff
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * footprint_radius * 1.4
+	quad.material = surface
+	var dust := GPUParticles3D.new()
+	dust.name = "Dust"
+	dust.amount = 14
+	dust.lifetime = 1.3
+	dust.emitting = false
+	dust.process_material = process
+	dust.draw_pass_1 = quad
+	dust.position = Vector3(0.0, 0.25, footprint_radius * 0.6)
+	dust.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return dust
