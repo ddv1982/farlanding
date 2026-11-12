@@ -44,3 +44,12 @@ func test_lost_with_the_headquarters() -> void:
 	lander.health.take(10000.0)
 	assert_eq(outcome.check(_f.world), ConquestOutcome.Result.LOST, "units left do not help")
 	assert_signal_emitted_with_parameters(Events, "mission_ended", [false])
+
+
+func test_losing_the_headquarters_together_with_the_last_enemy_is_a_loss() -> void:
+	var lander: Building = _f.world.spawn_building(_f.hq, 0, Vector3(-40, 0, 0), true)
+	var last_enemy: Unit = _f.spawn(_f.scout, 1, Vector3(40, 0, 0))
+	var outcome: ConquestOutcome = ConquestOutcome.new(0, _f.hq)
+	last_enemy.health.take(10000.0)
+	lander.health.take(10000.0)
+	assert_eq(outcome.check(_f.world), ConquestOutcome.Result.LOST)
