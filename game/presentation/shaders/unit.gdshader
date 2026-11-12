@@ -24,7 +24,7 @@ void fragment() {
 	// it read as white, i.e. "high", and are left untouched.
 	float height = COLOR.r * 8.0;
 	float lit = step(surface.b, 0.001);
-	base = mix(base, dust_color, smoothstep(dust_height, 0.0, height) * dust_amount * lit);
+	base = mix(base, dust_color, (1.0 - smoothstep(0.0, dust_height, height)) * dust_amount * lit);
 	base *= mix(0.72, 1.0, smoothstep(0.0, 0.9, height));
 	float grey = dot(base, vec3(0.299, 0.587, 0.114));
 	base = mix(base, vec3(grey) * 0.45, damage * 0.7);
