@@ -211,7 +211,7 @@ Sound gets its own track in every phase rather than a pass at the end, because i
 |---|---|
 | Interface | Clicks, placement valid/invalid, queue, cancel, insufficient resources |
 | Unit voices | Select, move, attack, ability, under fire — 3 to 5 variations each, per unit type |
-| Advisor | *Meridian*'s ship voice: base alerts, objectives, discoveries |
+| Advisor | *Meridian*'s own tone family plus on-screen text: base alerts, objectives, discoveries |
 | Weapons | Fire, travel, impact per weapon and surface; explosions in three sizes |
 | Movement | Engine/servo loops per chassis, footfalls for walkers |
 | Buildings | Placement, construction loop, completion, idle hum, production, destruction |
@@ -231,12 +231,11 @@ Sound gets its own track in every phase rather than a pass at the end, because i
 
 ### 5.4 How the sounds are produced
 
-A layered, scripted pipeline, the same shape as the art pipeline:
+A scripted pipeline, the same shape as the art pipeline:
 
-1. **Synthesis recipes** (Python scripts → WAV) for everything that should sound designed: interface, scanners, energy weapons, alerts, the Trail motif. Fully original, reproducible, and tweakable by editing numbers.
-2. **CC0 recordings** for organic layers that synthesis does badly: explosions, debris, wind, water, mechanical foley.
-3. **Generated audio** where it saves real time — voices and possibly music. This depends on your answer in section 9.
-4. **Processing** with ffmpeg: trim, fade, loudness-normalise, export. Short sounds as WAV, music and ambience as Ogg Vorbis.
+1. **Synthesis recipes** (Python scripts → WAV) for every sound and all music. Fully original, reproducible, and tweakable by editing numbers. No recordings, no generation services, no spoken voices (see section 9).
+2. **Processing**: trim, fade, loudness-normalise, export. Short sounds as WAV, music and ambience as Ogg Vorbis.
+3. **Automated analysis** on every build (clipping, loop seams, loudness targets), because the pipeline is scripted end to end.
 
 Every file is listed in `audio_src/manifest` with its source, licence and recipe, so the game's audio is auditable and rebuildable. An audio style guide in `docs/` fixes loudness targets per group and the naming scheme before production starts.
 
