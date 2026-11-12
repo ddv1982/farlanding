@@ -18,3 +18,7 @@ faction = 0
 scene = ExtResource("2_scene")
 icon = ExtResource("3_icon")
 sound_set = &"kite"
+description = "Fast skimmer. Built at the Foundry."
+cost_alloy = 110
+cost_flux = 20
+build_time = 12.0

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EconomyRules" format=3]
+
+[ext_resource type="Script" path="res://core/defs/economy_rules.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+start_alloy = 600
+start_flux = 100
+low_power_rate = 0.5
+cancel_refund = 1.0
+building_gap = 1.0
+max_slope = 12.0
+vent_snap_distance = 6.0
+deposit_search_radius = 70.0

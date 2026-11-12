@@ -18,3 +18,7 @@ faction = 0
 scene = ExtResource("2_scene")
 icon = ExtResource("3_icon")
 sound_set = &"bulwark"
+description = "Heavy tank. Built at the Foundry."
+cost_alloy = 250
+cost_flux = 60
+build_time = 22.0

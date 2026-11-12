@@ -3,7 +3,8 @@ extends Node
 ## Holds a unit's current order and its queue of follow-up orders (shift-queued
 ## waypoints) and drives Locomotion through them. A move travels to its point. An
 ## attack closes on its target, holds at the engagement distance facing it, and ends
-## when the target is gone (there is no combat yet).
+## when the target is gone (there is no combat yet). Other kinds (harvest, build) are
+## carried out by the unit's OrderHandler components.
 
 ## The unit started working on `order`.
 signal order_started(order: Order)
@@ -30,6 +31,7 @@ var current: Order = null
 var queue: Array[Order] = []
 
 var _locomotion: Locomotion = null
+var _handlers: Dictionary[StringName, OrderHandler] = {}
 ## Attack state: holding at engagement distance, ticks until the next re-path, and
 ## the target position the current approach path was planned for.
 var _engaged: bool = false
@@ -39,6 +41,17 @@ var _path_target: Vector3 = Vector3.INF
 
 func setup(locomotion: Locomotion) -> void:
 	_locomotion = locomotion
+
+
+## Lets `handler` carry out the order kinds it handles.
+func add_handler(handler: OrderHandler) -> void:
+	for kind: StringName in handler.handles():
+		_handlers[kind] = handler
+
+
+## True if this unit can carry out orders of `kind` (move and attack always).
+func can_do(kind: StringName) -> bool:
+	return kind == MoveCommand.KIND_MOVE or kind == AttackCommand.KIND or _handlers.has(kind)
 
 
 ## Replaces all orders with `order`, or appends it when `queued`.
@@ -78,8 +91,12 @@ func last_destination(fallback: Vector3) -> Vector3:
 
 
 ## Advances to the next order once the current one is done.
-func tick() -> void:
+func tick(dt: float = SimClock.TICK_DELTA) -> void:
 	if current == null or _locomotion == null:
+		return
+	if _handlers.has(current.kind):
+		if _handlers[current.kind].step(current, dt):
+			_advance()
 		return
 	if current.kind == AttackCommand.KIND:
 		_tick_attack()
@@ -112,6 +129,18 @@ func from_dict(data: Dictionary) -> void:
 		queue.append(Order.from_dict(order_data))
 
 
+## Reconnects restored orders to their target entities: `lookup` is
+## `func(id: int) -> Node3D` (SimWorld.entity).
+func resolve_targets(lookup: Callable) -> void:
+	var all: Array[Order] = queue.duplicate()
+	if current != null:
+		all.append(current)
+	for order: Order in all:
+		if order.target_id >= 0 and order.target_entity == null:
+			var target: Node3D = lookup.call(order.target_id)
+			order.target_entity = target
+
+
 ## Ends the current order and starts the next queued one.
 func _advance() -> void:
 	_leave_current()
@@ -127,6 +156,10 @@ func _start(order: Order) -> void:
 	current = order
 	order_started.emit(order)
 	if _locomotion == null:
+		return
+	if _handlers.has(order.kind):
+		if not _handlers[order.kind].begin(order):
+			current = null
 		return
 	if order.kind == AttackCommand.KIND:
 		order.path = PackedVector3Array()
@@ -149,6 +182,9 @@ func _start(order: Order) -> void:
 
 ## Cleans up after the current order before another replaces it.
 func _leave_current() -> void:
+	if current != null and _handlers.has(current.kind):
+		_handlers[current.kind].end(current)
+		return
 	if current == null or current.kind != AttackCommand.KIND:
 		return
 	if _engaged:

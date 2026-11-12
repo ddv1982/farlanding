@@ -14,6 +14,9 @@ const REPEAT_WINDOW: float = 0.6
 ## No two unit replies start closer together than this.
 const MIN_GAP: float = 0.12
 ## Command kinds that answer with the `attack` reply.
+## Command kinds that already have their own sound (production queueing plays
+## `ui_queue` from `production_started`), so no order click is added.
+const SILENT_KINDS: Array[StringName] = [&"produce", &"cancel_production"]
 const ATTACK_KINDS: Array[StringName] = [&"attack", &"attack_move", &"force_attack"]
 ## Command kinds that place a ground marker ping at `target_position`.
 const GROUND_KINDS: Array[StringName] = [
@@ -117,6 +120,8 @@ func on_building_selection(sound_sets: Array[StringName], now: float) -> Array[S
 func on_command(
 	sound_sets: Array[StringName], command_kind: StringName, now: float
 ) -> Array[StringName]:
+	if command_kind in SILENT_KINDS:
+		return []
 	if command_kind in RALLY_KINDS:
 		return [&"ui_rally_set", &"ui_order"]
 	var kind: StringName = reply_kind(command_kind)

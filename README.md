@@ -3,7 +3,7 @@
 A single-player 3D real-time strategy game about a survey expedition following
 a trail of beacons across unknown planets. Built with Godot 4.7 and Blender.
 
-![Twelve Concord units selected on Kessel Reach](docs/media/phase1-command-feel.png)
+![A Lander, a new Reactor, two Fabricators and a Hauler on Kessel Reach](docs/media/phase2-base.png)
 
 ## Run it
 

@@ -18,3 +18,7 @@ faction = 0
 scene = ExtResource("2_scene")
 icon = ExtResource("3_icon")
 sound_set = &"surveyor"
+description = "Fast unarmed scout with a scanner. Built at the Foundry."
+cost_alloy = 60
+cost_flux = 15
+build_time = 9.0

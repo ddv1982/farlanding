@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="BuildingDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/buildings/concord_muster_bay.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_building_muster_bay.png" id="3"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="4"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_building_muster_bay.glb" id="20"]
+[ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="5"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Muster Bay"
+description = "Trains infantry: Rangers."
+max_health = 1000
+footprint = Rect2(-4.3, -4.3, 8.6, 8.6)
+height = 7.2
+power_use = 4
+door = Vector3(0, 0, 8.5)
+cost_alloy = 200
+cost_flux = 0
+build_time = 25.0
+produces = Array[ExtResource("4")]([ExtResource("5")])
+scene = ExtResource("2")
+icon = ExtResource("3")
+sound_set = &"muster_bay"
+id = &"concord_muster_bay"
+faction = 0
+model = ExtResource("20")

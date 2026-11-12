@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://sim/entities/unit.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_unit_hauler.glb" id="2_model"]
+[ext_resource type="Script" path="res://sim/components/harvester.gd" id="3_harvester"]
+
+[node name="ConcordHauler" instance=ExtResource("1_base")]
+
+[node name="Visual" parent="." index="2"]
+model_scene = ExtResource("2_model")
+footprint_radius = 2.0
+hovers = false
+
+[node name="Harvester" type="Node" parent="." index="3"]
+script = ExtResource("3_harvester")

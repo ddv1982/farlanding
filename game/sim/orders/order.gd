@@ -8,9 +8,12 @@ const SAVE_VERSION: int = 1
 ## Same vocabulary as Command.kind, e.g. &"move" or &"attack".
 var kind: StringName = &""
 var target_position: Vector3 = Vector3.ZERO
-## Entity the order is about (the unit to attack), or null. Not saved yet: entities
-## have no save ids, so a restored attack order has no target and ends at once.
+## Entity the order is about (the unit to attack, the deposit to mine, the site to
+## build), or null. Saved by its `entity_id`; a restored order keeps the id in
+## `target_id` until the world resolves it.
 var target_entity: Node3D = null
+## Save id of `target_entity` after a restore, or -1.
+var target_id: int = -1
 ## Attack orders: where to stand relative to the target; its length is the
 ## engagement distance.
 var engage_offset: Vector3 = Vector3.ZERO
@@ -30,6 +33,7 @@ func to_dict() -> Dictionary:
 		"kind": kind,
 		"target": var_to_str(target_position),
 		"offset": var_to_str(engage_offset),
+		"target_id": entity_id_of(target_entity),
 	}
 
 
@@ -42,4 +46,17 @@ static func from_dict(data: Dictionary) -> Order:
 	var order: Order = Order.new(kind_name, target)
 	var offset_text: String = data.get("offset", "Vector3(0, 0, 0)")
 	order.engage_offset = str_to_var(offset_text)
+	order.target_id = data.get("target_id", -1)
 	return order
+
+
+## The save id of an entity (its `entity_id` property), or -1.
+static func entity_id_of(entity: Variant) -> int:
+	if not is_instance_valid(entity):
+		return -1
+	var node: Node = entity
+	var value: Variant = node.get(&"entity_id")
+	if value is int:
+		var id: int = value
+		return id
+	return -1

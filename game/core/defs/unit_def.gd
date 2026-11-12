@@ -10,3 +10,29 @@ extends EntityDef
 @export_range(0.1, 20.0, 0.05, "suffix:m") var radius: float = 0.5
 ## Also used for braking.
 @export_range(0.1, 200.0, 0.1, "suffix:m/s²") var acceleration: float = 10.0
+@export_group("Builder")
+## Buildings this unit can construct (shown in its build menu): BuildingDefs, typed
+## as EntityDef because BuildingDef already refers to UnitDef (a cycle between the
+## two scripts would leak them at exit).
+@export var builds: Array[EntityDef] = []
+## Construction seconds added per second of work at full power; 0 = cannot build.
+@export_range(0.0, 10.0, 0.05) var build_rate: float = 0.0
+## How close to a footprint's edge a builder works from, in metres.
+@export_range(0.5, 20.0, 0.1, "suffix:m") var work_range: float = 3.0
+@export_group("Harvester")
+## Alloy carried per trip; 0 = cannot harvest.
+@export_range(0, 10000, 1) var carry_capacity: int = 0
+## Seconds spent mining one load at a deposit.
+@export_range(0.1, 120.0, 0.1, "suffix:s") var mine_time: float = 4.0
+## Seconds spent unloading at a refinery dock.
+@export_range(0.1, 120.0, 0.1, "suffix:s") var unload_time: float = 1.5
+
+
+## True if this unit can construct buildings.
+func can_build() -> bool:
+	return build_rate > 0.0 and not builds.is_empty()
+
+
+## True if this unit can harvest Alloy.
+func can_harvest() -> bool:
+	return carry_capacity > 0
