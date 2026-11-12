@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DamageTable" format=3]
+
+[ext_resource type="Script" path="res://core/defs/damage_table.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+multipliers = Dictionary[StringName, float]({
+&"heavy/heavy": 1.0,
+&"heavy/light": 0.8,
+&"heavy/structure": 1.25,
+&"light/heavy": 0.5,
+&"light/light": 1.0,
+&"light/structure": 0.4,
+&"pierce/heavy": 1.5,
+&"pierce/light": 0.75,
+&"pierce/structure": 0.75
+})

@@ -10,3 +10,6 @@ script = ExtResource("1_building")
 script = ExtResource("2_visual")
 
 [connection signal="build_progress_changed" from="." to="Visual" method="set_build_progress"]
+[connection signal="health_changed" from="." to="Visual" method="set_health"]
+[connection signal="aim_changed" from="." to="Visual" method="aim_at"]
+[connection signal="aim_cleared" from="." to="Visual" method="clear_aim"]

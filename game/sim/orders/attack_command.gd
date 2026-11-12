@@ -1,16 +1,14 @@
 class_name AttackCommand
 extends Command
-## Attack one enemy unit or building. Each receiver closes on `target_entity` and
-## holds at `engage_range` (from a building's edge), the group spread in an arc on
-## the side it approaches from. There
-## is no combat yet: holding means facing the target. With `queued`, the attack runs
-## after each unit's current orders.
+## Attack one enemy unit or building the issuing faction can see. Each armed
+## receiver closes to just inside its weapon range (from a building's edge) and fires
+## until the target dies; the group spreads in an arc on the side it approaches from.
+## Unarmed receivers only walk up to `ENGAGE_RANGE` from it. With `queued`, the attack
+## runs after each unit's current orders.
 
 const KIND: StringName = &"attack"
-## Distance from the target at which units stop and engage, in metres.
+## Where unarmed units stop, and the engagement distance of units without a range.
 const ENGAGE_RANGE: float = 10.0
-
-var engage_range: float = ENGAGE_RANGE
 
 
 func _init(
@@ -31,10 +29,10 @@ static func is_valid_target(target: Variant, faction: int) -> bool:
 		return false
 	if target is Unit:
 		var unit: Unit = target
-		return unit.is_inside_tree() and unit.faction != faction
+		return unit.is_inside_tree() and unit.faction != faction and not unit.is_dead
 	if target is Building:
 		var building: Building = target
-		return building.is_inside_tree() and building.faction != faction
+		return building.is_inside_tree() and building.faction != faction and not building.is_dead
 	return false
 
 
@@ -91,6 +89,13 @@ static func engage_offsets(
 func execute() -> void:
 	if not is_valid_target(target_entity, issuer_faction):
 		return
+	var world: SimWorld = PlaceBuildingCommand.world_of(entities)
+	if (
+		world != null
+		and world.combat != null
+		and not world.combat.can_target(issuer_faction, target_entity)
+	):
+		return
 	var units: Array[Unit] = []
 	for entity: Node3D in entities:
 		var unit: Unit = entity as Unit
@@ -106,20 +111,27 @@ func execute() -> void:
 	target_position = position_of(target_entity)
 	var starts: PackedVector3Array = PackedVector3Array()
 	var radii: PackedFloat32Array = PackedFloat32Array()
+	var ranges: PackedFloat32Array = PackedFloat32Array()
+	var widest: float = 0.0
+	var body: float = body_radius(target_entity)
 	for unit: Unit in units:
 		var start: Vector3 = position_of(unit)
 		if queued:
 			start = unit.orders.last_destination(start)
 		starts.append(start)
 		radii.append(unit.def.radius if unit.def != null else 0.5)
+		var reach: float = unit.orders.engage_distance if unit.weapon != null else ENGAGE_RANGE
+		ranges.append(reach + body)
+		widest = maxf(widest, reach + body)
 	var offsets: PackedVector3Array = engage_offsets(
-		target_position,
-		starts,
-		engage_range + body_radius(target_entity),
-		Formation.spacing_for(radii)
+		target_position, starts, widest, Formation.spacing_for(radii)
 	)
 	for i: int in units.size():
+		var offset: Vector3 = offsets[i].normalized() * ranges[i]
+		if units[i].weapon == null:
+			units[i].orders.give(Order.new(MoveCommand.KIND_MOVE, target_position + offset), queued)
+			continue
 		var order: Order = Order.new(kind, target_position)
 		order.target_entity = target_entity
-		order.engage_offset = offsets[i]
+		order.engage_offset = offset
 		units[i].orders.give(order, queued)

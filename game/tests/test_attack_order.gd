@@ -1,6 +1,7 @@
 extends GutTest
 ## The attack order: approach to engagement distance, hold facing the target, end when
-## the target is gone, give way to move and stop. Straight-line PathService, no terrain.
+## the target is gone, give way to move and stop. Straight-line PathService, no terrain,
+## no combat system: the units' weapons aim but never fire, so targets stay alive.
 
 const DT: float = 0.1
 
@@ -14,7 +15,16 @@ func before_each() -> void:
 	_def.acceleration = 20.0
 	_def.turn_speed = 360.0
 	_def.radius = 0.5
+	_def.weapon = _weapon()
 	_queue = CommandQueue.new()
+
+
+## A weapon whose engagement distance is AttackCommand.ENGAGE_RANGE.
+static func _weapon() -> WeaponDef:
+	var weapon: WeaponDef = WeaponDef.new()
+	weapon.max_range = AttackCommand.ENGAGE_RANGE + UnitOrders.ENGAGE_MARGIN
+	weapon.turret = true
+	return weapon
 
 
 func _unit(at: Vector3, faction: int = 0) -> Unit:
@@ -79,11 +89,11 @@ func test_group_approaches_stops_at_range_spread_and_faces_target() -> void:
 func test_engaged_unit_aims_and_follows_a_moving_target() -> void:
 	var unit: Unit = _unit(Vector3.ZERO)
 	var enemy: Unit = _unit(Vector3(0, 0, -30), 1)
-	watch_signals(unit.orders)
+	watch_signals(unit)
 	_queue.push(AttackCommand.new(0, [unit], enemy))
 	_tick([unit], 80)
 	assert_true(unit.orders.is_engaged())
-	assert_signal_emitted(unit.orders, "aim_changed")
+	assert_signal_emitted(unit, "aim_changed")
 	enemy.locomotion.mover.position = Vector3(30, 0, -30)
 	_tick([unit], 150)
 	assert_true(unit.orders.is_engaged(), "caught up again")
@@ -94,7 +104,7 @@ func test_engaged_unit_aims_and_follows_a_moving_target() -> void:
 func test_order_ends_when_target_dies() -> void:
 	var unit: Unit = _unit(Vector3.ZERO)
 	var enemy: Unit = _unit(Vector3(0, 0, -40), 1)
-	watch_signals(unit.orders)
+	watch_signals(unit)
 	_queue.push(AttackCommand.new(0, [unit], enemy))
 	_queue.push(MoveCommand.new(MoveCommand.KIND_MOVE, 0, [unit], Vector3(5, 0, 0), true))
 	_tick([unit], 100)
@@ -103,7 +113,7 @@ func test_order_ends_when_target_dies() -> void:
 	_tick([unit], 1)
 	assert_ne(unit.orders.current.kind if unit.orders.current != null else &"", AttackCommand.KIND)
 	assert_false(unit.orders.is_engaged())
-	assert_signal_emitted(unit.orders, "aim_cleared")
+	assert_signal_emitted(unit, "aim_cleared")
 	_tick([unit], 100)
 	assert_true(unit.orders.is_idle(), "went on to the queued move and finished it")
 	assert_almost_eq(unit.locomotion.mover.position, Vector3(5, 0, 0), Vector3.ONE * 0.01)
@@ -163,6 +173,7 @@ func test_fast_unit_does_not_slide_inside_engagement_distance() -> void:
 	fast.acceleration = 18.0
 	fast.turn_speed = 720.0
 	fast.radius = 0.6
+	fast.weapon = _weapon()
 	var unit: Unit = Unit.new()
 	unit.def = fast
 	unit.add_child(Locomotion.new())
@@ -190,3 +201,42 @@ func test_attack_given_mid_move_drops_the_old_route_into_the_target() -> void:
 	var held: float = _flat_distance(unit.locomotion.mover.position, Vector3(0, 0, -30))
 	assert_gt(held, at_order - 2.0, "stops where it was, not on top of the target")
 	assert_true(unit.orders.is_engaged())
+
+
+func test_unarmed_units_only_walk_up_to_the_target() -> void:
+	var unarmed: UnitDef = UnitDef.new()
+	unarmed.move_speed = 5.0
+	unarmed.acceleration = 20.0
+	unarmed.radius = 0.5
+	var unit: Unit = Unit.new()
+	unit.def = unarmed
+	unit.add_child(Locomotion.new())
+	unit.add_child(UnitOrders.new())
+	add_child_autofree(unit)
+	unit.locomotion.setup(unarmed, Vector3.ZERO, 0.0, PathService.new(), null)
+	var enemy: Unit = _unit(Vector3(0, 0, -40), 1)
+	_queue.push(AttackCommand.new(0, [unit], enemy))
+	_tick([unit], 1)
+	assert_eq(unit.orders.current.kind, MoveCommand.KIND_MOVE, "a walk, not an attack")
+	_tick([unit], 120)
+	assert_true(unit.orders.is_idle())
+	var distance: float = _flat_distance(unit.locomotion.mover.position, Vector3(0, 0, -40))
+	assert_between(distance, AttackCommand.ENGAGE_RANGE - 1.0, AttackCommand.ENGAGE_RANGE + 1.0)
+
+
+func test_engagement_distance_follows_weapon_range() -> void:
+	var long_range: UnitDef = _def.duplicate()
+	long_range.weapon = _weapon()
+	long_range.weapon.max_range = 25.0
+	var unit: Unit = Unit.new()
+	unit.def = long_range
+	unit.add_child(Locomotion.new())
+	unit.add_child(UnitOrders.new())
+	add_child_autofree(unit)
+	unit.locomotion.setup(long_range, Vector3.ZERO, 0.0, PathService.new(), null)
+	var enemy: Unit = _unit(Vector3(0, 0, -60), 1)
+	_queue.push(AttackCommand.new(0, [unit], enemy))
+	_tick([unit], 120)
+	assert_true(unit.orders.is_engaged())
+	var distance: float = _flat_distance(unit.locomotion.mover.position, Vector3(0, 0, -60))
+	assert_between(distance, 25.0 - UnitOrders.ENGAGE_MARGIN - 1.0, 25.0)

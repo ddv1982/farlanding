@@ -2,22 +2,28 @@ class_name UnitOrders
 extends Node
 ## Holds a unit's current order and its queue of follow-up orders (shift-queued
 ## waypoints) and drives Locomotion through them. A move travels to its point. An
-## attack closes on its target, holds at the engagement distance facing it, and ends
-## when the target is gone (there is no combat yet). Other kinds (harvest, build) are
+## attack closes on its target to the engagement distance (just inside weapon range),
+## holds there facing it while the Weapon fires, and ends when the target is dead or
+## the unit's faction loses sight of it (a commanded attack then walks on to where it
+## was last seen). Attacks a unit gives itself (`engage()`) stay on a leash around
+## where it stood and walk back there when done. Other kinds (harvest, build) are
 ## carried out by the unit's OrderHandler components.
 
 ## The unit started working on `order`.
 signal order_started(order: Order)
-## An attack is holding on a target; `point` is where to aim (every tick while held).
-signal aim_changed(point: Vector3)
-## The unit stopped aiming at anything.
-signal aim_cleared
 
 const SAVE_VERSION: int = 1
 ## An approaching unit stops this far beyond its engagement distance.
 const ENGAGE_SLACK: float = 0.75
 ## A holding unit closes in again once the target is this far beyond the distance.
-const LEASH: float = 3.0
+const LEASH: float = 1.25
+## The engagement distance is this much inside weapon range.
+const ENGAGE_MARGIN: float = 1.5
+## A self-given attack is dropped once its target is this much further from the
+## guard spot than the unit may reach (hysteresis against re-engaging at once).
+const GIVE_UP_SLACK: float = 2.0
+## A unit further than this from its guard spot after a self-given attack walks back.
+const GUARD_RADIUS: float = 2.0
 ## Sim ticks between new approach paths while chasing a moving target.
 const REPATH_TICKS: int = 10
 ## The target must have moved this far from the planned spot to need a new path.
@@ -29,6 +35,12 @@ const AIM_HEIGHT: float = 1.0
 var current: Order = null
 ## Orders waiting after `current`, oldest first.
 var queue: Array[Order] = []
+## Distance from a target at which this unit stops and fires (weapon range minus a
+## margin; set by the unit).
+var engage_distance: float = AttackCommand.ENGAGE_RANGE
+## `func(target: Variant) -> bool`: may this unit's faction shoot `target` now
+## (alive, hostile, seen)? Unset: any live target counts.
+var can_target: Callable = Callable()
 
 var _locomotion: Locomotion = null
 var _handlers: Dictionary[StringName, OrderHandler] = {}
@@ -94,6 +106,36 @@ func is_engaged() -> bool:
 	return _engaged
 
 
+## The target of the current attack order if it can still be attacked, else null.
+func attack_target() -> Node3D:
+	if current == null or current.kind != AttackCommand.KIND:
+		return null
+	return _attack_target()
+
+
+## True while carrying out an attack the unit gave itself.
+func is_auto_attacking() -> bool:
+	return current != null and current.kind == AttackCommand.KIND and current.leash > 0.0
+
+
+## Attacks `target` on the unit's own initiative: from `guard`, walking at most
+## `leash` metres beyond its engagement distance, then back to `guard`.
+func engage(target: Node3D, guard: Vector3, leash: float) -> void:
+	var target_position: Vector3 = AttackCommand.position_of(target)
+	var away: Vector3 = guard - target_position
+	away.y = 0.0
+	if away.length_squared() < 0.01:
+		away = Vector3.BACK
+	var order: Order = Order.new(AttackCommand.KIND, target_position)
+	order.target_entity = target
+	order.engage_offset = (
+		away.normalized() * (engage_distance + AttackCommand.body_radius(target))
+	)
+	order.guard = guard
+	order.leash = maxf(leash, 0.01)
+	give(order)
+
+
 ## Where the unit will be once every order is done; `fallback` when idle.
 func last_destination(fallback: Vector3) -> Vector3:
 	if not queue.is_empty():
@@ -154,10 +196,16 @@ func resolve_targets(lookup: Callable) -> void:
 			order.target_entity = target
 
 
-## Ends the current order and starts the next queued one.
+## Ends the current order and starts the next queued one. A self-given attack with
+## nothing queued after it walks back to its guard spot.
 func _advance() -> void:
+	var back: Order = _guard_return()
 	_leave_current()
 	current = null
+	if back != null:
+		_start(back)
+		if current != null:
+			return
 	# An order that cannot start (no path) is skipped, not allowed to strand the rest.
 	while current == null and not queue.is_empty():
 		var next: Order = queue.pop_front()
@@ -200,9 +248,7 @@ func _leave_current() -> void:
 		return
 	if current == null or current.kind != AttackCommand.KIND:
 		return
-	if _engaged:
-		_engaged = false
-		aim_cleared.emit()
+	_engaged = false
 	_repath_ticks = 0
 	_path_target = Vector3.INF
 	if _locomotion != null:
@@ -214,12 +260,24 @@ func _tick_attack() -> void:
 	if target == null:
 		_advance()
 		return
+	if can_target.is_valid() and not can_target.call(target):
+		_lose_sight()
+		return
 	var target_position: Vector3 = AttackCommand.position_of(target)
+	current.target_position = target_position
 	var position: Vector3 = _locomotion.mover.position
 	var distance: float = (
 		Vector2(target_position.x - position.x, target_position.z - position.z).length()
 	)
 	var engage_range: float = current.engage_offset.length()
+	if current.leash > 0.0:
+		var from_guard: float = (
+			Vector2(target_position.x - current.guard.x, target_position.z - current.guard.z)
+			. length()
+		)
+		if from_guard > engage_range + current.leash + GIVE_UP_SLACK:
+			_advance()
+			return
 	if distance <= engage_range + (LEASH if _engaged else ENGAGE_SLACK):
 		if not _engaged and _heading_to_engage_spot(target_position, engage_range):
 			# Let it brake onto its spot; a hard stop here would slide fast units in.
@@ -228,11 +286,8 @@ func _tick_attack() -> void:
 			_engaged = true
 			_locomotion.stop()
 		_locomotion.face(target_position)
-		aim_changed.emit(target_position + Vector3.UP * AIM_HEIGHT)
 		return
-	if _engaged:
-		_engaged = false
-		aim_cleared.emit()
+	_engaged = false
 	_repath_ticks -= 1
 	if _repath_ticks > 0:
 		return
@@ -260,4 +315,31 @@ func _attack_target() -> Node3D:
 	if not is_instance_valid(target):
 		return null
 	var node: Node3D = target
-	return node if node.is_inside_tree() else null
+	if not node.is_inside_tree() or node.is_queued_for_deletion():
+		return null
+	var health: Health = Combat.health_of(node)
+	return null if health != null and health.is_dead() else node
+
+
+## The target slipped out of sight: a self-given attack ends; a commanded one walks
+## on to where the target was last seen.
+func _lose_sight() -> void:
+	if current.leash > 0.0:
+		_advance()
+		return
+	var search: Order = Order.new(MoveCommand.KIND_MOVE, current.target_position)
+	_leave_current()
+	current = null
+	_start(search)
+	if current == null:
+		_advance()
+
+
+## The walk back to the guard spot after a self-given attack, or null.
+func _guard_return() -> Order:
+	if current == null or current.leash <= 0.0 or not queue.is_empty() or _locomotion == null:
+		return null
+	var at: Vector3 = _locomotion.mover.position
+	if Vector2(at.x - current.guard.x, at.z - current.guard.z).length() <= GUARD_RADIUS:
+		return null
+	return Order.new(MoveCommand.KIND_MOVE, current.guard)

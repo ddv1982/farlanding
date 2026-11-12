@@ -9,6 +9,7 @@
 
 [resource]
 script = ExtResource("1")
+vision_range = 16.0
 display_name = "Refinery"
 description = "Haulers unload Alloy here. Comes with one free Hauler."
 max_health = 1200

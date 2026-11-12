@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/combine_skitter.tscn" id="2_scene"]
+[ext_resource type="Texture2D" path="res://assets/icons/combine_unit_skitter.png" id="3_icon"]
+[ext_resource type="Resource" path="res://data/weapons/skitter_needler.tres" id="w_weapon"]
+
+[resource]
+script = ExtResource("1_def")
+max_health = 110
+move_speed = 7.0
+turn_speed = 480.0
+vision_range = 20.0
+radius = 0.8
+acceleration = 18.0
+armour_type = &"light"
+weapon = ExtResource("w_weapon")
+id = &"combine_skitter"
+display_name = "Skitter"
+faction = 1
+scene = ExtResource("2_scene")
+icon = ExtResource("3_icon")
+sound_set = &"skitter"
+description = "Combine drone. Cheap, quick and always in numbers."
+cost_alloy = 50
+cost_flux = 0
+build_time = 7.0

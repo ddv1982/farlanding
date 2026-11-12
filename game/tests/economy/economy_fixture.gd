@@ -47,6 +47,12 @@ func _init(parent: Node) -> void:
 	ranger = _unit_def(&"ranger", 6.0, 0.8)
 	ranger.cost_alloy = 75
 	ranger.build_time = 10.0
+	# A weak gun: attacks hold for a long time, so tests can rely on busy units.
+	ranger.weapon = WeaponDef.new()
+	ranger.weapon.max_range = 12.0
+	ranger.weapon.damage = 1.0
+	ranger.weapon.cooldown = 1.0
+	ranger.weapon.projectile_speed = 0.0
 	refinery = _building_def(&"refinery", Rect2(-4, -4, 8, 8), 20.0)
 	refinery.cost_alloy = 250
 	refinery.power_use = 4

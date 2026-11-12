@@ -12,7 +12,7 @@ const CONCORD_COLOR := Color(0.35, 0.92, 1.0)
 const COMBINE_COLOR := Color(0.25, 1.0, 0.55)
 const SHELL_COLOR := Color(1.0, 0.55, 0.15)
 const FIRE_COLOR := Color(1.0, 0.62, 0.2)
-const SMOKE_COLOR := Color(0.22, 0.17, 0.14, 0.7)
+const SMOKE_COLOR := Color(0.10, 0.08, 0.07, 0.62)
 ## Brightness above 1 so the glow post-effect picks effects up.
 const GLOW := 3.0
 ## Effects alive at once; beyond this new ones are skipped, not queued.
@@ -21,17 +21,20 @@ const SCORCH_SECONDS := 14.0
 
 var _puff: Texture2D
 var _additive: StandardMaterial3D
-var _blended: StandardMaterial3D
-var _scorch: StandardMaterial3D
+var _fire_particles: StandardMaterial3D
+var _smoke_particles: StandardMaterial3D
+var _core_particles: StandardMaterial3D
 var _live: int = 0
 
 
 func _ready() -> void:
 	_puff = _make_puff_texture()
 	_additive = _make_material(BaseMaterial3D.BLEND_MODE_ADD)
-	_blended = _make_material(BaseMaterial3D.BLEND_MODE_MIX)
-	_scorch = _make_material(BaseMaterial3D.BLEND_MODE_MIX)
-	_scorch.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	# Fire is alpha-blended, not additive: on bright sand additive washes out to white.
+	_fire_particles = _make_particle_material()
+	_smoke_particles = _make_particle_material()
+	_core_particles = _make_particle_material()
+	_core_particles.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	Events.weapon_fired.connect(_on_weapon_fired)
 	Events.projectile_launched.connect(_on_projectile_launched)
 	Events.projectile_impacted.connect(_on_projectile_impacted)
@@ -108,24 +111,23 @@ func flash(at: Vector3, color: Color, size: float, seconds: float) -> void:
 ## A burst of fast sparks.
 func sparks(at: Vector3, color: Color, count: int) -> void:
 	var process := _burst_process(4.0, 9.0, Vector3(0, -14.0, 0), 0.08, 0.16)
-	process.color_ramp = _ramp(
-		Color(color.r * GLOW, color.g * GLOW, color.b * GLOW), Color(color, 0)
-	)
-	_emit(at, process, _additive, count, 0.35, 0.5)
+	process.color_ramp = _ramp(Color(color.r * 2.0, color.g * 2.0, color.b * 2.0), Color(color, 0))
+	_emit(at, process, _fire_particles, count, 0.35, 0.5)
 
 
 ## Fireball, smoke, sparks and a scorch mark. `radius` in metres.
 func explosion(at: Vector3, radius: float) -> void:
 	flash(at, Color(1.0, 0.9, 0.7), radius * 3.2, 0.12)
 	var fire := _burst_process(radius * 1.2, radius * 2.6, Vector3(0, 1.5, 0), 0.6, 1.1)
-	fire.color_ramp = _ramp(
-		Color(FIRE_COLOR.r * GLOW, FIRE_COLOR.g * GLOW, FIRE_COLOR.b * GLOW),
-		Color(0.3, 0.05, 0.0, 0)
-	)
-	_emit(at, fire, _additive, 12, 0.55, radius * 1.3)
+	fire.color_ramp = _ramp(Color(1.0, 0.36, 0.04, 1.0), Color(0.45, 0.05, 0.0, 0.0))
+	_emit(at, fire, _fire_particles, 12, 0.7, radius * 1.3)
+	# A short white-hot core, additive, so the blast reads against bright ground.
+	var core := _burst_process(radius * 0.4, radius * 1.2, Vector3.ZERO, 0.7, 1.0)
+	core.color_ramp = _ramp(Color(2.4, 1.9, 0.9, 1.0), Color(1.0, 0.3, 0.0, 0.0))
+	_emit(at, core, _core_particles, 6, 0.3, radius * 1.1)
 	var smoke := _burst_process(radius * 0.5, radius * 1.4, Vector3(0, 1.2, 0), 0.8, 1.4)
 	smoke.color_ramp = _ramp(SMOKE_COLOR, Color(SMOKE_COLOR, 0))
-	_emit(at, smoke, _blended, 9, 1.8, radius * 1.8)
+	_emit(at, smoke, _smoke_particles, 7, 1.6, radius * 1.4)
 	sparks(at, FIRE_COLOR, 14)
 	_scorch_mark(at, radius * 2.4)
 
@@ -133,23 +135,16 @@ func explosion(at: Vector3, radius: float) -> void:
 func _scorch_mark(at: Vector3, size: float) -> void:
 	if not _claim(SCORCH_SECONDS):
 		return
-	var quad := PlaneMesh.new()
-	quad.size = Vector2.ONE * size
-	var mark := MeshInstance3D.new()
-	mark.mesh = quad
-	mark.material_override = _scorch
-	mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# A decal follows the slope of the ground; a flat quad would cut through it.
+	var mark := Decal.new()
+	mark.size = Vector3(size, 3.0, size)
+	mark.texture_albedo = _puff
+	mark.modulate = Color(0.02, 0.015, 0.01, 0.8)
 	add_child(mark)
-	mark.global_position = Vector3(at.x, at.y - 0.45, at.z)
-	_tint(mark, Color(0.03, 0.02, 0.02, 0.75))
+	mark.global_position = at
 	var tween := create_tween()
 	tween.tween_interval(SCORCH_SECONDS * 0.6)
-	tween.tween_method(
-		func(alpha: float) -> void: _tint(mark, Color(0.03, 0.02, 0.02, alpha)),
-		0.75,
-		0.0,
-		SCORCH_SECONDS * 0.4
-	)
+	tween.tween_property(mark, ^"modulate:a", 0.0, SCORCH_SECONDS * 0.4)
 	tween.tween_callback(mark.queue_free)
 
 
@@ -194,7 +189,7 @@ func _trail(color: Color, seconds: float, size: float) -> GPUParticles3D:
 	process.color_ramp = _ramp(color, Color(color, 0))
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * size
-	quad.material = _blended
+	quad.material = _smoke_particles
 	var trail := GPUParticles3D.new()
 	trail.amount = 10
 	trail.lifetime = seconds
@@ -207,7 +202,8 @@ func _trail(color: Color, seconds: float, size: float) -> GPUParticles3D:
 func _solid(mesh: Mesh, color: Color, at: Vector3) -> MeshInstance3D:
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.albedo_color = Color(color.r * GLOW, color.g * GLOW, color.b * GLOW)
+	# Brighter than the scene so it blooms, but not so bright it washes to white.
+	material.albedo_color = Color(color.r * 1.7, color.g * 1.7, color.b * 1.7)
 	var part := MeshInstance3D.new()
 	part.mesh = mesh
 	part.material_override = material
@@ -280,6 +276,15 @@ func _make_material(blend: BaseMaterial3D.BlendMode) -> StandardMaterial3D:
 	material.vertex_color_use_as_albedo = true
 	material.albedo_texture = _puff
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return material
+
+
+## Soft billboards for particles; they fade where they meet the ground.
+func _make_particle_material() -> StandardMaterial3D:
+	var material := _make_material(BaseMaterial3D.BLEND_MODE_MIX)
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	material.proximity_fade_enabled = true
+	material.proximity_fade_distance = 0.7
 	return material
 
 

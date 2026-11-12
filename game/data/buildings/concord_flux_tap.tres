@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1")
+vision_range = 16.0
 display_name = "Flux Tap"
 description = "Draws Flux from a vent. Must be built on a Flux vent."
 max_health = 600

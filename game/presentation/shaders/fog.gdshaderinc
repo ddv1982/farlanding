@@ -21,7 +21,8 @@ vec2 fog_at(vec3 world) {
 // seen before = a dimmed memory; visible = untouched.
 vec3 fog_color(vec3 color, vec2 fog) {
 	float grey = dot(color, vec3(0.299, 0.587, 0.114));
-	vec3 charted = vec3(grey) * vec3(0.20, 0.25, 0.32);
-	vec3 remembered = mix(vec3(grey), color, 0.55) * 0.55;
+	// Values are low because they are still lit by the sun afterwards.
+	vec3 charted = vec3(grey) * vec3(0.045, 0.062, 0.090);
+	vec3 remembered = mix(vec3(grey), color, 0.5) * 0.30;
 	return mix(mix(charted, remembered, fog.g), color, fog.r);
 }

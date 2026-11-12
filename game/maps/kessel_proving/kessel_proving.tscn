@@ -8,7 +8,10 @@
 [ext_resource type="Script" path="res://presentation/rts_camera.gd" id="6_camera"]
 [ext_resource type="Script" path="res://presentation/selection/selection_controller.gd" id="7_selection"]
 [ext_resource type="PackedScene" path="res://ui/hud.tscn" id="8_hud"]
-[ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="10_ranger"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="10_skitter"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="11_stinger"]
+[ext_resource type="Resource" path="res://data/units/combine_mauler.tres" id="12_mauler"]
+[ext_resource type="Resource" path="res://data/combat/damage_table.tres" id="21_damage"]
 [ext_resource type="Script" path="res://core/defs/unit_def.gd" id="13_unit_def"]
 [ext_resource type="Resource" path="res://data/economy/kessel_rules.tres" id="14_rules"]
 [ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="15_lander"]
@@ -25,6 +28,7 @@ world = NodePath("SimWorld")
 camera = NodePath("RtsCamera")
 navigation_region = NodePath("NavigationRegion3D")
 economy_rules = ExtResource("14_rules")
+damage_table = ExtResource("21_damage")
 lander = ExtResource("15_lander")
 start_roster = Array[ExtResource("13_unit_def")]([ExtResource("16_fabricator"), ExtResource("16_fabricator"), ExtResource("17_hauler")])
 deposit = ExtResource("18_deposit")
@@ -33,7 +37,8 @@ rich_deposit = ExtResource("19_rich")
 rich_deposit_positions = PackedVector3Array(-20, 0, 92, 36, 0, 34, -96, 0, -30, 88, 0, -88, 55, 0, 90)
 vent = ExtResource("20_vent")
 vent_positions = PackedVector3Array(-60, 0, 70, -100, 0, 95, -28, 0, 30, 70, 0, 10, -30, 0, -85, 25, 0, -30)
-hostile_roster = Array[ExtResource("13_unit_def")]([ExtResource("10_ranger"), ExtResource("10_ranger"), ExtResource("10_ranger")])
+hostile_start = Vector3(40, 0, -30)
+hostile_roster = Array[ExtResource("13_unit_def")]([ExtResource("12_mauler"), ExtResource("11_stinger"), ExtResource("11_stinger"), ExtResource("10_skitter"), ExtResource("10_skitter"), ExtResource("10_skitter"), ExtResource("10_skitter")])
 
 [node name="MissionContext" type="Node" parent="."]
 script = ExtResource("4_context")
@@ -58,6 +63,7 @@ script = ExtResource("7_selection")
 camera = NodePath("../RtsCamera")
 world = NodePath("../SimWorld")
 
-[node name="Hud" parent="." node_paths=PackedStringArray("world", "selection_controller") instance=ExtResource("8_hud")]
+[node name="Hud" parent="." node_paths=PackedStringArray("world", "selection_controller", "camera") instance=ExtResource("8_hud")]
 world = NodePath("../SimWorld")
 selection_controller = NodePath("../SelectionController")
+camera = NodePath("../RtsCamera")

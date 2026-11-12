@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("1")
+vision_range = 16.0
 display_name = "Reactor"
 description = "Produces Power. Build more when Power used exceeds Power produced."
 max_health = 900

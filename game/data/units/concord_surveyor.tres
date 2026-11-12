@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("1_def")
+armour_type = &"light"
 max_health = 140
 move_speed = 9.0
 turn_speed = 420.0

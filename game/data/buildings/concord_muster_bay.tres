@@ -9,6 +9,7 @@
 
 [resource]
 script = ExtResource("1")
+vision_range = 16.0
 display_name = "Muster Bay"
 description = "Trains infantry: Rangers."
 max_health = 1000

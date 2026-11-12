@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/weapon_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mauler_twin_cannon"
+display_name = "Twin cannon"
+damage = 38.0
+damage_type = &"heavy"
+splash_radius = 3.5
+max_range = 26.0
+cooldown = 3.0
+salvo = 2
+salvo_spacing = 0.7
+projectile_speed = 34.0
+arc_height = 2.5
+fire_while_moving = false
+turret = true
+turn_speed = 90.0
+fire_arc = 6.0
+muzzle = Vector3(0, 2.0, -3.0)
+projectile_style = &"shell"
+impact_size = 3.0
+sound_set = &"mauler_twin_cannon"

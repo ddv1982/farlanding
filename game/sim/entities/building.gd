@@ -1,8 +1,9 @@
 class_name Building
 extends Node3D
 ## A building: a thin root holding its definition and faction, composed of
-## components chosen by its BuildingDef — always a Construction, a Producer when it
-## makes units, a FluxExtractor when it taps Flux. Spawned by SimWorld (which sets
+## components chosen by its BuildingDef — always a Construction and a Health, a
+## Producer when it makes units, a FluxExtractor when it taps Flux, a Weapon when it
+## defends (Sentry: fires only while powered). Spawned by SimWorld (which sets
 ## `def`, `faction`, `world`, `entity_id` and calls `setup()`), ticked by it on the
 ## sim clock. Buildings are not rotated: the door side faces +Z.
 
@@ -10,8 +11,14 @@ extends Node3D
 signal build_progress_changed(progress: float)
 ## Construction finished.
 signal completed
+## Health changed, `fraction` in [0, 1]. The visual shows it.
+signal health_changed(fraction: float)
+## The weapon aims at `point` (every tick while it has a target).
+signal aim_changed(point: Vector3)
+## The weapon stopped aiming.
+signal aim_cleared
 
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
 const GROUP: StringName = &"buildings"
 
 var def: BuildingDef
@@ -24,6 +31,17 @@ var producer: Producer = null
 var flux_extractor: FluxExtractor = null
 ## The vent a Flux Tap stands on, or null.
 var vent: ResourceNode = null
+var health: Health = null
+## Null for buildings without a defence weapon.
+var weapon: Weapon = null
+## False while the player cannot see this building now. Read by audio and UI.
+var is_visible_to_player: bool = true
+## True once the player has seen it; an enemy building stays shown from then on.
+var seen_by_player: bool = true
+## True from the moment its health ran out.
+var is_dead: bool:
+	get:
+		return health != null and health.is_dead()
 
 ## Read by audio (base loops) and the HUD.
 var is_under_construction: bool:
@@ -64,6 +82,18 @@ func setup(complete: bool) -> void:
 		flux_extractor.name = &"FluxExtractor"
 		flux_extractor.setup(def.flux_amount, def.flux_interval)
 		add_child(flux_extractor)
+	health = Health.new()
+	health.name = &"Health"
+	health.setup(def.max_health, def.armour_type, self)
+	health.changed.connect(health_changed.emit)
+	add_child(health)
+	if def.weapon != null:
+		weapon = Weapon.new()
+		weapon.name = &"Weapon"
+		weapon.setup(def.weapon, self, faction, world.combat if world != null else null)
+		weapon.aim_changed.connect(aim_changed.emit)
+		weapon.aim_cleared.connect(aim_cleared.emit)
+		add_child(weapon)
 	_was_complete = complete
 
 
@@ -79,6 +109,19 @@ func is_operational() -> bool:
 ## Ground area this building occupies (world X/Z).
 func footprint() -> Rect2:
 	return def.world_footprint(position)
+
+
+## Simulation position (buildings do not move).
+func sim_position() -> Vector3:
+	return position
+
+
+## One sim tick of the defence weapon: it aims while operational and fires only
+## while powered.
+func tick_weapon(dt: float) -> void:
+	if weapon == null or is_dead or not is_operational():
+		return
+	weapon.tick(dt, position, 0.0, null, true, is_powered)
 
 
 ## Where produced units appear.
@@ -127,6 +170,8 @@ func to_dict() -> Dictionary:
 		"producer": producer.to_dict() if producer != null else {},
 		"flux": flux_extractor.to_dict() if flux_extractor != null else {},
 		"vent": Order.entity_id_of(vent),
+		"health": health.to_dict() if health != null else {},
+		"weapon": weapon.to_dict() if weapon != null else {},
 	}
 
 
@@ -134,7 +179,7 @@ func to_dict() -> Dictionary:
 ## calls `setup()` first.
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
-	assert(version == SAVE_VERSION, "Unsupported Building save version")
+	assert(version >= 1 and version <= SAVE_VERSION, "Unsupported Building save version")
 	entity_id = data.get("entity_id", entity_id)
 	var construction_data: Dictionary = data.get("construction", {})
 	if construction != null and not construction_data.is_empty():
@@ -148,3 +193,9 @@ func from_dict(data: Dictionary) -> void:
 	var flux_data: Dictionary = data.get("flux", {})
 	if flux_extractor != null and not flux_data.is_empty():
 		flux_extractor.from_dict(flux_data)
+	var health_data: Dictionary = data.get("health", {})
+	if health != null and not health_data.is_empty():
+		health.from_dict(health_data)
+	var weapon_data: Dictionary = data.get("weapon", {})
+	if weapon != null and not weapon_data.is_empty():
+		weapon.from_dict(weapon_data)
