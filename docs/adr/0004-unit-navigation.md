@@ -42,7 +42,11 @@ to be confirmed by a Phase 0 spike: 200 units ordered across a map, with numbers
 | Frame time, mean / p95 | n/a (unthrottled) | n/a | 10.1 / 13.2 ms |
 | Navigation server time per frame, mean | 0.13 ms | 0.00 ms | 0.39 ms |
 | 95 % / all units arrived | 35.2 s / 47.3 s | 34.8 s / 44.4 s | 33.8 s / 37.5 s |
-| Units arrived | 200 / 200 | 200 / 200 | 200 / 200 |
+| Units arrived (stopped and idle) | 200 / 200 | 200 / 200 | 200 / 200 |
+
+"Arrived" here means the unit stopped with no orders left. The benchmark does not
+check the distance to its formation slot, so a unit that gave up would also count;
+treat the completion figures as an upper bound until the benchmark checks position.
 
 Path queries are the expensive part:
 

@@ -65,7 +65,9 @@ func _init(
 	)
 	var current_row: int = -1
 	for cell: Vector2i in cells:
-		if cell.x != current_row:
+		# Rows can be negative (replacement cells ahead of the block), so no row
+		# number is safe as a "none yet" marker.
+		if row_sizes.is_empty() or cell.x != current_row:
 			current_row = cell.x
 			row_sizes.append(0)
 		row_sizes[row_sizes.size() - 1] += 1

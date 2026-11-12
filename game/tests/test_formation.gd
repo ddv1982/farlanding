@@ -109,3 +109,11 @@ func test_walkable_filter_keeps_ideal_block_when_all_walkable() -> void:
 	var filtered: Formation = Formation.new(9, Vector3(3, 0, 3), Vector3.RIGHT, 2.5, always)
 	var plain: Formation = Formation.new(9, Vector3(3, 0, 3), Vector3.RIGHT, 2.5)
 	assert_eq(filtered.slots, plain.slots)
+
+
+func test_replacement_slot_ahead_of_the_block_is_accepted() -> void:
+	# The target itself is blocked; only ground ahead of it (row -1) is walkable.
+	var walkable: Callable = func(point: Vector3) -> bool: return point.z < -1.0
+	var formation: Formation = Formation.new(1, Vector3.ZERO, Vector3.FORWARD, 2.0, walkable)
+	assert_eq(formation.slots.size(), 1)
+	assert_eq(formation.row_sizes, PackedInt32Array([1]))

@@ -56,7 +56,8 @@ func tick() -> void:
 	if current == null or _locomotion == null or _locomotion.is_travelling():
 		return
 	current = null
-	if not queue.is_empty():
+	# An order that cannot start (no path) is skipped, not allowed to strand the rest.
+	while current == null and not queue.is_empty():
 		var next: Order = queue.pop_front()
 		_start(next)
 

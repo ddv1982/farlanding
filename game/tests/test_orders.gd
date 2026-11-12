@@ -175,3 +175,25 @@ func test_long_leg_after_a_near_corner_is_not_treated_as_stuck() -> void:
 	_tick([unit], 120)
 	assert_eq(paths.requests, 1, "steady progress must not trigger a repath")
 	assert_almost_eq(unit.locomotion.mover.position.z, -40.0, 0.5)
+
+
+class GappyPaths:
+	extends PathService
+
+	func find_path(_from: Vector3, to: Vector3) -> PackedVector3Array:
+		return PackedVector3Array() if to.x > 100.0 else PackedVector3Array([to])
+
+
+func test_unreachable_waypoint_does_not_drop_the_rest_of_the_queue() -> void:
+	var unit: Unit = Unit.new()
+	unit.def = _def
+	unit.add_child(Locomotion.new())
+	unit.add_child(UnitOrders.new())
+	add_child_autofree(unit)
+	unit.locomotion.setup(_def, Vector3.ZERO, 0.0, GappyPaths.new(), null)
+	for target: Vector3 in [Vector3(0, 0, -5), Vector3(500, 0, 0), Vector3(0, 0, -10)]:
+		var command: MoveCommand = MoveCommand.new(MoveCommand.KIND_MOVE, 0, [unit], target)
+		command.queued = target.z != -5.0
+		_queue.push(command)
+	_tick([unit], 80)
+	assert_almost_eq(unit.locomotion.mover.position.z, -10.0, 0.5)
