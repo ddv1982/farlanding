@@ -198,15 +198,25 @@ func perceive(tick: int) -> void:
 			func(area: Rect2) -> bool: return grid.is_area_visible(faction, area),
 			func(point: Vector3) -> bool: return grid.is_visible(faction, point)
 		)
+	else:
+		# Fog switched off: everything is in view, so what was not seen is gone.
+		knowledge.forget(
+			tick,
+			func(_area: Rect2) -> bool: return true,
+			func(_point: Vector3) -> bool: return true
+		)
 	if knowledge.known_buildings().size() > known_before and known_before == 0:
 		_log("found enemy buildings")
 
 
 static func _add_source(sources: Dictionary[Vector2i, Vector4], at: Vector3, radius: float) -> void:
 	var cell: Vector2i = Vector2i(floori(at.x / SOURCE_CELL), floori(at.z / SOURCE_CELL))
+	# One query per cell, placed at the first source and widened so it encloses the
+	# sight disc of any source in the same cell. Over-reaching is safe: the vision
+	# grid still rejects what the faction cannot see.
+	var padded: float = radius + SOURCE_CELL * sqrt(2.0)
 	var known: Vector4 = sources.get(cell, Vector4(at.x, at.y, at.z, 0.0))
-	if radius > known.w:
-		sources[cell] = Vector4(at.x, at.y, at.z, radius)
+	sources[cell] = Vector4(known.x, known.y, known.z, maxf(known.w, padded))
 
 
 ## The snapshot the brain decides from: own forces in full, the enemy as known.

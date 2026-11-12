@@ -96,3 +96,17 @@ func test_a_new_building_keeps_its_own_door_and_dock_clear() -> void:
 				"door %s blocked by %s" % [door, building.name]
 			)
 		_f.building(_f.forge, spot)
+
+
+func test_sight_sources_sharing_a_cell_still_cover_both_sight_areas() -> void:
+	var sources: Dictionary[Vector2i, Vector4] = {}
+	var first: Vector3 = Vector3(0.5, 0, 0.5)
+	var second: Vector3 = Vector3(7.5, 0, 7.5)
+	Commander._add_source(sources, first, 14.0)
+	Commander._add_source(sources, second, 14.0)
+	assert_eq(sources.size(), 1, "one query per cell")
+	var merged: Vector4 = sources.values()[0]
+	var centre: Vector3 = Vector3(merged.x, merged.y, merged.z)
+	# The far edge of the second source's sight, directly away from the first.
+	var edge: Vector3 = second + (second - first).normalized() * 14.0
+	assert_lte(centre.distance_to(edge), merged.w, "the merged query reaches it")
