@@ -50,6 +50,8 @@ var walk_grid: WalkGrid
 var outcome: ConquestOutcome
 var fog: FogOfWar
 
+var _outcome_check_pending: bool = false
+
 
 func _ready() -> void:
 	var started: int = Time.get_ticks_msec()
@@ -123,7 +125,17 @@ func spawn_group(
 	return spawned
 
 
+# Judged once the frame's deaths are all in, not per death: if the Lander and the
+# last enemy die together, the order they died in must not decide the mission.
 func _on_entity_died(_entity: Node3D) -> void:
+	if _outcome_check_pending:
+		return
+	_outcome_check_pending = true
+	_check_outcome.call_deferred()
+
+
+func _check_outcome() -> void:
+	_outcome_check_pending = false
 	outcome.check(world)
 
 
