@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/concord_ranger.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+max_health = 180
+move_speed = 6.0
+turn_speed = 540.0
+vision_range = 22.0
+radius = 0.8
+acceleration = 16.0
+id = &"concord_ranger"
+display_name = "Ranger"
+faction = 0
+scene = ExtResource("2_scene")
+sound_set = &"ranger"

@@ -1,37 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3]
 
-[ext_resource type="Script" path="res://core/mission_context.gd" id="1_mctx"]
+[ext_resource type="PackedScene" path="res://maps/kessel_proving/kessel_proving.tscn" id="1_map"]
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
-size = Vector2(64, 64)
+[node name="Main" type="Node"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
-albedo_color = Color(0.36, 0.38, 0.33, 1)
-
-[sub_resource type="Environment" id="Environment_main"]
-background_mode = 1
-background_color = Color(0.08, 0.09, 0.11, 1)
-ambient_light_source = 2
-ambient_light_color = Color(0.55, 0.58, 0.65, 1)
-ambient_light_energy = 0.6
-
-[node name="Main" type="Node3D"]
-
-[node name="MissionContext" type="Node" parent="."]
-script = ExtResource("1_mctx")
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_main")
-
-[node name="Sun" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.5, 0.866025, 0, -0.866025, 0.5, 0, 20, 0)
-shadow_enabled = true
-
-[node name="Ground" type="MeshInstance3D" parent="."]
-mesh = SubResource("PlaneMesh_ground")
-surface_material_override/0 = SubResource("StandardMaterial3D_ground")
-
-[node name="Camera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 20, 20)
-current = true
-fov = 50.0
+[node name="KesselProving" parent="." instance=ExtResource("1_map")]

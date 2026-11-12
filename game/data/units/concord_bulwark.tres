@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/concord_bulwark.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_def")
+max_health = 650
+move_speed = 3.8
+turn_speed = 110.0
+vision_range = 20.0
+radius = 1.75
+acceleration = 4.5
+id = &"concord_bulwark"
+display_name = "Bulwark"
+faction = 0
+scene = ExtResource("2_scene")
+sound_set = &"bulwark"

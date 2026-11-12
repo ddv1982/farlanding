@@ -31,7 +31,7 @@ MESAS = [
 ]
 # walkable plateau and its ramps (start outside, end on top, half width)
 PLATEAU = (-6.0, 78.0, 34.0, 20.0, 3.2)
-RAMPS = [((-6.0, 44.0), (-6.0, 62.0), 7.0), ((38.0, 78.0), (22.0, 78.0), 6.0)]
+RAMPS = [((-6.0, 40.0), (-6.0, 62.0), 12.0), ((44.0, 78.0), (22.0, 78.0), 11.0)]
 
 
 def _smooth(edge0: float, edge1: float, x: float) -> float:
@@ -63,7 +63,7 @@ def height(x: float, y: float) -> float:
         length = math.hypot(dx, dy)
         t = ((x - ax) * dx + (y - ay) * dy) / (length * length)
         side = abs((x - ax) * dy - (y - ay) * dx) / length
-        ramp = min(max(t, 0.0), 1.0) * _smooth(half_width, half_width - 2.5, side)
+        ramp = min(max(t, 0.0), 1.0) * _smooth(half_width, half_width - 3.0, side)
         if -0.05 <= t <= 1.3:
             plateau = max(plateau, ramp)
     h += plateau * top
