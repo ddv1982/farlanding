@@ -164,6 +164,7 @@ func _handle_key(key: InputEventKey) -> void:
 	if group > 0:
 		if key.ctrl_pressed or key.meta_pressed:
 			_groups.assign(group, selection)
+			Events.ui_feedback.emit(&"group_assign")
 		else:
 			_recall_group(group)
 		get_viewport().set_input_as_handled()
@@ -190,6 +191,7 @@ func _recall_group(group: int) -> void:
 	_last_group_time = now
 	if units.is_empty():
 		return
+	Events.ui_feedback.emit(&"group_recall")
 	set_selection(units)
 	if double_tap:
 		var centre: Vector3 = Vector3.ZERO

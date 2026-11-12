@@ -12,6 +12,10 @@ var def: UnitDef
 var faction: int = 0
 var locomotion: Locomotion = null
 var orders: UnitOrders = null
+## Current ground speed in m/s. Read by audio for movement loops.
+var speed: float:
+	get:
+		return locomotion.mover.speed if locomotion != null else 0.0
 
 
 func _enter_tree() -> void:

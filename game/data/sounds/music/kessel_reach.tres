@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="MusicScore" format=3]
+
+[ext_resource type="Script" path="res://audio/music_score.gd" id="1_score"]
+[ext_resource type="Script" path="res://audio/music_clip.gd" id="2_clip"]
+[ext_resource type="Script" path="res://audio/music_state.gd" id="3_state"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/kessel/mus_kessel_explore_pad.ogg" id="4_pad"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/kessel/mus_kessel_explore_pulse.ogg" id="5_pulse"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/kessel/mus_kessel_explore_melody.ogg" id="6_melody"]
+
+[sub_resource type="Resource" id="Resource_explore_clip"]
+script = ExtResource("2_clip")
+name = &"explore"
+layers = Array[AudioStream]([ExtResource("4_pad"), ExtResource("5_pulse"), ExtResource("6_melody")])
+layer_names = PackedStringArray("pad", "pulse", "melody")
+
+[sub_resource type="Resource" id="Resource_explore"]
+script = ExtResource("3_state")
+name = &"explore"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(0, 0, 0)
+intensity = 0
+
+[sub_resource type="Resource" id="Resource_calm"]
+script = ExtResource("3_state")
+name = &"calm"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(0, -80, -6)
+intensity = 0
+
+[sub_resource type="Resource" id="Resource_tension"]
+script = ExtResource("3_state")
+name = &"tension"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-2, 2, -80)
+intensity = 1
+
+[sub_resource type="Resource" id="Resource_combat"]
+script = ExtResource("3_state")
+name = &"combat"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-4, 3, -80)
+intensity = 2
+
+[resource]
+script = ExtResource("1_score")
+id = &"kessel_reach"
+clips = Array[ExtResource("2_clip")]([SubResource("Resource_explore_clip")])
+states = Array[ExtResource("3_state")]([SubResource("Resource_explore"), SubResource("Resource_calm"), SubResource("Resource_tension"), SubResource("Resource_combat")])
+default_state = &"explore"
+transition_beats = 4.0
+min_hold = 8.0
+layer_fade = 3.0
+ambience = &"amb_kessel_wind"
