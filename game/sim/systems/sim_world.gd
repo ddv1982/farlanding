@@ -90,7 +90,7 @@ func spawn_building(def: BuildingDef, faction: int, at: Vector3, complete: bool)
 	buildings.append(building)
 	building.tree_exiting.connect(_on_building_exiting.bind(building))
 	_blocks[building.entity_id] = paths.block_area(building.footprint())
-	_clear_units_from(building.footprint(), building)
+	_clear_units_from(building.footprint())
 	Events.entity_spawned.emit(building)
 	return building
 
@@ -293,17 +293,16 @@ func _release_unit(building: Building, def: UnitDef) -> Unit:
 	return unit
 
 
-## Units standing inside `area` (a new building) walk out of it.
-func _clear_units_from(area: Rect2, building: Building) -> void:
+## Units standing inside `area` (a new building) walk out of it first, then carry
+## on with whatever they were doing. Builders too: they build from the edge.
+func _clear_units_from(area: Rect2) -> void:
 	var grown: Rect2 = area.grow(1.0)
 	for unit: Unit in units:
 		var at: Vector3 = unit.sim_position()
 		if not grown.has_point(Vector2(at.x, at.z)) or unit.orders == null:
 			continue
-		if unit.builder != null and unit.builder.can_build_on(building):
-			continue
 		var exit: Vector3 = _nearest_outside(grown.grow(NavmeshPathService.CUT_MARGIN), at)
-		unit.orders.give(Order.new(MoveCommand.KIND_MOVE, exit), not unit.orders.is_idle())
+		unit.orders.interrupt(Order.new(MoveCommand.KIND_MOVE, exit))
 
 
 static func _nearest_outside(area: Rect2, at: Vector3) -> Vector3:

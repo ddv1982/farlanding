@@ -64,6 +64,16 @@ func give(order: Order, queued: bool = false) -> void:
 
 
 ## Drops every order and brakes to a halt.
+## Does `order` right now, then resumes the current order and the queue.
+func interrupt(order: Order) -> void:
+	var resume: Order = current
+	_leave_current()
+	current = null
+	if resume != null:
+		queue.push_front(resume)
+	_start(order)
+
+
 func stop() -> void:
 	queue.clear()
 	_leave_current()

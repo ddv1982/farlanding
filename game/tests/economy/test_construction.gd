@@ -150,3 +150,27 @@ func test_building_round_trip() -> void:
 	copy.from_dict(data)
 	assert_almost_eq(copy.construction.work, site.construction.work, 0.0001)
 	assert_eq(copy.entity_id, site.entity_id)
+
+
+func _inside(site: Building, unit: Unit) -> bool:
+	var at: Vector3 = unit.sim_position()
+	return site.footprint().has_point(Vector2(at.x, at.z))
+
+
+func test_a_busy_unit_standing_on_a_new_site_walks_out_first() -> void:
+	var walker: Unit = _f.world.spawn_unit(_f.ranger, 0, Vector3.ZERO)
+	var enemy: Unit = _f.world.spawn_unit(_f.ranger, 1, Vector3(0, 0, -8))
+	# Holding an attack never ends by itself, so a queued evacuation would wait forever.
+	_f.push(AttackCommand.new(0, [walker], enemy))
+	_f.tick(5)
+	var site: Building = _place(_f.reactor, Vector3.ZERO, _builders(1))
+	_f.tick(60)
+	assert_false(_inside(site, walker), "left the footprint")
+	assert_eq(walker.orders.current.kind, AttackCommand.KIND, "then resumed its order")
+
+
+func test_an_idle_fabricator_standing_on_a_new_site_walks_out() -> void:
+	var idle: Unit = _f.world.spawn_unit(_f.fabricator, 0, Vector3.ZERO)
+	var site: Building = _place(_f.reactor, Vector3.ZERO, _builders(1))
+	_f.tick(60)
+	assert_false(_inside(site, idle), "left the footprint")
