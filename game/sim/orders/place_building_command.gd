@@ -6,10 +6,15 @@ extends Command
 ## `queued`, builders start after their current orders.
 
 const KIND: StringName = &"place_building"
+## `refused` when the cost could not be paid.
+const NOT_AFFORDABLE: StringName = &"not_affordable"
 
 var building_def: BuildingDef
 ## The site created when the command ran, or null.
 var placed: Building = null
+## Why nothing was placed: a PlacementRules reason, or NOT_AFFORDABLE. Empty if placed
+## (or not run).
+var refused: StringName = &""
 
 
 func _init(
@@ -30,11 +35,13 @@ func execute() -> void:
 	if world == null or building_def == null:
 		return
 	var is_player: bool = issuer_faction == world.player_faction
-	if world.placement_rules().check(building_def, target_position) != PlacementRules.OK:
+	refused = world.placement_rules().check(building_def, target_position)
+	if refused != PlacementRules.OK:
 		if is_player:
 			Events.ui_feedback.emit(&"placement_invalid")
 		return
 	if not world.economy.pay(issuer_faction, building_def):
+		refused = NOT_AFFORDABLE
 		if is_player:
 			Events.ui_feedback.emit(&"not_enough_resources")
 		return

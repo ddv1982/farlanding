@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="BuildingDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/buildings/combine_forge.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/combine_building_forge.png" id="3"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="4"]
+[ext_resource type="PackedScene" path="res://assets/models/combine/combine_building_forge.glb" id="20"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="5"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="6"]
+[ext_resource type="Resource" path="res://data/units/combine_mauler.tres" id="7"]
+
+[resource]
+script = ExtResource("1")
+id = &"combine_forge"
+display_name = "Forge"
+description = "Combine unit factory: Skitters, Stingers and Maulers."
+faction = 1
+max_health = 1100
+footprint = Rect2(-5, -6, 10, 12)
+height = 7.0
+vision_range = 16.0
+power_use = 5
+door = Vector3(0, 0, 9.5)
+cost_alloy = 220
+cost_flux = 0
+build_time = 30.0
+produces = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7")])
+scene = ExtResource("2")
+icon = ExtResource("3")
+model = ExtResource("20")
+sound_set = &"forge"

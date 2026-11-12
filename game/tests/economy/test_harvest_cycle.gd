@@ -171,3 +171,29 @@ func test_harvester_state_round_trip() -> void:
 	assert_eq(copy.harvester.state, hauler.harvester.state)
 	assert_eq(copy.harvester.deliveries, 1)
 	assert_eq(copy.orders.current.target_id, deposit.entity_id)
+
+
+## No path leads within 6 m of `blocked` (an unreachable deposit).
+class NoPathTo:
+	extends PathService
+
+	var blocked: Vector3
+
+	func _init(p_blocked: Vector3) -> void:
+		blocked = p_blocked
+
+	func find_path(_from: Vector3, to: Vector3) -> PackedVector3Array:
+		if Vector2(to.x - blocked.x, to.z - blocked.z).length() < 6.0:
+			return PackedVector3Array()
+		return PackedVector3Array([to])
+
+
+func test_an_unreachable_deposit_is_given_up_for_another() -> void:
+	var stranded: ResourceNode = _f.world.spawn_resource_node(_f.deposit, Vector3(25, 0, 0))
+	var other: ResourceNode = _f.world.spawn_resource_node(_f.deposit, Vector3(0, 0, 35))
+	var hauler: Unit = _hauler()
+	hauler.locomotion.paths = NoPathTo.new(stranded.position)
+	_harvest(hauler, stranded)
+	var states: Array[StringName] = _run_until_deliveries(hauler, 1, 600)
+	assert_eq(hauler.harvester.deliveries, 1, "it mined elsewhere: %s" % [states])
+	assert_eq(hauler.harvester.deposit, other)

@@ -2,9 +2,10 @@ class_name KesselProving
 extends Node3D
 ## Kessel Reach proving ground: wires the mission services together (combat, fog of
 ## war, win/lose), lands the player's Lander (it becomes the HQ) with a small starting
-## crew, places the Alloy deposits and Flux vents, and a Combine garrison standing
-## guard behind the fog. The player wins by destroying every Combine unit and
-## building and loses with the Lander. Every spawn is data in the exported properties.
+## crew, places the Alloy deposits and Flux vents, and sets up a Combine base on the
+## far side of the basin, run by a Commander AI (ai/commander.gd). The player wins by
+## destroying every Combine unit and building and loses with the Lander. Every spawn
+## is data in the exported properties.
 
 ## The terrain is 240 m square, centred on the origin.
 const TERRAIN_AREA: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
@@ -36,19 +37,31 @@ const VISION_CELL: float = 2.0
 @export var rich_deposit_positions: PackedVector3Array = PackedVector3Array()
 @export var vent: ResourceNodeDef
 @export var vent_positions: PackedVector3Array = PackedVector3Array()
-@export_group("Hostiles")
+@export_group("Combine")
 @export var hostile_faction: int = 1
-## Centre of the Combine garrison (far from the player start, behind the fog).
-@export var hostile_start: Vector3 = Vector3(40.0, 0.0, -30.0)
-@export var hostile_facing: Vector3 = Vector3(-1.0, 0.0, 1.0)
-## One entry per garrison unit. They stand guard: they fight what comes in range
-## but never go looking for the player.
+## The Combine base, pre-built: its HQ (a Hub) first, then its other buildings.
+@export var hostile_hq: BuildingDef
+@export var hostile_hq_position: Vector3 = Vector3(66.0, 0.0, -95.0)
+@export var hostile_buildings: Array[BuildingDef] = []
+## One position per entry of `hostile_buildings` (building centres).
+@export var hostile_building_positions: PackedVector3Array = PackedVector3Array()
+## The Combine crew, lined up at `hostile_start` facing `hostile_facing`: harvesters
+## start mining, the rest wait for the commander.
 @export var hostile_roster: Array[UnitDef] = []
+@export var hostile_start: Vector3 = Vector3(56.0, 0.0, -83.0)
+@export var hostile_facing: Vector3 = Vector3(0.0, 0.0, 1.0)
+@export_group("Enemy AI")
+## The commander that plays the Combine; none leaves the base idle (testing).
+@export var commander_profile: CommanderProfile
+@export_enum("easy", "normal", "hard") var enemy_difficulty: String = "easy"
+## Prints the commander's notable decisions to the output (play-testing).
+@export var log_enemy_ai: bool = false
 
 var heights: HeightField
 var walk_grid: WalkGrid
 var outcome: ConquestOutcome
 var fog: FogOfWar
+var commander: Commander
 
 var _outcome_check_pending: bool = false
 
@@ -81,6 +94,7 @@ func _ready() -> void:
 	var hq: Building = null
 	if lander != null:
 		hq = world.spawn_building(lander, player_faction, player_start, true)
+	_spawn_hostile_base()
 	paths.apply_cuts()
 	print(
 		(
@@ -92,7 +106,9 @@ func _ready() -> void:
 	for unit: Unit in spawn_group(start_roster, player_faction, crew_at, Vector3.FORWARD):
 		if unit.harvester != null:
 			world.auto_harvest(unit, unit.sim_position())
-	spawn_group(hostile_roster, hostile_faction, hostile_start, hostile_facing)
+	for unit: Unit in spawn_group(hostile_roster, hostile_faction, hostile_start, hostile_facing):
+		if unit.harvester != null:
+			world.auto_harvest(unit, unit.sim_position())
 	if world.vision != null:
 		# See the landing site from the first frame, not one sim tick later.
 		world.vision.update_faction(
@@ -104,6 +120,19 @@ func _ready() -> void:
 		fog.setup(world.vision, player_faction)
 	outcome = ConquestOutcome.new(player_faction, lander)
 	Events.entity_died.connect(_on_entity_died)
+	if commander_profile != null:
+		commander = Commander.new()
+		commander.name = &"Commander"
+		add_child(commander)
+		commander.verbose = log_enemy_ai
+		commander.setup(
+			context,
+			world,
+			hostile_faction,
+			commander_profile,
+			StringName(enemy_difficulty),
+			TERRAIN_AREA
+		)
 
 
 ## Spawns `defs` as one formation centred on `center`, facing `facing`.
@@ -137,6 +166,15 @@ func _on_entity_died(_entity: Node3D) -> void:
 func _check_outcome() -> void:
 	_outcome_check_pending = false
 	outcome.check(world)
+
+
+func _spawn_hostile_base() -> void:
+	if hostile_hq != null:
+		world.spawn_building(hostile_hq, hostile_faction, hostile_hq_position, true)
+	for i: int in mini(hostile_buildings.size(), hostile_building_positions.size()):
+		world.spawn_building(
+			hostile_buildings[i], hostile_faction, hostile_building_positions[i], true
+		)
 
 
 func _spawn_nodes(def: ResourceNodeDef, positions: PackedVector3Array) -> void:

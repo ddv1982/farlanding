@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = &"mauler_twin_cannon"
 display_name = "Twin cannon"
-damage = 38.0
+damage = 30.0
 damage_type = &"heavy"
 splash_radius = 3.5
 max_range = 26.0

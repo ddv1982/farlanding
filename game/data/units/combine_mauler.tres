@@ -7,7 +7,7 @@
 
 [resource]
 script = ExtResource("1_def")
-max_health = 900
+max_health = 750
 move_speed = 3.2
 turn_speed = 90.0
 vision_range = 22.0
@@ -22,6 +22,6 @@ scene = ExtResource("2_scene")
 icon = ExtResource("3_icon")
 sound_set = &"mauler"
 description = "Combine siege tank. Slow, armoured, and its twin cannon outranges everything."
-cost_alloy = 260
-cost_flux = 60
+cost_alloy = 230
+cost_flux = 0
 build_time = 24.0
