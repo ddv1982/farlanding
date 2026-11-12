@@ -15,6 +15,11 @@ uniform float dust_amount : hint_range(0.0, 1.0) = 0.45;
 instance uniform vec3 team_color : source_color = vec3(0.1, 0.45, 1.0);
 // 0 = pristine, 1 = wrecked: darkens and desaturates the surface.
 instance uniform float damage : hint_range(0.0, 1.0) = 0.0;
+// Construction: the model is revealed from the ground up to
+// build_progress * build_height metres, with a glowing band at the build front.
+instance uniform float build_progress : hint_range(0.0, 1.0) = 1.0;
+instance uniform float build_height = 10.0;
+uniform vec3 build_glow : source_color = vec3(0.25, 0.95, 1.0);
 
 void fragment() {
 	vec3 base = texture(palette_albedo, UV).rgb;
@@ -23,6 +28,10 @@ void fragment() {
 	// COLOR.r carries height above the model origin (metres / 8). Models without
 	// it read as white, i.e. "high", and are left untouched.
 	float height = COLOR.r * 8.0;
+	float build_front = build_progress * (build_height + 0.3);
+	if (build_progress < 1.0 && height > build_front) {
+		discard;
+	}
 	float lit = step(surface.b, 0.001);
 	base = mix(base, dust_color, (1.0 - smoothstep(0.0, dust_height, height)) * dust_amount * lit);
 	base *= mix(0.72, 1.0, smoothstep(0.0, 0.9, height));
@@ -36,4 +45,7 @@ void fragment() {
 	// Soft rim so silhouettes read against terrain from RTS height.
 	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	EMISSION += base * rim * rim_strength;
+	if (build_progress < 1.0) {
+		EMISSION += build_glow * (1.0 - smoothstep(0.0, 0.35, build_front - height)) * 3.0;
+	}
 }
