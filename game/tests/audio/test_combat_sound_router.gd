@@ -230,3 +230,11 @@ func test_mission_end_settles_the_music_once() -> void:
 	_router.handle_entity_damaged(ours, 4.0, null, 2.0)
 	_router.flush(2.0)
 	assert_eq(_played.size(), 0)
+
+
+func test_a_new_mission_brings_combat_audio_back() -> void:
+	_router.handle_mission_ended(true)
+	_router.handle_mission_started()
+	assert_eq(_states[-1], MusicMood.EXPLORE, "the score returns to explore")
+	_router.handle_mission_ended(false)
+	assert_eq(_ended, [true, false] as Array[bool], "the next ending plays its sting too")

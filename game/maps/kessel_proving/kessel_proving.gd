@@ -53,6 +53,7 @@ var fog: FogOfWar
 
 func _ready() -> void:
 	var started: int = Time.get_ticks_msec()
+	Events.mission_started.emit()
 	heights = HeightField.from_physics(
 		get_world_3d().direct_space_state, TERRAIN_AREA, HEIGHT_SPACING
 	)

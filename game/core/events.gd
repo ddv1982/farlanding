@@ -66,6 +66,10 @@ signal projectile_impacted(weapon: WeaponDef, position: Vector3, victim: Node3D)
 ## An entity lost `amount` health. `attacker` may be null.
 signal entity_damaged(entity: Node3D, amount: float, attacker: Node3D)
 
+## A mission began (also after "Play again"). Mission-scoped state held by
+## autoloads, such as audio, resets on this.
+signal mission_started
+
 ## The mission is over: `won` is true when the player won.
 signal mission_ended(won: bool)
 

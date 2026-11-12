@@ -65,6 +65,7 @@ func _ready() -> void:
 	Events.entity_damaged.connect(_on_entity_damaged)
 	Events.entity_died.connect(_on_entity_died)
 	Events.mission_ended.connect(_on_mission_ended)
+	Events.mission_started.connect(handle_mission_started)
 
 
 func _process(delta: float) -> void:
@@ -160,6 +161,13 @@ func handle_entity_died(entity: Node3D, now: float) -> void:
 		if _has(event_id):
 			_offer(event_id, at)
 			return
+
+
+## A new mission: forget the last one's ending and go back to the explore score.
+func handle_mission_started() -> void:
+	mood = MusicMood.new()
+	_music_state = mood.state
+	set_music_state.call(mood.state)
 
 
 func handle_mission_ended(won: bool) -> void:
