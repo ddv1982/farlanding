@@ -4,6 +4,8 @@ extends GutTest
 ## auto-targeted, can be blown apart when destructible (and then stop blocking), and
 ## save their damage.
 
+const REAL_CRATES: String = "res://data/props/combine_prop_crates.tres"
+
 var _f: MissionFixture
 var _wall: PropDef
 var _crates: PropDef
@@ -120,7 +122,7 @@ func test_prop_damage_is_saved() -> void:
 
 
 func test_a_saved_prop_the_world_lacks_is_spawned_on_load() -> void:
-	var crates: PropDef = load("res://data/props/combine_prop_crates.tres")
+	var crates: PropDef = load(REAL_CRATES)
 	var prop: Prop = _f.world.spawn_prop(crates, Vector3(10, 0, 0), 1)
 	prop.health.take(40.0, null)
 	var left: float = prop.health.current
@@ -138,7 +140,7 @@ func test_a_saved_prop_the_world_lacks_is_spawned_on_load() -> void:
 
 
 func test_a_restored_prop_does_not_chase_off_the_unit_beside_it() -> void:
-	var crates: PropDef = load("res://data/props/combine_prop_crates.tres")
+	var crates: PropDef = load(REAL_CRATES)
 	var prop: Prop = _f.world.spawn_prop(crates, Vector3(10, 0, 0))
 	var wisp: Unit = _f.spawn(_f.wisp, 0, Vector3(12.0, 0, 0))
 	_f.tick(1)
