@@ -122,4 +122,11 @@ signal entity_sabotaged(building: Node3D, saboteur: Node3D)
 ## A unit's cloak closed (`cloaked` true) or opened. Fires for every faction's units.
 signal cloak_changed(unit: Node3D, cloaked: bool)
 
+## A planet storm is on its way: it begins in `seconds`.
+signal storm_incoming(seconds: float)
+
+## The storm's strength changed: 0 = clear sky, 1 = full storm. Emitted as it
+## builds and as it dies down, a few times a second at most.
+signal storm_changed(intensity: float)
+
 @warning_ignore_restore("unused_signal")
