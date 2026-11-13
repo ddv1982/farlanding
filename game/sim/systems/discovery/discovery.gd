@@ -22,6 +22,9 @@ var _codex: Dictionary[int, Array] = {}
 ## Running heal fields: { faction, x, z, radius, amount, until }.
 var _heal_fields: Array[Dictionary] = []
 var _tick: int = 0
+## Set by from_dict: heal field deadlines were rebuilt on `_tick`, which a fresh
+## system has not yet synchronised with the restored clock; the next tick rebases them.
+var _restored: bool = false
 
 
 ## Sim ticks in `seconds`.
@@ -98,6 +101,11 @@ func resolve(site: DiscoverySite, faction: int) -> void:
 
 ## One sim tick: heal fields, field option cooldowns, the player's view of the sites.
 func tick(tick_number: int, dt: float) -> void:
+	if _restored:
+		_restored = false
+		var shift: int = tick_number - 1 - _tick
+		for field: Dictionary in _heal_fields:
+			field["until"] += shift
 	_tick = tick_number
 	field_options.tick(tick_number)
 	_tick_heal_fields(dt)
@@ -217,6 +225,7 @@ func from_dict(data: Dictionary) -> void:
 			if ResourceLoader.exists(path):
 				entries.append(load(path))
 		_codex[int(str(key))] = entries
+	_restored = true
 	_heal_fields.clear()
 	var fields: Array = data.get("heal_fields", [])
 	for entry: Variant in fields:

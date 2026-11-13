@@ -292,7 +292,7 @@ Each phase ends in something playable and has all three tracks. A phase is done 
 - **Code:** star map, branching route, the Meridian screen, tech web, loadouts, persistent state, campaign save/load, then mid-mission saves.
 - **Art:** star map, ship interior screens, tech-web icons.
 - **Audio:** ship ambience and theme, map interface, Advisor campaign lines.
-- **Known gap to close here:** entities save and restore their own state, but a restored unit does not yet reconnect an active build or harvest order to its target (the Builder and Harvester handlers keep runtime references that are not rehydrated). Wire this up together with the first game-level load.
+- **Known gap to close here:** entities save and restore their own state, but a restored unit does not yet reconnect an active build, harvest or scan order to its target (the Builder, Harvester and Scanner handlers keep runtime references that are not rehydrated). Wire this up together with the first game-level load.
 - **Done when:** two planets can be played in sequence with Intel carrying over and changing the second landing.
 
 ### Phase 8 — Content

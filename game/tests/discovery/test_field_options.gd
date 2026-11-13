@@ -133,3 +133,13 @@ func test_loading_drops_what_was_unlocked_or_used_after_the_save() -> void:
 	options.from_dict(data)
 	assert_false(options.is_unlocked(0, _f.lance), "the later unlock is gone")
 	assert_eq(options.cooldown_left(0, _f.orbital_scan), 0.0, "and so is the cooldown")
+
+
+func test_restored_cooldowns_follow_the_restored_clock() -> void:
+	_f.world.economy.add_intel(0, 100)
+	_use(_f.orbital_scan, Vector3.ZERO)
+	var data: Dictionary = _f.world.discovery.field_options.to_dict()
+	var copy: FieldOptions = FieldOptions.new(_f.world, 0)
+	copy.from_dict(data)
+	copy.tick(5000)
+	assert_gt(copy.cooldown_left(0, _f.orbital_scan), 50.0, "a fresh system starts at tick 0")

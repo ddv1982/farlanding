@@ -29,6 +29,9 @@ func execute() -> void:
 			continue
 		if not unit.orders.can_do(KIND):
 			continue
+		# Clicking the site again must not throw the progress away.
+		if not queued and unit.scanner != null and unit.scanner.site == site:
+			continue
 		var order: Order = Order.new(KIND, site.position)
 		order.target_entity = site
 		unit.orders.give(order, queued)

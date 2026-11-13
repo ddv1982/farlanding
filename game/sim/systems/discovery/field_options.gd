@@ -23,6 +23,9 @@ var _ready_at: Dictionary[int, Dictionary] = {}
 ## Per faction: option id -> FieldOptionDef, for options on cooldown (ready alerts).
 var _waiting: Dictionary[int, Dictionary] = {}
 var _tick: int = 0
+## Set by from_dict: deadlines were rebuilt on `_tick`, which a fresh system has
+## not yet synchronised with the restored clock; the next tick rebases them.
+var _restored: bool = false
 
 
 func _init(p_world: SimWorld = null, p_player_faction: int = 0) -> void:
@@ -85,6 +88,12 @@ func use(faction: int, option: FieldOptionDef, at: Vector3) -> StringName:
 
 ## One sim tick: tells the player when an option comes off cooldown.
 func tick(tick_number: int) -> void:
+	if _restored:
+		_restored = false
+		var shift: int = tick_number - 1 - _tick
+		for faction: int in _ready_at:
+			for id: Variant in _ready_at[faction]:
+				_ready_at[faction][id] += shift
 	_tick = tick_number
 	for faction: int in _waiting:
 		var waiting: Dictionary = _waiting[faction]
@@ -164,6 +173,7 @@ func to_dict() -> Dictionary:
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
 	assert(version == SAVE_VERSION, "Unsupported FieldOptions save version")
+	_restored = true
 	_unlocked.clear()
 	_ready_at.clear()
 	_waiting.clear()

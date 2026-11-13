@@ -71,6 +71,18 @@ func test_biological_heals_own_units_near_the_site_for_a_while() -> void:
 	assert_almost_eq(near.health.current, 40.0, 1.5, "the field ends after its time")
 
 
+func test_a_restored_heal_field_follows_the_restored_clock() -> void:
+	var def: DiscoveryDef = _f.discovery(&"bloom", DiscoveryDef.BIOLOGICAL)
+	def.payoff = DiscoveryDef.PAYOFF_HEAL_FIELD
+	def.payoff_seconds = 30.0
+	_f.world.discovery.resolve(_f.site(def, Vector3.ZERO), 0)
+	var copy: Discovery = autofree(Discovery.new())
+	copy.setup(_f.world, 0)
+	copy.from_dict(_f.world.discovery.to_dict())
+	copy.tick(5000, SimClock.TICK_DELTA)
+	assert_eq(copy.heal_fields().size(), 1, "a fresh system starts at tick 0")
+
+
 func test_antecedent_unlocks_a_field_option() -> void:
 	watch_signals(Events)
 	var def: DiscoveryDef = _f.discovery(&"ruin", DiscoveryDef.ANTECEDENT)

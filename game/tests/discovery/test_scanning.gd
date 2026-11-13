@@ -65,6 +65,18 @@ func test_being_pushed_out_of_reach_interrupts() -> void:
 	assert_signal_emitted_with_parameters(Events, "scan_interrupted", [scanner, site])
 
 
+func test_ordering_the_same_scan_again_keeps_the_progress() -> void:
+	watch_signals(Events)
+	var site: DiscoverySite = _f.site(_f.discovery(&"seam"), Vector3(5, 0, 0))
+	var scanner: Unit = _f.spawn(_f.surveyor, 0, Vector3.ZERO)
+	_f.scan(scanner, site, 10)
+	var before: float = site.scan_progress
+	assert_gt(before, 0.0)
+	_f.scan(scanner, site, 1)
+	assert_gt(site.scan_progress, before)
+	assert_signal_not_emitted(Events, "scan_interrupted")
+
+
 func test_dying_interrupts() -> void:
 	watch_signals(Events)
 	var site: DiscoverySite = _f.site(_f.discovery(&"seam"), Vector3(5, 0, 0))
