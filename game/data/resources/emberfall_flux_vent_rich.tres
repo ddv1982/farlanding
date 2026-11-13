@@ -1,8 +1,8 @@
 [gd_resource type="Resource" script_class="ResourceNodeDef" format=3]
 
 [ext_resource type="Script" path="res://core/defs/resource_node_def.gd" id="1"]
-[ext_resource type="PackedScene" path="res://sim/entities/resources/kessel_flux_vent.tscn" id="2"]
-[ext_resource type="Texture2D" path="res://assets/icons/kessel_resource_flux_vent.png" id="3"]
+[ext_resource type="PackedScene" path="res://sim/entities/resources/emberfall_flux_vent_rich.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/emberfall_resource_flux_vent_rich.png" id="3"]
 
 [resource]
 script = ExtResource("1")

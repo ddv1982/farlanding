@@ -102,6 +102,7 @@ func _ready() -> void:
 		fog.name = &"FogOfWar"
 		add_child(fog)
 		fog.setup(world.vision, player_faction)
+	UnitVisual.dust_color = Color(map_def.minimap_high, 0.5)
 	if hud != null:
 		hud.set_map_colors(map_def.minimap_low, map_def.minimap_high)
 	if hud != null and mission != null and mission.enemy_alert_meter:

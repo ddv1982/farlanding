@@ -1,16 +1,21 @@
 class_name VentGauge
-extends Label3D
-## PLACEHOLDER look of an erupting vent's pressure (ADR 0015), until the lead's art
-## replaces it: a billboard line above the vent, "PRESSURE 70%", "ERUPTING 0:08", and
-## "NEXT" while a forecast names it the next to burst. It follows the node's
-## `pressure_changed` and `forecast_changed` signals and hides with the node under fog.
-## Reads the simulation, never changes it.
+extends Node3D
+## The pressure of an erupting vent (ADR 0015), drawn on the ground round it: a ring
+## of twelve segments that fills as the pressure builds, amber while calm, red and
+## beating once the eruption is announced or a forecast names this vent the next to
+## burst. A countdown floats above it while it is about to erupt. It follows the
+## node's `pressure_changed` and `forecast_changed` signals and hides with the node
+## under fog. Reads the simulation, never changes it.
 
-const CALM_COLOR := Color(0.95, 0.78, 0.55)
+const SHADER: Shader = preload("res://presentation/shaders/vent_gauge.gdshader")
 const ALARM_COLOR := Color(1.0, 0.42, 0.12)
-## Height above the vent, in metres.
-const LIFT: float = 3.2
+## Width of the ring, in metres (outside the Tap's footprint).
+const SIZE: float = 9.0
+## Height of the countdown above the vent, in metres.
+const LIFT: float = 3.4
 
+var _ring: MeshInstance3D
+var _countdown: Label3D
 var _pressure: float = 0.0
 var _burst: float = -1.0
 var _next: bool = false
@@ -19,20 +24,39 @@ var _next: bool = false
 static func attach(vent: ResourceNode) -> VentGauge:
 	var gauge: VentGauge = VentGauge.new()
 	gauge.name = &"VentGauge"
-	gauge.position = Vector3(0.0, LIFT, 0.0)
-	gauge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	gauge.no_depth_test = true
-	gauge.fixed_size = true
-	gauge.pixel_size = 0.0009
-	gauge.font_size = 28
-	gauge.outline_size = 8
-	gauge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	vent.add_child(gauge)
 	vent.pressure_changed.connect(gauge.show_pressure)
 	vent.forecast_changed.connect(gauge.show_forecast)
 	gauge.show_pressure(vent.pressure, vent.seconds_to_burst)
 	gauge.show_forecast(vent.is_next_to_erupt)
 	return gauge
+
+
+func _init() -> void:
+	var material: ShaderMaterial = ShaderMaterial.new()
+	material.shader = SHADER
+	var quad: QuadMesh = QuadMesh.new()
+	quad.size = Vector2(SIZE, SIZE)
+	quad.orientation = PlaneMesh.FACE_Y
+	quad.material = material
+	_ring = MeshInstance3D.new()
+	_ring.name = &"Ring"
+	_ring.mesh = quad
+	_ring.position = Vector3(0.0, 0.25, 0.0)
+	_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_ring)
+	_countdown = Label3D.new()
+	_countdown.name = &"Countdown"
+	_countdown.position = Vector3(0.0, LIFT, 0.0)
+	_countdown.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_countdown.no_depth_test = true
+	_countdown.fixed_size = true
+	_countdown.pixel_size = 0.0009
+	_countdown.font_size = 30
+	_countdown.outline_size = 8
+	_countdown.modulate = ALARM_COLOR
+	_countdown.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_countdown)
 
 
 func show_pressure(pressure: float, seconds_to_burst: float) -> void:
@@ -46,12 +70,20 @@ func show_forecast(next_to_erupt: bool) -> void:
 	_refresh()
 
 
+## What the countdown reads now ("" while the vent is calm), for tests.
+func countdown_text() -> String:
+	return _countdown.text
+
+
 func _refresh() -> void:
-	var line: String = "PRESSURE %d%%" % roundi(_pressure * 100.0)
-	if _burst >= 0.0:
+	var erupting: bool = _burst >= 0.0
+	_ring.set_instance_shader_parameter(&"pressure", 1.0 if erupting else _pressure)
+	_ring.set_instance_shader_parameter(&"alarm", 1.0 if erupting or _next else 0.0)
+	var line: String = ""
+	if erupting:
 		var left: int = ceili(_burst)
-		line = "ERUPTING %d:%02d" % [floori(left / 60.0), left % 60]
-	if _next:
-		line = "NEXT  ·  " + line
-	text = line
-	modulate = ALARM_COLOR if _burst >= 0.0 or _next else CALM_COLOR
+		line = "%d:%02d" % [floori(left / 60.0), left % 60]
+	elif _next:
+		line = "NEXT"
+	_countdown.text = line
+	_countdown.visible = line != ""

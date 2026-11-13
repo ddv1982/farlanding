@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://presentation/vfx/combat_vfx.gd" id="3"]
 [ext_resource type="Script" path="res://presentation/vfx/discovery_vfx.gd" id="4"]
 [ext_resource type="Script" path="res://presentation/vfx/eruption_vfx.gd" id="5"]
+[ext_resource type="Script" path="res://presentation/vfx/extraction_vfx.gd" id="6"]
 
 [node name="EmberfallVisuals" type="Node3D"]
 
@@ -30,3 +31,6 @@ script = ExtResource("4")
 
 [node name="EruptionVfx" type="Node3D" parent="."]
 script = ExtResource("5")
+
+[node name="ExtractionVfx" type="Node3D" parent="."]
+script = ExtResource("6")
