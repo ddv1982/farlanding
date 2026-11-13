@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/antecedent_site_beacon.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"kessel_trail_beacon"
+display_name = "Dormant beacon"
+discovery_type = &"antecedent"
+scene = ExtResource("2")
+intel_reward = 60
+scan_time = 12.0
+radius = 3.0
+leads_to = &"kessel_trail_ruin"
+codex_title = "The beacon on the western rim"
+codex_text = "An Antecedent beacon, still faintly warm. Its signal is not a call but a bearing: it points across the basin to a second structure the orbital scan missed."
+payoff = &"none"
+
+color = Color(0.75, 0.6, 1.0, 1)

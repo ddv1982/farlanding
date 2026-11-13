@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/antecedent_site_cache.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"kessel_sealed_cache"
+display_name = "Sealed cache"
+discovery_type = &"antecedent"
+scene = ExtResource("2")
+intel_reward = 100
+scan_time = 10.0
+radius = 1.5
+leads_to = &""
+codex_title = "Sealed cache"
+codex_text = "A small Antecedent container, sealed for longer than the basin has had weather. Its contents are inscriptions: a great deal of Intel for the Meridian's archive."
+payoff = &"none"
+
+color = Color(0.75, 0.6, 1.0, 1)

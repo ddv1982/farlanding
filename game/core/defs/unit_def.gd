@@ -32,11 +32,29 @@ extends EntityDef
 @export_range(0.1, 120.0, 0.1, "suffix:s") var mine_time: float = 4.0
 ## Seconds spent unloading at a refinery dock.
 @export_range(0.1, 120.0, 0.1, "suffix:s") var unload_time: float = 1.5
+@export_group("Scanner")
+## Scan seconds done per second next to a discovery site; 0 = cannot scan.
+@export_range(0.0, 10.0, 0.05) var scan_rate: float = 0.0
+## How close to a site's edge the unit scans from, in metres.
+@export_range(0.5, 40.0, 0.5, "suffix:m") var scan_range: float = 6.0
+@export_group("Custodian")
+## Starts dormant: it neither moves nor fires, and nothing aims at it on its own,
+## until disturbed (hit, a site near it scanned, or anything comes within
+## `wake_radius`).
+@export var starts_dormant: bool = false
+@export_range(0.0, 100.0, 0.5, "suffix:m") var wake_radius: float = 7.0
+## A site scanned within this distance wakes it.
+@export_range(0.0, 200.0, 0.5, "suffix:m") var guard_radius: float = 30.0
 
 
 ## True if this unit can construct buildings.
 func can_build() -> bool:
 	return build_rate > 0.0 and not builds.is_empty()
+
+
+## True if this unit can scan discovery sites.
+func can_scan() -> bool:
+	return scan_rate > 0.0
 
 
 ## True if this unit can harvest Alloy.

@@ -344,5 +344,12 @@ Not yet researched, scheduled for Phase 0: test-addon and gdtoolkit compatibilit
 2. **Audio** — nothing paid and no external services. Every sound and all music is synthesised by scripts in `audio_src/`. Consequence: there are no spoken voices. Units answer with short tonal signatures unique to each unit type, and the Advisor speaks through text plus a distinct tone family. CC0 recordings are not used either, so the whole soundscape is original and rebuildable.
 3. **Research** — general web search is used until Exa and Ref work.
 4. **Plan approved.** Implementation proceeds phase by phase, one pull request per milestone.
+5. **Mouse controls (2026-11-13)** — the owner asked for Command & Conquer style controls. The default
+   scheme is now *classic*: left click does everything by context (select own units and buildings,
+   move, attack, harvest, scan, help build, set a rally point), right click deselects and cancels
+   placement or aiming. The earlier scheme stays available as *modern* (left selects, right
+   commands) through the MOUSE toggle at the top right of the HUD, saved in `settings.cfg`
+   (`[controls] control_scheme`). Both schemes share one set of context rules
+   (`SelectionRules.command_target()` / `resolve()`); the cursor shows what a command click would do.
 
 **Working arrangement:** visual work and 3D modelling are done by Fable; all other implementation by Opus 5.5 workers.

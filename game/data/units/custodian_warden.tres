@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/custodian_warden.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/custodian_unit_warden.png" id="3"]
+[ext_resource type="Resource" path="res://data/weapons/warden_lance.tres" id="4"]
+
+[resource]
+script = ExtResource("1")
+armour_type = &"heavy"
+max_health = 900
+move_speed = 3.5
+turn_speed = 180.0
+vision_range = 22.0
+radius = 1.5
+acceleration = 6.0
+weapon = ExtResource("4")
+starts_dormant = true
+wake_radius = 8.0
+guard_radius = 30.0
+id = &"custodian_warden"
+display_name = "Warden"
+description = "An Antecedent guardian. Dormant until disturbed, then it fights anything near it."
+faction = 2
+scene = ExtResource("2")
+icon = ExtResource("3")
+sound_set = &"warden"
+cost_alloy = 400
+cost_flux = 100
+build_time = 30.0

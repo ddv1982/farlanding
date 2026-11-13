@@ -10,6 +10,7 @@
 [ext_resource type="Resource" path="res://data/buildings/concord_muster_bay.tres" id="8"]
 [ext_resource type="Resource" path="res://data/buildings/concord_foundry.tres" id="9"]
 [ext_resource type="Resource" path="res://data/buildings/concord_sentry.tres" id="10"]
+[ext_resource type="Resource" path="res://data/buildings/concord_survey_lab.tres" id="11"]
 
 [resource]
 script = ExtResource("1")
@@ -20,7 +21,7 @@ turn_speed = 400.0
 vision_range = 18.0
 radius = 1.1
 acceleration = 12.0
-builds = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("9"), ExtResource("10")])
+builds = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("9"), ExtResource("10"), ExtResource("11")])
 build_rate = 1.0
 work_range = 5.0
 id = &"concord_fabricator"

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/kessel_site_formation.tscn" id="2"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="n_rich"]
+
+[resource]
+script = ExtResource("1")
+id = &"kessel_basalt_shelf"
+display_name = "Basalt shelf"
+discovery_type = &"geological"
+scene = ExtResource("2")
+intel_reward = 40
+scan_time = 8.0
+radius = 5.0
+leads_to = &""
+codex_title = "Basalt shelf"
+codex_text = "Layered basalt with alloy-bearing veins close to the surface. A rich deposit is marked beside the shelf."
+payoff = &"deposit"
+payoff_node = ExtResource("n_rich")
+payoff_offset = Vector3(-9, 0, 0)
+color = Color(0.95, 0.66, 0.3, 1)

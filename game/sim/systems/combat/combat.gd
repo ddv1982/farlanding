@@ -68,7 +68,8 @@ func can_target(faction: int, target: Variant) -> bool:
 
 
 ## The best target for `faction` whose body is within `reach` of `from`: the
-## nearest visible enemy, armed units before unarmed ones and buildings. Null if none.
+## nearest visible enemy, armed units before unarmed ones and buildings. Dormant
+## Custodians are left alone (only an explicit attack order wakes them). Null if none.
 func find_target(faction: int, from: Vector3, reach: float) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
@@ -77,7 +78,7 @@ func find_target(faction: int, from: Vector3, reach: float) -> Node3D:
 		if candidate_faction == faction or candidate_faction < 0:
 			continue
 		var distance: float = reach_to(candidate, from)
-		if distance > reach:
+		if distance > reach or is_dormant(candidate):
 			continue
 		var score: float = distance + (0.0 if is_armed(candidate) else SOFT_TARGET_PENALTY)
 		if score >= best_score or not can_target(faction, candidate):
@@ -101,6 +102,13 @@ func seen_enemies_near(faction: int, center: Vector3, radius: float) -> Array[No
 			continue
 		seen.append(candidate)
 	return seen
+
+
+## Living units and buildings whose position is within `radius` (plus the largest
+## body) of `center`, of any faction and whether seen or not (the sim's own checks,
+## e.g. a Custodian noticing an intruder). Callers check exact distances.
+func entities_near(center: Vector3, radius: float) -> Array[Node3D]:
+	return _grid.query(center, radius + MAX_BODY_RADIUS)
 
 
 ## Fires one projectile (or an instant hit) of `def` from `muzzle` at `target`.
@@ -229,6 +237,12 @@ static func health_of(entity: Node3D) -> Health:
 	if entity is Building:
 		return (entity as Building).health
 	return null
+
+
+## True for a Custodian that has not been disturbed yet.
+static func is_dormant(entity: Node3D) -> bool:
+	var unit: Unit = entity as Unit
+	return unit != null and unit.is_dormant
 
 
 ## True for a unit or building with a weapon.

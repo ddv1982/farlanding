@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/kessel_site_formation.tscn" id="2"]
+[ext_resource type="Resource" path="res://data/resources/kessel_flux_vent.tres" id="n_vent"]
+
+[resource]
+script = ExtResource("1")
+id = &"kessel_fumarole"
+display_name = "Cold fumarole"
+discovery_type = &"geological"
+scene = ExtResource("2")
+intel_reward = 45
+scan_time = 10.0
+radius = 5.0
+leads_to = &""
+codex_title = "Cold fumarole"
+codex_text = "The orbital scan read this as a heat signature. On the ground it is a fumarole that has gone quiet, and a Flux vent has opened beside it."
+payoff = &"deposit"
+payoff_node = ExtResource("n_vent")
+payoff_offset = Vector3(0, 0, -9)
+color = Color(0.95, 0.66, 0.3, 1)

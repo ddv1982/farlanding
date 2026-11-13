@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/kessel_site_flora.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"kessel_dust_bloom"
+display_name = "Dust bloom"
+discovery_type = &"biological"
+scene = ExtResource("2")
+intel_reward = 35
+scan_time = 7.0
+radius = 3.5
+leads_to = &""
+codex_title = "Dust bloom"
+codex_text = "A colony of low succulents that seals cracked surfaces with a resin. Their spores settle on hull plating too: machines near the bloom mend for a while."
+payoff = &"heal_field"
+payoff_radius = 16.0
+payoff_amount = 10.0
+payoff_seconds = 90.0
+color = Color(0.45, 0.95, 0.5, 1)

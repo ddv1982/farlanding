@@ -85,8 +85,8 @@ signal discovery_made(site: Node3D, discovery: Resource, faction: int)
 ## A faction's Intel total changed.
 signal intel_changed(faction: int, intel: int)
 
-## A field option bought at the Survey Lab took effect. `option` is its definition.
-signal field_option_used(option: Resource, faction: int)
+## A field option bought at the Survey Lab took effect at `at`. `option` is its definition.
+signal field_option_used(option: Resource, faction: int, at: Vector3)
 
 ## The player's codex gained an entry. `entry` is the DiscoveryDef it describes.
 signal codex_entry_added(entry: Resource)

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="FieldOptionDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/field_option_def.gd" id="1"]
+[ext_resource type="Resource" path="res://data/resources/kessel_supply_cache.tres" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/option_supply_drop.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2_icon")
+id = &"supply_drop"
+display_name = "Supply Drop"
+description = "A pod lands a cache of Alloy at the point and Flux in the stockpile."
+effect = &"supply_drop"
+intel_cost = 60
+cooldown = 90.0
+requires_unlock = false
+radius = 3.0
+flux = 75
+node = ExtResource("2")
+sound_set = &"supply_drop"

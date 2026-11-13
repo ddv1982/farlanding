@@ -1,22 +1,39 @@
 class_name Hud
 extends CanvasLayer
 ## In-mission HUD: the resource bar (top), the command panel (bottom centre: build
-## menu, production, hints), a selection panel with one chip per type, the minimap
-## (bottom right) with the controls panel (F1) above it, the end-of-mission panel and
+## menu, production, field options, hints), a selection panel with one chip per
+## type, the minimap (bottom right) with the controls panel (F1) above it, the codex
+## (button or C) and the mouse scheme toggle (top right), the end-of-mission panel and
 ## a debug overlay (F3). Built in code from HudStyle so every panel reads as the same
 ## survey-instrument family.
 
-const HINT: String = (
-	"LEFT     select: click, drag, double-click type  ·  building: click it\n"
-	+ "         enemy in sight: attack  ·  buttons: build, queue units\n"
-	+ "RIGHT    move  ·  enemy in sight: attack  ·  deposit: harvest (Haulers)\n"
-	+ "         site: help build (Fabricators)  ·  building selected: rally point\n"
-	+ "         unit button: cancel one  ·  while placing: cancel (or Esc)\n"
+## Controls panel text per mouse scheme (Settings.control_scheme).
+const HINT_CLASSIC: String = (
+	"MOUSE    classic (Command & Conquer): left click does it all\n"
+	+ "LEFT     own unit or building: select  ·  drag: box  ·  double-click: all of type\n"
+	+ "         units selected: ground move  ·  enemy in sight attack  ·  ? scan\n"
+	+ "         deposit harvest (Haulers)  ·  own site help build (Fabricators)\n"
+	+ "         building selected: ground sets the rally point\n"
+	+ "RIGHT    deselect  ·  while placing or aiming: cancel (or Esc)\n"
 	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  X stop\n"
 	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
 	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn\n"
 	+ "MAP      left: look there (drag)  ·  right: move selected units there\n"
-	+ "COMBAT   armed units fire on enemies in range by themselves"
+	+ "CODEX    C or the button top right  ·  COMBAT  armed units fire by themselves"
+)
+const HINT_MODERN: String = (
+	"MOUSE    modern: left selects, right commands\n"
+	+ "LEFT     select: click, drag, double-click type  ·  building: click it\n"
+	+ "         enemy in sight: attack  ·  buttons: build, queue units\n"
+	+ "RIGHT    move  ·  enemy in sight: attack  ·  ? site: scan (Surveyors)\n"
+	+ "         deposit: harvest (Haulers)  ·  site: help build (Fabricators)\n"
+	+ "         building selected: rally point  ·  unit button: cancel one\n"
+	+ "         while placing or aiming: cancel (or Esc)\n"
+	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  X stop\n"
+	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
+	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn\n"
+	+ "MAP      left: look there (drag)  ·  right: move selected units there\n"
+	+ "CODEX    C or the button top right  ·  COMBAT  armed units fire by themselves"
 )
 const MARGIN := HudStyle.MARGIN
 
@@ -44,12 +61,24 @@ var _command_panel: CommandPanel
 var _corner: VBoxContainer
 var _minimap: Minimap
 var _end_panel: EndPanel
+var _hint: Label
+var _codex: CodexPanel
+var _codex_button: Button
+var _scheme_button: Button
 
 
 func _ready() -> void:
 	_build_selection_panel()
 	_build_hint()
 	_build_debug()
+	_build_top_right()
+	_codex = CodexPanel.new()
+	add_child(_codex)
+	_codex.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	_codex.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_codex.grow_vertical = Control.GROW_DIRECTION_BOTH
+	Settings.changed.connect(_on_settings_changed)
+	_on_settings_changed()
 	_end_panel = EndPanel.new()
 	add_child(_end_panel)
 	# The world sets up its economy in the map's _ready, after this HUD's.
@@ -65,10 +94,40 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	var key := event as InputEventKey
-	if key != null and key.pressed and not key.echo and key.keycode == KEY_F1:
+	if key == null or not key.pressed or key.echo:
+		return
+	if key.keycode == KEY_F1:
 		_hint_panel.visible = not _hint_panel.visible
 		_hint_toggle.visible = not _hint_panel.visible
 		get_viewport().set_input_as_handled()
+	elif key.keycode == KEY_C and not key.ctrl_pressed and not key.meta_pressed:
+		toggle_codex()
+		get_viewport().set_input_as_handled()
+	elif key.keycode == KEY_ESCAPE and _codex.visible:
+		_codex.close_panel()
+		get_viewport().set_input_as_handled()
+
+
+## Opens the codex with the player's entries, or closes it.
+func toggle_codex() -> void:
+	if _codex.visible:
+		_codex.close_panel()
+		return
+	var entries: Array[DiscoveryDef] = []
+	if world != null and world.discovery != null:
+		entries = world.discovery.codex(player_faction)
+	_codex.open_panel(entries)
+
+
+## Switches between the classic and modern mouse schemes (saved in the settings).
+func toggle_control_scheme() -> void:
+	var next: StringName = (
+		Settings.SCHEME_MODERN
+		if Settings.control_scheme == Settings.SCHEME_CLASSIC
+		else Settings.SCHEME_CLASSIC
+	)
+	Settings.set_control_scheme(next)
+	Events.ui_feedback.emit(&"click")
 
 
 func _process(_delta: float) -> void:
@@ -177,12 +236,39 @@ func _build_hint() -> void:
 	add_child(_corner)
 	_place(_corner, Control.PRESET_BOTTOM_RIGHT)
 	_hint_panel = HudStyle.make_panel()
-	_hint_panel.add_child(_make_label(12, HudStyle.TEXT_COLOR, HINT))
+	_hint = _make_label(12, HudStyle.TEXT_COLOR, HINT_CLASSIC)
+	_hint_panel.add_child(_hint)
 	_hint_panel.visible = false
 	_corner.add_child(_hint_panel)
 	_hint_toggle = _make_label(11, HudStyle.MUTED_COLOR, "F1  CONTROLS")
 	_hint_toggle.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_corner.add_child(_hint_toggle)
+
+
+## Top right: the codex button and the mouse scheme toggle.
+func _build_top_right() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override(&"separation", 6)
+	add_child(row)
+	row.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 6)
+	row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_codex_button = HudStyle.make_small_button("CODEX  (C)")
+	_codex_button.tooltip_text = "What the expedition has found on this landing."
+	_codex_button.pressed.connect(toggle_codex)
+	row.add_child(_codex_button)
+	_scheme_button = HudStyle.make_small_button("")
+	_scheme_button.pressed.connect(toggle_control_scheme)
+	row.add_child(_scheme_button)
+
+
+func _on_settings_changed() -> void:
+	var classic: bool = Settings.control_scheme == Settings.SCHEME_CLASSIC
+	_scheme_button.text = "MOUSE: %s" % ("CLASSIC" if classic else "MODERN")
+	_scheme_button.tooltip_text = (
+		"Classic: left click selects and commands, right click deselects.\n"
+		+ "Modern: left click selects, right click commands.\nClick to switch (saved)."
+	)
+	_hint.text = HINT_CLASSIC if classic else HINT_MODERN
 
 
 func _build_debug() -> void:

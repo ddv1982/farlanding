@@ -3,9 +3,11 @@ extends Node3D
 ## Kessel Reach proving ground: wires the mission services together (combat, fog of
 ## war, win/lose), lands the player's Lander (it becomes the HQ) with a small starting
 ## crew, places the Alloy deposits and Flux vents, and sets up a Combine base on the
-## far side of the basin, run by a Commander AI (ai/commander.gd). The player wins by
-## destroying every Combine unit and building and loses with the Lander. Every spawn
-## is data in the exported properties.
+## far side of the basin, run by a Commander AI (ai/commander.gd), charts the
+## discovery sites the orbital scan found (a chain's later steps stay hidden until
+## led to) and posts the dormant Custodian Wardens. The player wins by destroying
+## every Combine unit and building (Custodians do not count) and loses with the
+## Lander. Every spawn is data in the exported properties.
 
 ## The terrain is 240 m square, centred on the origin.
 const TERRAIN_AREA: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
@@ -37,6 +39,13 @@ const VISION_CELL: float = 2.0
 @export var rich_deposit_positions: PackedVector3Array = PackedVector3Array()
 @export var vent: ResourceNodeDef
 @export var vent_positions: PackedVector3Array = PackedVector3Array()
+@export_group("Discovery")
+## Discovery sites, one position per entry of `discovery_positions`.
+@export var discoveries: Array[DiscoveryDef] = []
+@export var discovery_positions: PackedVector3Array = PackedVector3Array()
+## Dormant Custodians, one position per entry of `custodian_positions`.
+@export var custodian_roster: Array[UnitDef] = []
+@export var custodian_positions: PackedVector3Array = PackedVector3Array()
 @export_group("Combine")
 @export var hostile_faction: int = 1
 ## The Combine base, pre-built: its HQ (a Hub) first, then its other buildings.
@@ -95,6 +104,7 @@ func _ready() -> void:
 	if lander != null:
 		hq = world.spawn_building(lander, player_faction, player_start, true)
 	_spawn_hostile_base()
+	_spawn_sites()
 	paths.apply_cuts()
 	print(
 		(
@@ -109,6 +119,11 @@ func _ready() -> void:
 	for unit: Unit in spawn_group(hostile_roster, hostile_faction, hostile_start, hostile_facing):
 		if unit.harvester != null:
 			world.auto_harvest(unit, unit.sim_position())
+	for i: int in mini(custodian_roster.size(), custodian_positions.size()):
+		var towards_centre: float = Mover.yaw_for(-custodian_positions[i])
+		world.spawn_unit(
+			custodian_roster[i], Factions.CUSTODIANS, custodian_positions[i], towards_centre
+		)
 	if world.vision != null:
 		# See the landing site from the first frame, not one sim tick later.
 		world.vision.update_faction(
@@ -175,6 +190,14 @@ func _spawn_hostile_base() -> void:
 		world.spawn_building(
 			hostile_buildings[i], hostile_faction, hostile_building_positions[i], true
 		)
+
+
+func _spawn_sites() -> void:
+	for i: int in mini(discoveries.size(), discovery_positions.size()):
+		var def: DiscoveryDef = discoveries[i]
+		if def != null:
+			var charted: bool = not Discovery.is_led_to(discoveries, def.id)
+			world.spawn_site(def, discovery_positions[i], charted)
 
 
 func _spawn_nodes(def: ResourceNodeDef, positions: PackedVector3Array) -> void:

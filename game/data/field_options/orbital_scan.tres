@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="FieldOptionDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/field_option_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/option_orbital_scan.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2_icon")
+id = &"orbital_scan"
+display_name = "Orbital Scan"
+description = "The Meridian sweeps an area from orbit: everything there is seen for a while."
+effect = &"reveal"
+intel_cost = 40
+cooldown = 60.0
+requires_unlock = false
+radius = 28.0
+seconds = 25.0
+sound_set = &"orbital_scan"

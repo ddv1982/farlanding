@@ -2,6 +2,7 @@ class_name WorldAiPort
 extends AiPort
 ## AiPort on a live mission: commands go into the mission's CommandQueue and sight
 ## comes from Combat's per-faction visibility query (the faction's vision grid).
+## Custodians are left out of what it reports.
 
 var context: MissionContext
 var world: SimWorld
@@ -26,4 +27,9 @@ func push(command: Command) -> void:
 func seen_enemies(center: Vector3, radius: float) -> Array[Node3D]:
 	if world.combat == null:
 		return []
-	return world.combat.seen_enemies_near(faction, center, radius)
+	# The Custodians are not the commander's business: it plays against the player.
+	var seen: Array[Node3D] = []
+	for entity: Node3D in world.combat.seen_enemies_near(faction, center, radius):
+		if not Factions.is_custodian(Combat.faction_of(entity)):
+			seen.append(entity)
+	return seen

@@ -3,9 +3,11 @@ extends PanelContainer
 ## Bottom-right map of the whole mission area: terrain (hill-shaded, impassable ground
 ## dark) under the fog of war, resource nodes the player has explored, the player's
 ## units and buildings in team colour, enemies the player sees in red (enemy buildings
-## seen before but not in sight now stay, dimmed, where they were last seen), and the
-## camera's view. Left click or drag moves the camera there; right click orders the
-## selected units to move there (Shift queues). Built from HudStyle.
+## seen before but not in sight now stay, dimmed, where they were last seen),
+## discovery signals the orbital scan charted (a "?" even under fog; a dot in the
+## discovery's colour once resolved), and the camera's view. Left click or drag moves
+## the camera there; right click orders the selected units to move there (Shift
+## queues). Built from HudStyle.
 
 const SIZE: float = 212.0
 ## Terrain image pixels per side.
@@ -16,6 +18,7 @@ const REMEMBERED_COLOR: Color = Color(0.62, 0.22, 0.18, 0.75)
 const NODE_COLOR: Color = Color(0.72, 0.84, 0.95)
 const VENT_COLOR: Color = Color(0.45, 0.85, 1.0)
 const VIEW_COLOR: Color = Color(1.0, 1.0, 1.0, 0.85)
+const SIGNAL_COLOR: Color = Color(0.35, 0.92, 1.0)
 
 const FOG_SHADER: String = """
 shader_type canvas_item;
@@ -136,6 +139,7 @@ func _draw_overlay() -> void:
 		if node.visible and node.def != null:
 			var color: Color = VENT_COLOR if node.resource() == &"flux" else NODE_COLOR
 			_overlay.draw_circle(to_map(node.position), maxf(node.def.radius * scale, 1.5), color)
+	_draw_sites(scale)
 	for building: Building in world.buildings:
 		if not building.visible or building.is_dead:
 			continue
@@ -156,6 +160,25 @@ func _draw_overlay() -> void:
 			Rect2(at - Vector2(half, half), Vector2(half, half) * 2.0), _color_for(unit.faction)
 		)
 	_draw_view()
+
+
+## Charted sites: an unresolved signal is a "?" in a ring, a resolved one a dot.
+func _draw_sites(scale: float) -> void:
+	if world.discovery == null:
+		return
+	var font: Font = get_theme_default_font()
+	for site: DiscoverySite in world.discovery.sites:
+		if not site.is_signal_known_to_player or site.def == null:
+			continue
+		var at: Vector2 = to_map(site.position)
+		if site.is_resolved:
+			_overlay.draw_circle(at, maxf(site.def.radius * scale, 2.5), site.def.color)
+			continue
+		_overlay.draw_circle(at, 6.0, Color(0, 0, 0, 0.55))
+		_overlay.draw_arc(at, 6.0, 0.0, TAU, 16, SIGNAL_COLOR, 1.5)
+		_overlay.draw_string(
+			font, at + Vector2(-3.0, 4.0), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, SIGNAL_COLOR
+		)
 
 
 ## The ground the camera sees, as the outline of its four screen corners.
