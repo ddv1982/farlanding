@@ -1,37 +1,37 @@
 class_name AmbienceCues
 extends RefCounted
-## Pure rules for the Kessel Reach ambience (Phase 6). The AmbienceDirector
-## measures where the listener is (how near a Flux vent, a Combine base the
-## player has seen, an Antecedent site; how strong the storm is) and asks
-## these rules what to play. Nothing here plays anything.
+## Pure rules for a planet's ambience (Phase 6; data-driven since Phase 8a).
+## The AmbienceDirector measures where the listener is (how near a Flux vent, a
+## Combine base the player has seen, an Antecedent site; how strong the storm
+## is; how high the tide) and asks these rules what to play. The planet's beds
+## and details are data (AmbienceSet); without a set the rules use Kessel
+## Reach's. Nothing here plays anything.
 ##
-## Beds: the base wind (48 s) and a high air bed (37 s) loop together and never
-## line up the same way twice; each wanders slowly to a new level every 7-15 s
-## (wind -5..0 dB, air -9..-1 dB). Near an Antecedent site the hush bed rises
-## (up to 0 dB) and the wind and the details step back: the place is still.
-## The storm covers all of it (StormSound's `cover`).
+## Beds loop together at different lengths and never line up the same way
+## twice; each wanders slowly to a new level every 7-15 s within its own range.
+## Near an Antecedent site a hush bed rises (up to 0 dB) and the other beds and
+## the details step back: the place is still. The storm covers all of it
+## (StormSound's `cover`); the tide moves each bed between its low- and
+## high-water level (TideSound).
 ##
 ## Details: one positional one-shot every 6-14 s (longer under the hush, much
-## longer in a storm), picked by weight from what is near: settling rock
-## always, dust devils in clear weather, Flux vents near Flux, far Combine
-## industry near a base the player has seen. The same kind never plays twice
-## in a row when another is possible.
+## longer in a storm), picked by weight from what is near (AmbienceDetail). The
+## same kind never plays twice in a row when another is possible.
+##
+## Kessel Reach: the base wind (-5..0 dB), a high air bed (-9..-1 dB) and the
+## hush; settling rock always, dust devils in clear weather, Flux vents near
+## Flux, far Combine industry near a base the player has seen.
 
 const ROCK: StringName = &"amb_rock_settle"
 const VENT: StringName = &"amb_flux_vent"
 const DEVIL: StringName = &"amb_dust_devil"
 const INDUSTRY: StringName = &"amb_combine_industry"
-const DETAILS: Array[StringName] = [ROCK, VENT, DEVIL, INDUSTRY]
 
 const BED_WIND: StringName = &"amb_kessel_wind"
 const BED_AIR: StringName = &"amb_kessel_air"
 const BED_HUSH: StringName = &"amb_kessel_hush"
-const BEDS: Array[StringName] = [BED_WIND, BED_AIR, BED_HUSH]
-## Bed -> range its level wanders in (dB). The hush does not wander.
-const BED_RANGE_DB: Dictionary[StringName, Vector2] = {
-	BED_WIND: Vector2(-5.0, 0.0),
-	BED_AIR: Vector2(-9.0, -1.0),
-}
+## Kessel Reach's set: the one used when nothing names another.
+const KESSEL_SET: String = "res://data/sounds/ambience/sets/kessel_reach.tres"
 ## Seconds between new wander targets, and the glide to each.
 const WANDER_GAP: Vector2 = Vector2(7.0, 15.0)
 const WANDER_GLIDE: float = 8.0
@@ -50,6 +50,18 @@ const VENT_NEAR: StringName = &"vent"
 const BASE_NEAR: StringName = &"base"
 const SITE_NEAR: StringName = &"site"
 const STORM: StringName = &"storm"
+## The water level, 0 low .. 1 high (0 on planets without a tide).
+const TIDE: StringName = &"tide"
+const CONTEXT_KEYS: Array[StringName] = [VENT_NEAR, BASE_NEAR, SITE_NEAR, STORM, TIDE]
+
+static var _kessel: AmbienceSet
+
+
+## Kessel Reach's set (loaded once).
+static func kessel() -> AmbienceSet:
+	if _kessel == null:
+		_kessel = load(KESSEL_SET) as AmbienceSet
+	return _kessel
 
 
 ## 1 inside `radii.x`, 0 beyond `radii.y`, smooth between.
@@ -60,30 +72,39 @@ static func nearness(distance: float, radii: Vector2) -> float:
 	return 1.0 - u * u * (3.0 - 2.0 * u)
 
 
-## Weight of each detail kind in a context (keys VENT_NEAR, BASE_NEAR,
-## SITE_NEAR, STORM, each 0..1; missing keys are 0).
-static func detail_weights(context: Dictionary) -> Dictionary[StringName, float]:
+## Weight of each detail kind of `amb` (Kessel's when null) in a context (the
+## CONTEXT_KEYS, each 0..1; missing keys are 0). In the set's detail order.
+static func detail_weights(
+	context: Dictionary, amb: AmbienceSet = null
+) -> Dictionary[StringName, float]:
 	var vent: float = context.get(VENT_NEAR, 0.0)
 	var base: float = context.get(BASE_NEAR, 0.0)
 	var site: float = context.get(SITE_NEAR, 0.0)
 	var storm: float = context.get(STORM, 0.0)
+	var tide: float = context.get(TIDE, 0.0)
 	var calm: float = 1.0 - 0.75 * site
-	return {
-		ROCK: 1.0 * calm,
-		DEVIL: 0.45 * (1.0 - storm) * calm,
-		VENT: (0.08 + 2.2 * vent) * calm,
-		INDUSTRY: 2.6 * base * calm,
-	}
+	var out: Dictionary[StringName, float] = {}
+	for detail: AmbienceDetail in _or_kessel(amb).details:
+		var weight: float = (
+			detail.weight
+			+ detail.vent * vent
+			+ detail.base * base
+			+ detail.flood * tide
+			+ detail.ebb * (1.0 - tide)
+		)
+		out[detail.event] = maxf(weight, 0.0) * (1.0 - storm * detail.storm_cover) * calm
+	return out
 
 
 ## Picks a kind by weight with `roll` in [0, 1), avoiding `last` while any
-## other kind has weight. Returns &"" when nothing has weight.
+## other kind has weight. Returns &"" when nothing has weight. Kinds are
+## considered in the order of `weights`.
 static func pick(
 	weights: Dictionary[StringName, float], roll: float, last: StringName
 ) -> StringName:
 	var candidates: Array[StringName] = []
-	for kind: StringName in DETAILS:
-		if kind != last and weights.get(kind, 0.0) > 0.0:
+	for kind: StringName in weights:
+		if kind != last and weights[kind] > 0.0:
 			candidates.append(kind)
 	if candidates.is_empty() and weights.get(last, 0.0) > 0.0:
 		candidates.append(last)
@@ -109,9 +130,10 @@ static func detail_gap(context: Dictionary, roll: float) -> float:
 	return gap * (1.0 + site) * (1.0 + 3.0 * storm)
 
 
-## A new wander target (dB) for a bed. `roll` in [0, 1).
-static func wander_target_db(bed: StringName, roll: float) -> float:
-	var range_db: Vector2 = BED_RANGE_DB.get(bed, Vector2.ZERO)
+## A new wander target (dB) for a bed of `amb`. `roll` in [0, 1).
+static func wander_target_db(bed: StringName, roll: float, amb: AmbienceSet = null) -> float:
+	var found: AmbienceBed = _or_kessel(amb).find_bed(bed)
+	var range_db: Vector2 = found.wander_db if found != null else Vector2.ZERO
 	return lerpf(range_db.x, range_db.y, clampf(roll, 0.0, 1.0))
 
 
@@ -119,14 +141,29 @@ static func wander_gap(roll: float) -> float:
 	return lerpf(WANDER_GAP.x, WANDER_GAP.y, clampf(roll, 0.0, 1.0))
 
 
-## Level (dB) of a bed from its wander level and the context: the hush rises
-## near a site, the wind and air step back there, the storm covers all three.
-static func bed_db(bed: StringName, wander_db: float, context: Dictionary) -> float:
+## Level (dB) of a bed from its wander level and the context: a hush bed rises
+## near a site, the others step back there and follow the tide, the storm
+## covers them all.
+static func bed_db(
+	bed: StringName, wander_db: float, context: Dictionary, amb: AmbienceSet = null
+) -> float:
 	var site: float = context.get(SITE_NEAR, 0.0)
 	var storm: float = context.get(STORM, 0.0)
+	var tide: float = context.get(TIDE, 0.0)
 	var cover: float = AudioMix.linear_to_db_safe(1.0 - 0.85 * clampf(storm, 0.0, 1.0))
-	if bed == BED_HUSH:
+	var found: AmbienceBed = _or_kessel(amb).find_bed(bed)
+	if found != null and found.hush:
 		if site <= 0.0:
 			return AudioMix.SILENT_DB
 		return lerpf(HUSH_FLOOR_DB, 0.0, site) + cover
-	return wander_db - 6.0 * site + cover
+	var tide_db: float = 0.0
+	if found != null:
+		tide_db = lerpf(found.tide_db.x, found.tide_db.y, clampf(tide, 0.0, 1.0))
+	return wander_db - 6.0 * site + cover + tide_db
+
+
+static func _or_kessel(amb: AmbienceSet) -> AmbienceSet:
+	if amb != null:
+		return amb
+	var fallback: AmbienceSet = kessel()
+	return fallback if fallback != null else AmbienceSet.new()

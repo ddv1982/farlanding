@@ -313,6 +313,97 @@ loudness targets and the naming, and says how to add a sound.
     | `campaign_route_open` | D+A, E+B, then F#+C# held and opening up, a high ping: new ways (−21) | 60 / 10 s |
     | `campaign_tech_available` | G#+D twice, lifting into A+E, a bright answer (−21) | 55 / 20 s |
 
+- **Thalassa Low is wet, wide and cold** (Phase 8a). Kessel is dry and warm; Thalassa should be
+  recognisable within seconds: broadband soft wind over water instead of rock whistles, far surf
+  always under it, a low tidal drone, and a score that sways rather than walks.
+
+  - **Key and grid.** F# Aeolian (F# G# A B C# D E): the *same seven pitches* as the Concord's
+    D Lydian, so unit replies, the Advisor and the Trail motif never clash with it, but centred
+    on F# minor. 63 BPM in **3/4**, 24 bars, 72 beats, 68.57 s (3 024 000 samples, a multiple
+    of 64). Chords, six bars each: F#m(add9), Dmaj9(#11) (the Concord's Lydian chord heard as the
+    flat sixth), Bm9, C#m7(add11), which leans back and never quite resolves.
+  - **Timbres.** No marimba and no taiko: cold *glass* (a sine and its slowly beating twin, a
+    faint struck edge), a hollow *flute* (soft sine, breath, slow vibrato), *water plucks* (a
+    dark soft FM chime with a long ping-pong echo), a *bowed* low reed, *hull drums* (long low
+    thuds with a splash of noise) and *splash* backbeats. Longer, darker rooms (5–6 s).
+  - **The tide motif**: F# up a minor sixth to D, a step down to C#, falling to A; long, long,
+    short, very long, over two bars: a wave that rises, breaks and draws back. The Trail motif
+    (D A B G#) still means discovery: on Thalassa it rings on the Antecedent bell in the `trail`
+    layer, and its last quote lands on C# (Thalassa never comes home).
+  - **The score** (`res://data/sounds/music/thalassa_low.tres`, layers in `music/thalassa/`):
+    the same states, intensities and layer roles as Kessel (the state table is Kessel's with the
+    storm column replaced by `tide`), its own material: `pad` (glass and pad chords, a swell every
+    two bars), `pulse` (plucks on 1, 2+ and 3), `melody` (the tide motif and answers), `drive`
+    (a slow low heartbeat, a muffled tick), `drums` (hull drums in three, splash backbeat,
+    triplet shaker), `brass` (bowed-reed stabs, the motif as a call), `trail`, `hush`, `watch`
+    (the flat sixth D as its shadow), variants `melody_b` (flute, ending on B), `melody_c` (the
+    motif augmented on a low bowed reed), `pulse_b` (a two-against-three hemiola), `drums_b`
+    (half time, rolling toms), `urgency` (fast muted F# against the D–G# tritone, a reed siren
+    C# → F#), `heavy`, and **`tide`**: rolling low triplet arpeggios that swell like a wave every
+    two bars, with surf noise in the same breath. The `tide` layer is driven by gain like the
+    storm and urgency layers: silent below level 0.15, then −14 → −2 dB at 0.9 (in 0.5 dB steps).
+    Measured offline, each state sums to the same loudness as Kessel's within 0.2 LU.
+  - **Re-voiced hits and stings.** The AudioService plays `<id>_<score id>` before the shared
+    `<id>` (`ScoreTransitions.voiced`): `mus_hit_combat_thalassa_low` (a wave drawn in, two
+    hull drums, a low reed F#; −24), `mus_hit_aftermath_thalassa_low` (the bowed reed falls
+    C# A F#, a glass bell; −25), `mus_sting_victory_thalassa_low` (the tide motif answered up to
+    the high F# over D → F# with the ninth; −22), `mus_sting_defeat_thalassa_low` (the motif
+    sinking to the low F# as the filter closes; −22). Kessel has no variants and keeps its own.
+  - **Ambience** (the `thalassa_low` AmbienceSet). Beds: `amb_thalassa_wind` (44 s, −30,
+    wanders −5..0 dB, −1.5 dB at high water), `amb_thalassa_surf` (39 s, −33: five long swells a
+    loop, each a roll that breaks into a wash; −8..−1 dB, −3 dB at low water → +1 at high),
+    `amb_thalassa_drone` (31 s, −34: F# and C# low, slowly beating, a pressure of filtered noise;
+    −6..−2 dB, −1 → +2 with the water) and the Antecedent hush (`amb_kessel_hush`, the same
+    stillness on every planet). Details (group `ambdetail`, one every 6–14 s):
+
+    | Detail | Sound | Weight |
+    |---|---|---|
+    | `amb_water_lap` (4) | two to four small laps and a glug (−26) | 0.45 + 1.1 × water level |
+    | `amb_shell_click` (3) | shells and pebbles clicking (−26) | 0.15 + 0.85 × (1 − level) |
+    | `amb_drip` (3) | drips from wet rock and metal (−28, heard to 90 m) | 0.2 + 0.45 × (1 − level) |
+    | `amb_shore_call` (3) | a far, abstract shore call: a sine glide through a soft formant, E6/F#6 → C#6/B5; never a real bird, never twice in 4 s (−27) | 0.3, none in a storm |
+    | `amb_buoy_bell` (2) | a far bell buoy on C#4 or F#4, struck twice by the swell (−27, heard to 200 m, never twice in 6 s) | 0.25 + 0.15 × level |
+    | `amb_flux_vent` | as on Kessel, only near Flux | 1.6 × near |
+    | `amb_combine_industry` | as on Kessel, at a seen base | 2.6 × near |
+
+  - **The tide** (`TideSound` / `TideCues`, on the **Weather** bus, the planet rule like the
+    storm). `tide_changed(level)` moves four loops on the TideSound's own players: `amb_tide_low`
+    (36 s, −28: dark distant water, slow washes) and `amb_tide_high` (27 s, −27: bright close
+    lapping, bubbles, trickles) crossfade with equal power by level, the whole bed rising from
+    −9 dB at low water to 0 dB at high (that is its level *and* its brightness);
+    `amb_tide_rush` (22 s, −29: a band of water noise that climbs for ever, a Shepard figure, and
+    a rushing flow) comes in while the level climbs and `amb_tide_pull` (25 s, −29: the same
+    figure falling, a pebbly backwash rattle and a sucking gurgle) while it falls, by the
+    smoothed rate (from 0.002 per second, full at 0.012, −2 dB at most). The heard level follows
+    reports at 0.25 per second at most. `tide_turning(seconds, rising)` plays the warning:
+    `tide_turn_rising` (bell tones F#4 B4 F#5 going up, short-short-long, over a swelling wash)
+    or `tide_turn_falling` (F#5 C#5 F#4 going down, long-short-long, over a draining hiss); both
+    −24, flat, never twice in 5 s. The TideSound also tells the AmbienceDirector the level (beds
+    and details above) and the score its `tide` layer gain.
+    No report, no tide (Kessel never hears it). The first report after `mission_started` is
+    where the sea already is: taken at once, no motion, and everything fades in over 3 s, so a
+    restored landing (which re-emits `tide_changed`) picks up mid-level without a jump cut or a
+    false rush. `mission_started` and going aboard reset it.
+  - **Advisor** (Meridian dyads, through the Advisor queue):
+
+    | Kind | Phrase | Priority / throttle |
+    |---|---|---|
+    | `tide_rising` | F#+C#, A+E, then B+F# gliding up a step: a climb that keeps going (−19) | 108 / 20 s |
+    | `tide_falling` | B+F#, A+E, then F#+C# sliding down a step: the fords open (−20) | 86 / 20 s |
+    | `units_in_water` | the D+G# warning tritone twice, wobbling as if under water (−19) | 104 / 25 s |
+    | `artefact_taken` | the Trail motif's D+A bent down at once to the Combine's Bb+F, twice, the second sagging (−19) | 113 / 10 s |
+    | `artefact_secured` | D+A, B+F#, answered home: a held D+A with its octave (−20) | 95 / 8 s |
+
+    An unheard `tide_rising` and a following `tide_falling` (or the other way round) cancel,
+    like low power and power restored.
+  - **Recovery mission** (Phase 8a): `ui_feedback` `artefact_pickup` → `ui_artefact_pickup` (a
+    small Antecedent bell lifting D6 → A6, a soft latch; −27, 0.39 s), `artefact_drop` →
+    `ui_artefact_drop` (A6 → D6 and a soft low thud; −28, 0.40 s). The carried artefact hums
+    `loop_hum_artefact` (6 s loop, −31: an Antecedent drone on D and G# beating slowly, a glassy
+    shimmer swelling twice a loop; positional, one at a time, heard within 50 m): BaseLoops hums
+    any Node3D in group `artefacts` with `loop_hum_<def.sound_set or sound_set, else artefact>`,
+    carried or lying down, while `is_visible_to_player` is true or absent.
+
 ## Loudness targets
 
 Integrated loudness per ITU-R BS.1770 (gated; files shorter than 400 ms are one block). Every
@@ -364,6 +455,14 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `shipdetail` | WAV stereo | relay −33, creak −34, machine −34, ping −35 | flat, Ambience bus, priority 10 |
 | `ui` Phase 7 | WAV mono | −27 (hovers −35, title −28, loadout change −28, saved −31, launch and tech buy −24, unlocked −26) | launch 1.1 s and tech buy 1.5 s: the two deliberate exceptions to ≤ 0.3 s |
 | `advisor` Phase 7 | WAV mono | intel banked −20, route, tech, return won −21, return lost −22 | flat, Advisor bus |
+| `music` Thalassa layers (Phase 8a) | Ogg stereo, loop | as Kessel: pad −25, pulse/pulse_b −29, melodies −27, drive −28, drums −26, brass −27, trail −29, hush −31, watch −29, urgency −29, heavy −27, tide −29 | 63 BPM in 3/4, 68.57 s (3 024 000 samples) |
+| `sting` Thalassa (Phase 8a) | Ogg stereo | hits −24 / −25, victory and defeat −22 | `<id>_thalassa_low` |
+| `ambience` Thalassa beds | Ogg stereo, loop | wind −30, surf −33, drone −34 | 44 / 39 / 31 s |
+| `ambdetail` Thalassa | WAV mono | laps −26, shells −26, drips −28, shore call −27, buoy −27 | positional, priority 10 |
+| `weather` tide (Phase 8a) | Ogg stereo | low −28, high −27, rush −29, pull −29 (loops 36 / 27 / 22 / 25 s); turning −24 | TideSound's players / flat, Weather bus |
+| `advisor` Phase 8a | WAV mono | tide rising −19, falling −20, units in water −19, artefact taken −19, secured −20 | flat, Advisor bus |
+| `ui` Phase 8a | WAV mono | artefact pickup −27, drop −28 | 0.39 / 0.40 s |
+| `baseloop` artefact | WAV mono, loop | −31 | 6 s, positional |
 
 Also checked on every build: DC offset ≤ 0.002, energy below 25 Hz ≤ 3 %, duration within the
 recipe's bounds, and for loops the seam (no step, kink or level jump bigger than the loop's own
@@ -419,6 +518,8 @@ settings: master 1.0, music 0.8, effects 1.0):
 | explore: the explore score and the planet ambience | −27.2 LUFS | −16.0 dBFS |
 | ship (Phase 7): the star map's theme and the ship ambience, a map hover every 50 ms, clicks, a tech purchase, a campaign Advisor phrase every 1.5 s | −23.3 LUFS | −11.0 dBFS |
 | worst case: `combat_heavy` + urgency + storm layers, a full storm (beds, gusts, debris, muffle), 6 weapon and 6 impact starts per 50 ms frame within 35 m plus blasts, an Advisor or stealth alarm every 1.5 s, interface clicks | −19.4 LUFS | −5.7 dBFS (limiter never engaged) |
+| Thalassa calm (Phase 8a): the Thalassa score in `calm`, its ambience, the tide at low water, slack | −26.9 LUFS | −16.5 dBFS |
+| Thalassa fight (Phase 8a): `combat_heavy` + urgency + tide layers at high water with the sea still rising (water bed and rush), the worst-case battle, an Advisor or stealth alarm every 1.5 s plus `advisor_tide_rising` every 1.5 s, a tide warning, clicks | −17.3 LUFS | −3.9 dBFS (limiter never engaged) |
 
 Worst-case loudness per category (each bus before its fader, LUFS): Music −25.3, Weather −25.8,
 Weapons −24.7, Explosions −25.7, Advisor −21.4, Stealth −22.8, UI −36.4, Ambience −64.7
@@ -433,6 +534,14 @@ the Advisor speaks the ship theme sits at −31.3 against its −25.3. The ship 
 clipping, headroom before the limiter, −36..−22 LUFS, the Advisor 3 LU over the music and the
 interface under the Advisor. (The scene is deliberately busy; a player idling on the map hears the
 theme and the hull, around the explore level.)
+
+Thalassa fight (per bus before its fader): Music −32.6, Weather −27.7 (the tide), Weapons −24.8,
+Explosions −25.7, Advisor −20.5, Stealth −22.9, UI −36.3, Ambience −43.8 LUFS; while the Advisor
+speaks the score sits at −36.2 against its −20.6. The music is lower than Kessel's worst case
+because the scene has the Advisor speaking twice as often (the sidechain holds it down); the
+Thalassa states themselves sum to Kessel's loudness within 0.2 LU. Both Thalassa scenes assert
+what the Kessel ones do (no clipping, headroom, the same loudness windows, the voice budget, the
+Advisor 3 LU over the music).
 
 The first measurement found one problem, fixed: heavy combat with the storm and urgency layers
 stacked integrated to −21.7 LUFS of music, louder than the weapons (−25) and level with the
@@ -456,6 +565,10 @@ Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capp
 - Phase 7: `amb_ship_<bed>` (ambience), `amb_ship_<detail>_<n>` (group `shipdetail`),
   `mus_meridian_<layer>` (the ship score `meridian.tres`), `ui_<campaign kind>`,
   `advisor_campaign_<kind>`
+- Phase 8a: `mus_thalassa_<layer>`, `amb_thalassa_<bed>`, `amb_tide_<layer>`,
+  `tide_turn_<rising|falling>`, score variants `<hit or sting>_<score id>`; planets as data in
+  `game/data/sounds/planets/<planet id>.tres` (PlanetAudio: score + AmbienceSet) and
+  `game/data/sounds/ambience/sets/<planet id>.tres` (AmbienceSet: beds and details)
 
 The event router looks events up by these names: a unit's `def.sound_set` picks
 `unit_<set>_select`; a selection of buildings only (group `buildings`) picks
@@ -588,8 +701,8 @@ forgets an open briefing or a pending launch, the bed stops (the debrief's, or a
 not the mission-select theme), the MusicDirector `switch_score`s to the ship theme in the
 screen's state, the AmbienceDirector `start_ship`s, the ship mix applies. Between ship screens:
 only the state changes (`CampaignCues.music_state`; an unknown screen plays `star_map`). `&""`
-(a landing takes over): the planet's score (the one `Audio.play_score` set last; Kessel by
-default) switches back in held at −14 dB, the planet ambience returns. `map_launch` starts that
+(a landing takes over): the planet's score (the one `Audio.play_planet` or `Audio.play_score`
+set last; Kessel by default) switches back in held at −14 dB, the planet ambience returns. `map_launch` starts that
 music hand-over at once, under the launch gesture; the ambience waits for the screen.
 `mission_started` always leaves the ship (without the hold: the mission router has set the
 level). A **score switch** fades the playing score out (1.5 s) and the new one in (2 s) on the
@@ -618,6 +731,29 @@ raised at the same moment follows it rather than talking over it (all three fit 
 queue's 4 s wait). `mission_started` and `campaign_loaded` drop anything pending. Gameplay
 raises `campaign_route_open`, `campaign_tech_available` and `campaign_intel_banked` as ordinary
 `advisor_alert`s.
+
+**Planets** (Phase 8a, `PlanetAudio`). Which score and ambience play is data, by planet id:
+`res://data/sounds/planets/<planet id>.tres` names a MusicScore and an AmbienceSet (the score's
+`id` is the planet id). `Audio.play_planet(id)` makes that planet's score fade over (one player,
+`switch_score`) and its ambience replace the old one (another set's beds stop first; the same
+set is left alone); an id without a file changes nothing; aboard the ship it is remembered for
+the landing. Gameplay does not have to call it: on `mission_started` the AudioService reads the
+planet itself (deferred one frame) from the running map, the first of the current scene and its
+children with a `mission` property whose `planet.id` is set (duck-typed, like the rest of
+`audio/`). A new planet is two `.tres` files, no code. `Audio.play_score(score)` still cuts to a
+score at once, with the ambience of the planet whose id the score carries.
+
+Thalassa routing (Phase 8a):
+
+| Signal | Sound |
+|---|---|
+| `tide_turning(seconds, rising)` | `tide_turn_rising` / `tide_turn_falling` (flat, Weather) |
+| `tide_changed(level)` | the TideSound's four loops (Weather), the score's `tide` layer gain, the ambience's water level |
+| `advisor_alert(&"tide_rising" / &"tide_falling" / &"units_in_water")` | `advisor_<kind>` through the Advisor queue (table above) |
+| `advisor_alert(&"artefact_taken" / &"artefact_secured")` | `advisor_<kind>` through the Advisor queue |
+| `ui_feedback(&"artefact_pickup" / &"artefact_drop")` | `ui_<kind>` (naming rule) |
+| a Node3D in group `artefacts` | `loop_hum_artefact` on it (BaseLoops) |
+| `mission_started` | the planet is read from the map (`play_planet`); the tide resets |
 
 ## Adding a sound
 

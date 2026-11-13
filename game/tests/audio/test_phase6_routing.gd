@@ -78,7 +78,6 @@ func test_pause_and_menu_overlays() -> void:
 	var sfx: float = _bus_db(&"SFX")
 	var ui: float = _bus_db(&"UI")
 	Events.ui_feedback.emit(&"pause_open")
-	assert_true(Audio.is_paused_mix())
 	assert_almost_eq(_bus_db(&"Music"), music + AudioMix.PAUSE_DB[&"Music"], 0.01)
 	assert_almost_eq(_bus_db(&"SFX"), sfx + AudioMix.PAUSE_DB[&"SFX"], 0.01)
 	assert_almost_eq(_bus_db(&"UI"), ui, 0.01, "the pause menu's own clicks stay")

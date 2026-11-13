@@ -186,6 +186,16 @@ EVENT_OVERRIDES = {
     "ui_map_launch": dict(cooldown=1.0, max_instances=1),
     "ui_campaign_saved": dict(priority=40, cooldown=1.0, max_instances=1),
     "ui_loadout_change": dict(cooldown=0.06),
+    # Phase 8a, Thalassa Low. The tide's warnings are flat on the Weather bus,
+    # like the storm front; its beds loop on the TideSound's own players.
+    "tide_turn_rising": dict(priority=70, max_instances=1, cooldown=5.0),
+    "tide_turn_falling": dict(priority=70, max_instances=1, cooldown=5.0),
+    "amb_shore_call": dict(max_instances=1, cooldown=4.0),
+    "amb_buoy_bell": dict(max_instances=1, cooldown=6.0, max_distance=200.0),
+    "amb_drip": dict(max_distance=90.0),
+    "ui_artefact_pickup": dict(cooldown=0.3, max_instances=1),
+    "ui_artefact_drop": dict(cooldown=0.3, max_instances=1),
+    "loop_hum_artefact": dict(max_instances=1, max_distance=50.0, priority=40),
 }
 
 

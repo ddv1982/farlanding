@@ -25,6 +25,11 @@
 ## (any campaign screen) the ship score plays in that screen's state, the
 ## AmbienceDirector plays the ship, and the ship mix applies; a landing hands
 ## back to the planet's score (`switch_score`: one player, never two scores).
+## Phase 8a adds the planets as data (PlanetAudio: score and ambience set per
+## planet id, `play_planet`; found by itself from the running mission when a
+## mission starts), the TideSound (Thalassa's tide: water beds, rush and pull,
+## the turning warnings, the score's tide layer) and score-specific transition
+## hits and ending stings (`<hit>_<score id>` before the generic one).
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -43,6 +48,8 @@ const TRAIL_LAYER: StringName = &"trail"
 const STORM_LAYER: StringName = &"storm"
 ## The score layer that urges while the base is under attack.
 const URGENCY_LAYER: StringName = &"urgency"
+## The music layer of the tide (Thalassa), following the water level.
+const TIDE_LAYER: StringName = &"tide"
 ## How long the urgency layer stays after an under-attack alert (s).
 const URGENCY_HOLD: float = 24.0
 ## The objective type whose failure means the rival won the Intel race.
@@ -89,6 +96,8 @@ var _campaign: CampaignSoundRouter
 var _ship: bool = false
 var _ship_score: MusicScore
 var _planet_score: MusicScore
+var _planet_ambience: AmbienceSet
+var _tide: TideSound
 
 
 func _ready() -> void:
@@ -132,6 +141,7 @@ func _ready() -> void:
 	add_child(_music)
 	_music.set_layer_gain(STORM_LAYER, AudioMix.SILENT_DB)
 	_music.set_layer_gain(URGENCY_LAYER, AudioMix.SILENT_DB)
+	_music.set_layer_gain(TIDE_LAYER, AudioMix.SILENT_DB)
 	_router.on_alert_played = _on_alert_played
 	_pulses = SignalPulses.new()
 	_pulses.name = &"SignalPulses"
@@ -188,6 +198,13 @@ func _ready() -> void:
 	_ambience.play_at = play_at
 	add_child(_ambience)
 	_storm.set_ambience_cover = _ambience.set_storm_cover
+	_tide = TideSound.new()
+	_tide.name = &"Tide"
+	_tide.resolve_event = get_event
+	_tide.play_first = play_first
+	_tide.set_music_gain = func(gain_db: float) -> void: _music.set_layer_gain(TIDE_LAYER, gain_db)
+	_tide.set_ambience_tide = _ambience.set_tide
+	add_child(_tide)
 	_campaign = CampaignSoundRouter.new()
 	_campaign.name = &"CampaignRouter"
 	_campaign.play_first = play_first
@@ -253,15 +270,37 @@ func set_music_state(state: StringName) -> void:
 # --- Additions beyond the original contract -----------------------------------
 
 
-## Starts a planet's score (and its ambience bed). Aboard the ship it is only
+## Starts a planet's score at once (and the ambience of the planet whose id
+## the score carries, else Kessel Reach's). Aboard the ship it is only
 ## remembered: it plays when the landing takes over.
 func play_score(score: MusicScore) -> void:
 	_planet_score = score
+	var planet: PlanetAudio = PlanetAudio.find(score.id) if score != null else null
+	_planet_ambience = planet.ambience if planet != null else AmbienceCues.kessel()
 	if _ship:
 		return
 	# The ambience is the AmbienceDirector's (layered, wandering beds).
 	_music.play_score(score, null)
-	_ambience.start(_planet_bed())
+	_ambience.start(_planet_ambience)
+
+
+## Makes `planet_id`'s score and ambience the planet's (PlanetAudio, from
+## `res://data/sounds/planets/<id>.tres`): the score fades over from whatever
+## plays, the ambience changes if it is another planet's. Nothing changes for
+## an id without a file, or for the planet already playing. Aboard the ship it
+## is only remembered. Called by the AudioService itself when a mission starts.
+func play_planet(planet_id: StringName) -> void:
+	var planet: PlanetAudio = PlanetAudio.find(planet_id)
+	if planet == null or planet.score == null:
+		return
+	_planet_score = planet.score
+	_planet_ambience = planet.ambience if planet.ambience != null else AmbienceCues.kessel()
+	if _ship:
+		return
+	if _music.target_score() != planet.score:
+		_music.switch_score(planet.score)
+	if _ambience.ambience_set() != _planet_ambience:
+		_ambience.start(_planet_ambience)
 
 
 ## Shows a campaign screen (Phase 7): any screen but &"" is aboard the ship.
@@ -281,6 +320,7 @@ func _show_screen(screen: StringName) -> void:
 	_missions.handle_left_landing()
 	_stop_world_voices()
 	_storm.handle_mission_started()  # a storm left behind on the planet ends
+	_tide.handle_mission_started()  # and so does the sea
 	if _ship_score != null:
 		_music.switch_score(_ship_score, state)
 	_ambience.start_ship(screen)
@@ -372,10 +412,6 @@ func ambience() -> AmbienceDirector:
 
 func music() -> MusicDirector:
 	return _music
-
-
-func is_paused_mix() -> bool:
-	return _paused
 
 
 ## Stops every one-shot and every world loop (movement, base, signal and
@@ -524,7 +560,9 @@ func _end_music(won: bool) -> void:
 	_storm.handle_mission_ended(won)
 	_music.force_state(MusicMood.VICTORY if won else MusicMood.DEFEAT)
 	var storm_level: float = maxf(_storm.intensity(), _storm.cues.target)
-	var played: StringName = play_first(StormCues.ending_stings(won, storm_level, _outsurveyed))
+	var played: StringName = play_first(
+		_voiced(StormCues.ending_stings(won, storm_level, _outsurveyed))
+	)
 	if played != &"":
 		_music.dip_for(get_event(played).longest_seconds(), STING_DIP_DB)
 		_campaign.note_ending_sting(_now())
@@ -538,7 +576,8 @@ func _request_music() -> void:
 	var after: StringName = _music.current_state()
 	var hit: StringName = ScoreTransitions.hit_for(before, after)
 	if hit != &"":
-		_music.at_next_beat(func() -> void: play(hit))
+		var hits: Array[StringName] = _voiced([hit])
+		_music.at_next_beat(func() -> void: play_first(hits))
 
 
 ## The storm layer follows whichever asks for more: the mission deadline
@@ -578,6 +617,24 @@ func _on_mission_started() -> void:
 	_outsurveyed = false
 	_music.set_layer_gain(URGENCY_LAYER, AudioMix.SILENT_DB)
 	_apply_volumes()
+	# The map sets its mission before it announces the start: read the planet
+	# once the frame's setup is done.
+	_detect_planet.call_deferred()
+
+
+## The planet of the mission that just started, from the running map (nothing
+## changes if none is found: the planet playing stays).
+func _detect_planet() -> void:
+	if not is_inside_tree():
+		return
+	var planet_id: StringName = PlanetAudio.planet_id_in(get_tree().current_scene)
+	if planet_id != &"":
+		play_planet(planet_id)
+
+
+## `ids` with the playing score's own versions first (ScoreTransitions.voiced).
+func _voiced(ids: Array[StringName]) -> Array[StringName]:
+	return ScoreTransitions.voiced(ids, _music.score.id if _music.score != null else &"")
 
 
 ## The loss reason for the ending sting: the rival banked its Intel first. Read
@@ -600,7 +657,7 @@ func _leave_ship(hold_dip: bool) -> void:
 	_ship = false
 	if _planet_score != null:
 		_music.switch_score(_planet_score, &"", LANDING_DIP_DB if hold_dip else 0.0)
-	_ambience.start(_planet_bed())
+	_ambience.start(_planet_ambience)
 	_apply_volumes()
 
 
@@ -610,15 +667,6 @@ func _leave_ship(hold_dip: bool) -> void:
 func _on_launch() -> void:
 	if _ship and _planet_score != null:
 		_music.switch_score(_planet_score, &"", LANDING_DIP_DB)
-
-
-func _planet_bed() -> AudioStream:
-	if _planet_score == null:
-		return null
-	var event: SoundEvent = get_event(_planet_score.ambience)
-	if event == null or event.streams.is_empty():
-		return null
-	return event.streams[0]
 
 
 ## Stops the world's one-shots (the positional pool) and loops; interface,

@@ -19,7 +19,8 @@ extends Resource
 ## next boundary of that many beats, so they land on the beat.
 @export_range(0.0, 300.0, 0.1) var bpm: float = 0.0
 @export_range(0.0, 16.0, 0.5) var quantize_beats: float = 0.0
-## SoundEvent id of the ambience bed that goes with this score.
+## SoundEvent id of the ambience bed that goes with this score (informational
+## since Phase 8a: the planet's AmbienceSet, via PlanetAudio, decides the beds).
 @export var ambience: StringName = &""
 
 

@@ -17,6 +17,9 @@ extends RefCounted
 ## - Families: kinds in one FAMILY share their throttle (a primary and a
 ##   secondary objective completing together, or gameplay raising
 ##   objective_new as the objective signal arrives, speak once).
+## - Thalassa (Phase 8a): the tide turning (rising outranks falling: the water
+##   closes fords), units caught in water, and the Recovery artefact taken or
+##   secured; a turn the player never heard cancels against the opposite one.
 ##
 ## Use: `push(kind, now, position)` when an alert arrives (set `focus` first);
 ## every frame, `pop_ready(now)` and, if it returns a kind, play it and call
@@ -50,6 +53,11 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"campaign_intel_banked": 8.0,
 	&"campaign_return_won": 5.0,
 	&"campaign_return_lost": 5.0,
+	&"tide_rising": 20.0,
+	&"tide_falling": 20.0,
+	&"units_in_water": 25.0,
+	&"artefact_taken": 10.0,
+	&"artefact_secured": 8.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -79,6 +87,11 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"campaign_intel_banked": 70,
 	&"campaign_route_open": 60,
 	&"campaign_tech_available": 55,
+	&"artefact_taken": 113,
+	&"tide_rising": 108,
+	&"units_in_water": 104,
+	&"artefact_secured": 95,
+	&"tide_falling": 86,
 }
 ## Kind -> the family whose throttle it shares (kinds not listed are their own).
 const FAMILY: Dictionary[StringName, StringName] = {
@@ -90,6 +103,8 @@ const FAMILY: Dictionary[StringName, StringName] = {
 const SUPERSEDES: Dictionary[StringName, StringName] = {
 	&"power_restored": &"low_power",
 	&"low_power": &"power_restored",
+	&"tide_falling": &"tide_rising",
+	&"tide_rising": &"tide_falling",
 }
 ## Silence after a phrase before the next may start.
 const GAP: float = 0.35
