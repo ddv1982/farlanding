@@ -138,7 +138,7 @@ func _strike(faction: int, option: FieldOptionDef, at: Vector3) -> void:
 		world.combat.damage(entity, option.damage, option.damage_type, null)
 
 
-## A supply cache needs open, walkable ground clear of buildings and other nodes.
+## A supply cache needs open, walkable ground clear of buildings, nodes and sites.
 func _drop_spot_ok(option: FieldOptionDef, at: Vector3) -> bool:
 	if option.node == null:
 		return true
@@ -152,6 +152,11 @@ func _drop_spot_ok(option: FieldOptionDef, at: Vector3) -> bool:
 	for node: ResourceNode in world.resource_nodes:
 		if node.blocked_area().intersects(area):
 			return false
+	if world.discovery != null:
+		for site: DiscoverySite in world.discovery.sites:
+			if is_instance_valid(site) and site.def != null:
+				if site.blocked_area().intersects(area):
+					return false
 	return true
 
 

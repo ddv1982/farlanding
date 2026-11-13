@@ -101,6 +101,14 @@ func test_supply_drop_needs_open_ground() -> void:
 	assert_eq(_f.pile().intel, 100)
 
 
+func test_supply_drop_cannot_land_on_a_discovery_site() -> void:
+	_f.world.economy.add_intel(0, 100)
+	_f.site(_f.discovery(&"seam"), Vector3(60, 0, 60))
+	var command: FieldOptionCommand = _use(_f.supply_drop, Vector3(60, 0, 60))
+	assert_eq(command.refused, FieldOptions.BAD_TARGET)
+	assert_eq(_f.pile().intel, 100)
+
+
 func test_the_lance_strikes_everything_hostile_in_its_radius() -> void:
 	_f.world.economy.add_intel(0, 200)
 	_f.world.discovery.field_options.unlock(0, &"antecedent_power")
