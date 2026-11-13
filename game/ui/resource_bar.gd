@@ -1,13 +1,16 @@
 class_name ResourceBar
 extends PanelContainer
-## Top resource bar for the player's faction: Alloy, Flux and Power (used / produced).
+## Top resource bar for the player's faction: Alloy, Flux, Intel and Power (used /
+## produced).
 ## Power turns to the warning colour, with a LOW POWER note, while more is used than
-## produced. Updates from `Events.resources_changed` and `Events.power_changed`.
+## produced. Updates from `Events.resources_changed`, `Events.intel_changed` and
+## `Events.power_changed`.
 
 var faction: int = 0
 
 var _alloy: Label
 var _flux: Label
+var _intel: Label
 var _power: Label
 var _low_power: Label
 
@@ -31,6 +34,9 @@ func setup(p_faction: int, economy: Economy) -> void:
 	add_child(row)
 	_alloy = _add_entry(row, "ALLOY", HudStyle.ALLOY_COLOR)
 	_flux = _add_entry(row, "FLUX", HudStyle.FLUX_COLOR)
+	_intel = _add_entry(row, "INTEL", HudStyle.INTEL_COLOR)
+	_intel.tooltip_text = "Earned only by scanning discoveries. Spent at the Survey Lab."
+	_intel.mouse_filter = Control.MOUSE_FILTER_PASS
 	_power = _add_entry(row, "POWER", HudStyle.POWER_COLOR)
 	_low_power = HudStyle.make_label(12, HudStyle.WARNING_COLOR, "LOW POWER: production slowed")
 	_low_power.visible = false
@@ -39,9 +45,11 @@ func setup(p_faction: int, economy: Economy) -> void:
 	_power.mouse_filter = Control.MOUSE_FILTER_PASS
 	Events.resources_changed.connect(_on_resources_changed)
 	Events.power_changed.connect(_on_power_changed)
+	Events.intel_changed.connect(_on_intel_changed)
 	if economy != null:
 		var pile: Stockpile = economy.stockpile(faction)
 		_on_resources_changed(faction, pile.alloy, pile.flux)
+		_on_intel_changed(faction, pile.intel)
 		_on_power_changed(faction, pile.power_produced, pile.power_used)
 
 
@@ -60,6 +68,16 @@ func _on_resources_changed(p_faction: int, alloy: int, flux: int) -> void:
 		return
 	_alloy.text = str(alloy)
 	_flux.text = str(flux)
+
+
+func _on_intel_changed(p_faction: int, intel: int) -> void:
+	if p_faction == faction:
+		_intel.text = str(intel)
+
+
+## The Intel shown now (tests).
+func intel_text() -> String:
+	return _intel.text
 
 
 func _on_power_changed(p_faction: int, produced: int, used: int) -> void:

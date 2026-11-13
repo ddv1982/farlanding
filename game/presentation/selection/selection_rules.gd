@@ -4,15 +4,31 @@ extends RefCounted
 ## selection, and what a mouse click means. Only living units of the player's faction
 ## are selectable; units of other factions are enemies, and only enemies the player
 ## can see now may be targeted (a click on one out of sight means the ground).
+##
+## What a click means is decided in two steps, the same for both control schemes:
+## `command_target()` says what a command on a target asks of the selected units
+## (attack, harvest, scan, help build, move), and `resolve()` says which button
+## gives a command and when a click selects or deselects instead:
+##
+## - classic (Settings.SCHEME_CLASSIC, the default, as in Command & Conquer): left
+##   click commands by context, but on an own unit or finished building it selects;
+##   with a producer building selected it sets the rally point; right click deselects.
+## - modern: left click selects (and attacks a visible enemy), right click commands
+##   (with a producer building selected: the rally point).
 
 ## What a click does.
 const CLICK_NONE: StringName = &"none"
 const CLICK_SELECT: StringName = &"select"
 const CLICK_ATTACK: StringName = &"attack"
 const CLICK_MOVE: StringName = &"move"
-## Right click on one of these with units selected.
+## A command on one of these with units selected.
 const CLICK_HARVEST: StringName = &"harvest"
 const CLICK_ASSIST: StringName = &"assist"
+const CLICK_SCAN: StringName = &"scan"
+## Sets the selected producer building's rally point.
+const CLICK_RALLY: StringName = &"rally"
+## Clears the selection (classic right click).
+const CLICK_DESELECT: StringName = &"deselect"
 
 
 static func is_selectable(unit: Variant, player_faction: int) -> bool:
@@ -107,14 +123,27 @@ static func same_type(candidates: Array[Unit], like: Unit, player_faction: int) 
 
 
 ## What a right click on `target` (a building or resource node; null = ground) asks
-## of the selected units: harvest a deposit (if any can harvest), help build an own
-## site (if any can build), attack an enemy building, or move there.
+## of the selected units (see `command_target()`).
 static func right_click_target(
 	current: Array[Unit], target: Node3D, player_faction: int
 ) -> StringName:
+	return command_target(current, target, player_faction)
+
+
+## What a command on `target` asks of the selected units: attack a visible enemy unit
+## or building, harvest a deposit (if any can harvest), scan an unresolved site (if
+## any can scan), help build an own site (if any can build), or move there. Null =
+## the ground. Nothing without a selection. The one place these rules live.
+static func command_target(current: Array[Unit], target: Node3D, player_faction: int) -> StringName:
 	var units: Array[Unit] = selectable(current, player_faction)
 	if units.is_empty():
 		return CLICK_NONE
+	if target is Unit:
+		var clicked: Unit = target
+		return CLICK_ATTACK if is_enemy(clicked, player_faction) else CLICK_MOVE
+	var site: DiscoverySite = target as DiscoverySite
+	if site != null and site.can_be_scanned() and _any_can(units, Scanner.KIND):
+		return CLICK_SCAN
 	var node: ResourceNode = target as ResourceNode
 	if node != null and node.is_minable() and _any_can(units, Harvester.KIND):
 		return CLICK_HARVEST
@@ -127,6 +156,53 @@ static func right_click_target(
 	return CLICK_MOVE
 
 
+## What a click of `button` (MOUSE_BUTTON_LEFT or _RIGHT) on `target` means under
+## `scheme`, given the selected units (`current`) or selected building. `target` is
+## the unit, building, site or resource node under the cursor, or null for ground.
+static func resolve(
+	scheme: StringName,
+	button: MouseButton,
+	current: Array[Unit],
+	building: Building,
+	target: Node3D,
+	player_faction: int,
+) -> StringName:
+	var has_units: bool = not selectable(current, player_faction).is_empty()
+	var rally: bool = (
+		not has_units
+		and building != null
+		and is_instance_valid(building)
+		and building.producer != null
+		and building.is_operational()
+	)
+	if scheme == Settings.SCHEME_MODERN:
+		if button == MOUSE_BUTTON_RIGHT:
+			if rally:
+				return CLICK_RALLY
+			return command_target(current, target, player_faction)
+		if _is_visible_enemy(target, player_faction):
+			return CLICK_ATTACK if has_units else CLICK_NONE
+		return CLICK_SELECT
+	if button == MOUSE_BUTTON_RIGHT:
+		return CLICK_DESELECT
+	if has_units:
+		var action: StringName = command_target(current, target, player_faction)
+		if action != CLICK_MOVE:
+			return action
+	if _is_own(target, player_faction):
+		return CLICK_SELECT
+	if has_units:
+		return CLICK_MOVE
+	if rally:
+		return CLICK_RALLY
+	return CLICK_SELECT
+
+
+## The button that gives commands under `scheme`.
+static func command_button(scheme: StringName) -> MouseButton:
+	return MOUSE_BUTTON_RIGHT if scheme == Settings.SCHEME_MODERN else MOUSE_BUTTON_LEFT
+
+
 ## The units in `units` that can carry out orders of `kind`.
 static func able(units: Array[Unit], kind: StringName) -> Array[Unit]:
 	var result: Array[Unit] = []
@@ -134,6 +210,28 @@ static func able(units: Array[Unit], kind: StringName) -> Array[Unit]:
 		if unit.orders != null and unit.orders.can_do(kind):
 			result.append(unit)
 	return result
+
+
+## True for a living enemy unit, or an enemy building, that the player sees now.
+static func _is_visible_enemy(target: Node3D, player_faction: int) -> bool:
+	if target is Unit:
+		return is_enemy(target, player_faction)
+	var building: Building = target as Building
+	return (
+		building != null
+		and is_instance_valid(building)
+		and building.faction != player_faction
+		and building.is_visible_to_player
+		and not building.is_dead
+	)
+
+
+## True for an own unit or building (a click on it selects in the classic scheme).
+static func _is_own(target: Node3D, player_faction: int) -> bool:
+	if target is Unit:
+		return is_selectable(target, player_faction)
+	var building: Building = target as Building
+	return building != null and is_instance_valid(building) and building.faction == player_faction
 
 
 static func _any_can(units: Array[Unit], kind: StringName) -> bool:

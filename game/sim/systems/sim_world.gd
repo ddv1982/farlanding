@@ -1,14 +1,15 @@
 class_name SimWorld
 extends Node3D
-## Owns the entities of one mission — units, buildings and resource nodes — the
-## faction economies, combat and (once enabled) vision. Spawns entities, ticks them
-## on the sim clock (power, combat grid, one faction's vision, units, buildings,
-## projectiles), moves unit and projectile nodes between ticks, and removes entities
-## whose health runs out. Registered on the MissionContext as `SERVICE_KEY`; the
-## Economy as `Economy.SERVICE_KEY`, Combat as `Combat.SERVICE_KEY`.
+## Owns the entities of one mission — units, buildings, resource nodes and discovery
+## sites — the faction economies, combat, discovery and (once enabled) vision. Spawns
+## entities, ticks them on the sim clock (power, combat grid, one faction's vision,
+## units, buildings, projectiles, discovery), moves unit and projectile nodes between
+## ticks, and removes entities whose health runs out. Registered on the
+## MissionContext as `SERVICE_KEY`; the Economy as `Economy.SERVICE_KEY`, Combat as
+## `Combat.SERVICE_KEY`, Discovery as `Discovery.SERVICE_KEY`.
 
 const SERVICE_KEY: StringName = &"world"
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
 ## Produced units without a rally point walk this far out of the door.
 const DOOR_CLEARANCE: float = 4.0
 
@@ -18,6 +19,8 @@ var heights: HeightField = null
 var units: Array[Unit] = []
 var buildings: Array[Building] = []
 var resource_nodes: Array[ResourceNode] = []
+## Discovery sites, Intel payoffs and field options (created by setup()).
+var discovery: Discovery = null
 var economy: Economy = null
 ## Shots, projectiles and damage (created by setup()).
 var combat: Combat = null
@@ -58,6 +61,11 @@ func setup(
 	combat.setup(self, p_damage_table, player_faction)
 	add_child(combat)
 	context.set_service(Combat.SERVICE_KEY, combat)
+	discovery = Discovery.new()
+	discovery.name = &"Discovery"
+	discovery.setup(self, player_faction)
+	add_child(discovery)
+	context.set_service(Discovery.SERVICE_KEY, discovery)
 	context.sim_clock.ticked.connect(_on_ticked)
 
 
@@ -139,10 +147,42 @@ func spawn_resource_node(def: ResourceNodeDef, at: Vector3) -> ResourceNode:
 	node.tree_exiting.connect(_on_node_exiting.bind(node))
 	if def.blocks_movement:
 		_blocks[node.entity_id] = paths.block_area(node.blocked_area())
+		# A node that appears mid-mission (a supply drop, an uncovered deposit).
+		evacuate(node.blocked_area())
 	if vision != null:
 		node.visible = false
 		vision.refresh_node(node)
 	return node
+
+
+## Places a discovery site of `def` at `at`. An uncharted site (a later step of a
+## chain) stays hidden and cannot be scanned until it is charted.
+func spawn_site(def: DiscoveryDef, at: Vector3, charted: bool = true) -> DiscoverySite:
+	var site: DiscoverySite = (
+		def.scene.instantiate() as DiscoverySite if def.scene != null else DiscoverySite.new()
+	)
+	assert(site != null, "Scene of %s is not a DiscoverySite" % def.id)
+	site.setup(def, charted)
+	site.entity_id = _register(site)
+	site.name = "%s_%d" % [def.id, site.entity_id]
+	site.position = _on_ground(at)
+	add_child(site)
+	discovery.add_site(site)
+	site.tree_exiting.connect(_on_site_exiting.bind(site))
+	if def.blocks_movement:
+		_blocks[site.entity_id] = paths.block_area(site.blocked_area())
+	return site
+
+
+## Something stirred at `at` (a scan began): dormant Custodians whose guard radius
+## reaches it wake up.
+func disturb(at: Vector3) -> void:
+	for unit: Unit in units:
+		if not unit.is_dormant:
+			continue
+		var there: Vector3 = unit.sim_position()
+		if Vector2(there.x - at.x, there.z - at.z).length() <= unit.def.guard_radius:
+			unit.dormancy.wake()
 
 
 ## The entity with save id `id`, or null.
@@ -176,6 +216,9 @@ func placement_rules() -> PlacementRules:
 	for building: Building in buildings:
 		placement.footprints.append(building.footprint())
 	placement.nodes = resource_nodes.duplicate()
+	for site: DiscoverySite in discovery.sites:
+		if site.def.blocks_movement:
+			placement.footprints.append(site.blocked_area())
 	placement.is_walkable = paths.is_terrain_walkable
 	if heights != null:
 		placement.height_at = heights.sample
@@ -275,6 +318,7 @@ func _on_ticked(tick: int) -> void:
 	for building: Building in buildings.duplicate():
 		_tick_building(building, dt)
 	combat.tick_projectiles(dt)
+	discovery.tick(tick, dt)
 	last_tick_usec = Time.get_ticks_usec() - started
 
 
@@ -336,7 +380,7 @@ func _release_unit(building: Building, def: UnitDef) -> Unit:
 	return unit
 
 
-## Units standing inside `area` (a new building) walk out of it first, then carry
+## Units standing inside `area` (a new building or node) walk out of it first, then carry
 ## on with whatever they were doing. Builders too: they build from the edge.
 func evacuate(area: Rect2) -> void:
 	var grown: Rect2 = area.grow(1.0)
@@ -431,6 +475,11 @@ func _on_building_exiting(building: Building) -> void:
 		building.vent.tap = null
 
 
+func _on_site_exiting(site: DiscoverySite) -> void:
+	_entities.erase(site.entity_id)
+	_unblock(site.entity_id)
+
+
 func _on_node_exiting(node: ResourceNode) -> void:
 	resource_nodes.erase(node)
 	_entities.erase(node.entity_id)
@@ -453,6 +502,9 @@ func to_dict() -> Dictionary:
 	var saved_units: Array[Dictionary] = []
 	for unit: Unit in units:
 		saved_units.append(unit.to_dict())
+	var saved_sites: Array[Dictionary] = []
+	for site: DiscoverySite in discovery.sites:
+		saved_sites.append(site.to_dict())
 	return {
 		"version": SAVE_VERSION,
 		"next_id": _next_id,
@@ -460,6 +512,8 @@ func to_dict() -> Dictionary:
 		"buildings": saved_buildings,
 		"resource_nodes": saved_nodes,
 		"units": saved_units,
+		"sites": saved_sites,
+		"discovery": discovery.to_dict(),
 		"combat": combat.to_dict(),
 		"vision": vision.to_dict() if vision != null else {},
 	}
@@ -481,6 +535,20 @@ func from_dict(data: Dictionary) -> void:
 			var node: ResourceNode = spawn_resource_node(node_def, _saved_position(node_data))
 			_restore_id(node, node.entity_id, node_data)
 			node.from_dict(node_data)
+	var saved_sites: Array = data.get("sites", [])
+	for entry: Variant in saved_sites:
+		var site_data: Dictionary = entry
+		var site_path: String = site_data.get("def", "")
+		if site_path == "" or not ResourceLoader.exists(site_path):
+			continue
+		var site_def: DiscoveryDef = load(site_path) as DiscoveryDef
+		if site_def != null:
+			var site: DiscoverySite = spawn_site(site_def, _saved_position(site_data))
+			_restore_id(site, site.entity_id, site_data)
+			site.from_dict(site_data)
+	var discovery_data: Dictionary = data.get("discovery", {})
+	if not discovery_data.is_empty():
+		discovery.from_dict(discovery_data)
 	var saved_buildings: Array = data.get("buildings", [])
 	for entry: Variant in saved_buildings:
 		var building_data: Dictionary = entry

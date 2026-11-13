@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/base/loops/loop_hum_survey_lab.wav" id="2_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"loop_hum_survey_lab"
+streams = Array[AudioStream]([ExtResource("2_stream")])
+bus = &"Buildings"
+priority = 30
+max_instances = 1
+cooldown = 0.0
+positional = true
+max_distance = 40.0

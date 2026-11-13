@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/discovery/field_orbital_scan.wav" id="2_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"field_orbital_scan"
+streams = Array[AudioStream]([ExtResource("2_stream")])
+bus = &"SFX"
+priority = 90
+max_instances = 1
+cooldown = 0.5
+positional = false
+max_distance = 0.0

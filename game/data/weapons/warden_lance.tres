@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/weapon_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"warden_lance"
+display_name = "Warden lance"
+damage = 45.0
+damage_type = &"pierce"
+splash_radius = 0.0
+max_range = 16.0
+cooldown = 2.0
+salvo = 1
+salvo_spacing = 0.0
+projectile_speed = 0.0
+arc_height = 0.0
+fire_while_moving = false
+turret = false
+turn_speed = 200.0
+fire_arc = 20.0
+muzzle = Vector3(0, 1.8, -1.2)
+projectile_style = &"lance"
+impact_size = 1.0
+sound_set = &"warden"

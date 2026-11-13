@@ -1,4 +1,4 @@
-"""Render a HUD icon for every unit and building recipe.
+"""Render a HUD icon for every model recipe and every emblem in art/icons.
 
 Run in Blender (GUI or `blender -b -P art/pipeline/build_icons.py`). Writes
 game/assets/icons/<asset name>.png: 128 px, transparent background, the same
@@ -15,7 +15,9 @@ from mathutils import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODELS = os.path.join(os.path.dirname(HERE), "models")
-for path in (HERE, MODELS):
+# Emblems that exist only as icons (field options): same recipe format, never exported.
+EMBLEMS = os.path.join(os.path.dirname(HERE), "icons")
+for path in (HERE, MODELS, EMBLEMS):
     if path not in sys.path:
         sys.path.insert(0, path)
 
@@ -84,9 +86,10 @@ def render_icon(name: str) -> str:
 
 
 def build_icons() -> None:
-    for file_name in sorted(os.listdir(MODELS)):
-        if file_name.endswith(".py"):
-            print("icon:", render_icon(file_name[:-3]))
+    for folder in (MODELS, EMBLEMS):
+        for file_name in sorted(os.listdir(folder)):
+            if file_name.endswith(".py"):
+                print("icon:", render_icon(file_name[:-3]))
     fl.reset_scene()
     for swatch in ("team", "team_glow"):
         material = bpy.data.materials.get("sw_" + swatch)

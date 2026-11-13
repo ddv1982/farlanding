@@ -66,6 +66,13 @@ EVENT_DEFAULTS = {
     "explosion": dict(bus="Explosions", priority=64, max_instances=2, cooldown=0.08, positional=True,
                       max_distance=120.0, pitch_variation=0.8),
     "sting": dict(bus="Music", priority=100, max_instances=1, cooldown=1.0, positional=False, max_distance=0.0),
+    # Discovery (Phase 4). Signal loops are driven by SignalPulses, which sets
+    # their level from camera distance and zoom itself; max_distance is only a
+    # fallback for one-shots such as scan_interrupted.
+    "signal": dict(bus="Discovery", priority=55, max_instances=3, cooldown=0.0, positional=True, max_distance=120.0),
+    "discovery": dict(bus="Discovery", priority=95, max_instances=1, cooldown=0.5, positional=False, max_distance=0.0),
+    "field": dict(bus="SFX", priority=90, max_instances=1, cooldown=0.5, positional=False, max_distance=0.0),
+    "antecedent": dict(bus="Units", priority=68, max_instances=2, cooldown=0.3, positional=True, max_distance=110.0),
 }
 EVENT_OVERRIDES = {
     "ui_hover": dict(priority=20, max_instances=1, cooldown=0.06),
@@ -98,6 +105,22 @@ EVENT_OVERRIDES = {
     "death_light": dict(priority=66, max_instances=2, cooldown=0.1),
     "death_heavy": dict(priority=72, max_instances=2, cooldown=0.15, max_distance=140.0),
     "death_building": dict(priority=78, max_instances=1, cooldown=0.3, max_distance=160.0),
+    "scan_interrupted": dict(max_instances=2, cooldown=0.2, priority=70),
+    "ui_intel_tick": dict(cooldown=0.08, max_instances=1),
+    "ui_codex_entry": dict(cooldown=0.3, max_instances=1),
+    "advisor_discovery": dict(cooldown=2.0),
+    # The Warden is a third sound world: it never wanders out of tune.
+    "weapon_warden_fire": dict(priority=52, max_instances=2, cooldown=0.1, max_distance=90.0),
+    "death_warden": dict(priority=74, max_instances=1, cooldown=0.2, max_distance=140.0),
+    "loop_hum_warden": dict(max_instances=2, max_distance=45.0),
+    "loop_hum_hub": dict(max_instances=1, max_distance=50.0),
+    "loop_hum_forge": dict(max_instances=1, max_distance=50.0),
+    "loop_hum_spire": dict(max_instances=1, max_distance=55.0),
+    "loop_hum_survey_lab": dict(max_instances=1, max_distance=40.0),
+    # Faint and close: a pulse is a clue for a camera that is nearby.
+    "signal_pulse": dict(max_distance=80.0, priority=45),
+    # Played with the antecedent resolve phrase, which ducks the Music bus.
+    "mus_swell_antecedent": dict(bus="Discovery"),
 }
 
 

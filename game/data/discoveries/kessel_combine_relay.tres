@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/combine_site_relay.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"kessel_combine_relay"
+display_name = "Combine relay stake"
+discovery_type = &"enemy"
+scene = ExtResource("2")
+intel_reward = 40
+scan_time = 8.0
+radius = 1.5
+leads_to = &""
+codex_title = "Combine relay stake"
+codex_text = "A relay the Combine left behind to talk to its rigs. Tapping it shows their positions for a while."
+payoff = &"reveal_enemy"
+payoff_radius = 9.0
+payoff_seconds = 45.0
+color = Color(1.0, 0.35, 0.3, 1)

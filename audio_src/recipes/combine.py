@@ -132,3 +132,126 @@ def base_turret_traverse(rng: np.random.Generator) -> np.ndarray:
     stop = dsp.partials(1500.0, m, [(1.0, 0.4, 0.01), (2.6, 0.2, 0.005)], rng) + 0.3 * dsp.sine(160.0, m) * dsp.perc(m, 0.001, 0.012)
     dsp.place(buf, 0.5 * stop, dsp.samples(dur - 0.01))
     return building_finish(buf, rng, hp=150.0)
+
+
+# --------------------------------------------------------------------------- Combine base and workers
+#
+# Heard only while the player can see them (WorldLoops). Each building owns
+# one recognisable mechanism, all of them off the Concord key:
+#
+#   hub    the command hub: a heavy transformer hum at 47 Hz with a mains
+#          buzz beating against it and a slow pressure cycle
+#   forge  a furnace roaring, a drop hammer every second, quench hiss
+#   spire  a tall antenna: a high beating whine cluster, arcing crackle, a
+#          low guy-wire drone
+#
+#   scrapper  salvage crawler: a rough two-stroke idle, grinding treads, loose scrap
+#   rigger    builder walker: four hydraulic legs, detuned servo whines, a weld spit
+
+COMBINE_HUM_LUFS = -30.0
+
+
+@sound("loop_hum_hub", "baseloop", COMBINE_HUM_LUFS, loop=True, folder="base/loops", min_seconds=3.9, max_seconds=4.1)
+def loop_hum_hub(rng: np.random.Generator) -> np.ndarray:
+    L = 4.0
+    n = dsp.samples(L)
+    f0 = qf(47.0, L)
+    hum = dsp.wavetable(f0, n, lambda k: [1.0, 0.8, 0.5, 0.45, 0.2, 0.3, 0.1][k - 1] if k <= 7 else 0.0)
+    buzz = dsp.warm_saw(qf(f0 * 2.03, L), n, 30.0) * 0.25
+    x = _grit((hum * 0.5 + buzz) * (0.85 + 0.15 * lfo(n, L, 1)), 1.6)
+    x = dsp.periodic(dsp.lowpass, x, 1500.0) * 0.6
+    pressure = dsp.periodic(dsp.bandpass, dsp.pink(n, rng), 2200.0, 0.8) * 0.06 * (0.5 + 0.5 * lfo(n, L, 1, 0.6)) ** 2
+    rattle = np.zeros(n + dsp.samples(0.1))
+    for _ in range(6):
+        m = dsp.samples(0.04)
+        r = dsp.bandpass(dsp.white(m, rng), float(rng.uniform(1500, 2600)), 4.0) * dsp.perc(m, 0.0005, 0.006)
+        dsp.place(rattle, 0.15 * r, int(rng.integers(0, n)))
+    return _finish(x + pressure + dsp.wrap(rattle, n))
+
+
+@sound("loop_hum_forge", "baseloop", COMBINE_HUM_LUFS, loop=True, folder="base/loops", min_seconds=3.9, max_seconds=4.1)
+def loop_hum_forge(rng: np.random.Generator) -> np.ndarray:
+    L = 4.0
+    n = dsp.samples(L)
+    roar = dsp.periodic(dsp.lowpass, dsp.brown(n, rng), 320.0) * 0.6
+    roar += dsp.periodic(dsp.bandpass, dsp.pink(n, rng), 900.0, 0.6) * 0.12 * (0.8 + 0.2 * lfo(n, L, 3))
+    hammer = np.zeros(n + dsp.samples(0.6))
+    for i in range(4):
+        m = dsp.samples(0.5)
+        tt = dsp.time_axis(m)
+        f = 410.0 + 13.0 * i
+        hit = dsp.partials(f, m, [(1.0, 1.0, 0.09), (2.31, 0.6, 0.05), (3.93, 0.3, 0.03), (6.1, 0.15, 0.015)], rng)
+        hit += 0.6 * dsp.sine(70.0 * (1.0 + 0.5 * np.exp(-tt / 0.01)), m) * dsp.perc(m, 0.001, 0.05)
+        dsp.place(hammer, 0.35 * dsp.fade(hit, 0.0005, 0.02), dsp.samples(i * 1.0 + 0.05))
+        q = dsp.samples(0.45)
+        quench = dsp.bandpass(dsp.white(q, rng), 4200.0, 0.9) * dsp.ar(q, 0.02, 0.3, 0.1) * 0.05
+        dsp.place(hammer, quench, dsp.samples(i * 1.0 + 0.25))
+    return _finish(roar + dsp.wrap(hammer, n))
+
+
+@sound("loop_hum_spire", "baseloop", COMBINE_HUM_LUFS, loop=True, folder="base/loops", min_seconds=3.9, max_seconds=4.1)
+def loop_hum_spire(rng: np.random.Generator) -> np.ndarray:
+    L = 4.0
+    n = dsp.samples(L)
+    whine = np.zeros(n)
+    for k, f in enumerate([1712.0, 1719.0, 2391.0, 2398.5]):
+        whine += dsp.sine(qf(f, L), n, 0.2 * k) * (0.05 if k < 2 else 0.025)
+    whine *= 0.7 + 0.3 * lfo(n, L, 5)
+    drone = dsp.wavetable(qf(83.0, L), n, lambda k: 1.0 / k ** 1.3 if k <= 9 else 0.0) * 0.18
+    crackle = np.zeros(n + dsp.samples(0.2))
+    for _ in range(3):
+        at = int(rng.integers(0, n))
+        m = dsp.samples(0.12)
+        burst = np.zeros(m)
+        pos = (m * rng.random(25)).astype(int)
+        burst[pos] = rng.uniform(-1, 1, 25)
+        dsp.place(crackle, 0.4 * dsp.bandpass(burst, 5200.0, 0.8) * dsp.perc(m, 0.001, 0.05), at)
+    return _finish(_grit(whine + drone, 1.2) + dsp.wrap(crackle, n))
+
+
+@sound("move_scrapper", "movement", MOVE_LUFS, loop=True, folder="movement", min_seconds=2.9, max_seconds=3.1)
+def move_scrapper(rng: np.random.Generator) -> np.ndarray:
+    L = 3.0
+    n = dsp.samples(L)
+    f0 = qf(38.0, L)
+    lope = 0.55 + 0.45 * (0.5 + 0.5 * lfo(n, L, int(round(f0 * L / 2))))
+    engine = dsp.periodic(dsp.lowpass, _grit(dsp.warm_saw(f0, n, 18.0) * lope * 2.0, 2.2), 800.0) * 0.45
+    treads = np.zeros(n + dsp.samples(0.2))
+    for i in range(18):
+        m = dsp.samples(0.07)
+        c = dsp.partials(float(rng.uniform(520, 700)), m, [(1.0, 1.0, 0.015), (2.47, 0.5, 0.01), (4.6, 0.2, 0.005)], rng)
+        dsp.place(treads, c * float(rng.uniform(0.12, 0.25)), dsp.samples(i * L / 18 + float(rng.uniform(0, 0.01))))
+    scrap = np.zeros(n + dsp.samples(0.2))
+    for _ in range(12):
+        m = dsp.samples(0.09)
+        c = dsp.partials(float(rng.uniform(900, 2400)), m, [(1.0, 1.0, 0.02), (1.83, 0.7, 0.015), (3.3, 0.4, 0.008)], rng)
+        dsp.place(scrap, c * float(rng.uniform(0.05, 0.15)), int(rng.integers(0, n)))
+    grind = dsp.periodic(dsp.bandpass, dsp.pink(n, rng), 1300.0, 1.0) * 0.1
+    return _finish(engine + dsp.wrap(treads, n) + dsp.wrap(scrap, n) + grind)
+
+
+@sound("move_rigger", "movement", MOVE_LUFS, loop=True, folder="movement", min_seconds=1.9, max_seconds=2.1)
+def move_rigger(rng: np.random.Generator) -> np.ndarray:
+    L = 2.0
+    n = dsp.samples(L)
+    buf = np.zeros(n + dsp.samples(0.5))
+    for leg in range(4):
+        at = (leg * 0.5 + float(rng.uniform(0, 0.03))) * 1.0
+        m = dsp.samples(0.22)
+        u = dsp.time_axis(m) / 0.22
+        f = 340.0 * (1.0 + 0.35 * u) * (1.0 + 0.04 * leg)
+        whine = (dsp.warm_saw(f, m, 6.0) + 0.7 * dsp.warm_saw(f * 1.06, m, 6.0)) * dsp.ar(m, 0.03, 0.08, 0.11) * 0.1
+        tt = dsp.time_axis(m)
+        foot = 0.5 * dsp.sine(85.0 * (1.0 + 0.5 * np.exp(-tt / 0.01)), m) * dsp.perc(m, 0.001, 0.025)
+        foot += 0.3 * dsp.partials(760.0, m, [(1.0, 0.6, 0.015), (2.9, 0.3, 0.008)], rng)
+        dsp.place(buf, _grit(whine, 1.5), dsp.samples(at))
+        dsp.place(buf, foot, dsp.samples(at + 0.2))
+    m = dsp.samples(0.15)
+    spit = np.zeros(m)
+    pos = (m * rng.random(30) ** 1.4).astype(int)
+    spit[pos] = rng.uniform(-1, 1, 30)
+    dsp.place(buf, 0.25 * dsp.bandpass(spit, 4500.0, 0.8), dsp.samples(1.3))
+    hyd = dsp.periodic(dsp.bandpass, dsp.pink(n, rng), 2800.0, 1.0) * 0.08 * (0.6 + 0.4 * lfo(n, L, 4))
+    # Rotate so the loop point falls inside a leg's servo whine rather than on
+    # the silent gap before the first leg (a quiet-to-loud step at the seam).
+    return _finish(np.roll(dsp.wrap(buf, n) + hyd, -dsp.samples(1.3)))

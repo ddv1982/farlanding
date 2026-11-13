@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="FieldOptionDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/field_option_def.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/option_antecedent_power.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2_icon")
+id = &"antecedent_power"
+display_name = "Beacon Lance"
+description = "Turns the ruin's stored power on a point: heavy damage to everything hostile there."
+effect = &"strike"
+intel_cost = 80
+cooldown = 120.0
+requires_unlock = true
+radius = 9.0
+damage = 260.0
+damage_type = &"heavy"
+sound_set = &"antecedent_power"

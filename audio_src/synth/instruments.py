@@ -77,3 +77,43 @@ def pad_voice(f: float, dur: float, rng: np.random.Generator, attack: float = 2.
         x = dsp.warm_saw(f * det * drift, n, brightness, start=float(rng.random()))
         out += dsp.pan(x, -0.7 + 1.4 * v / max(voices - 1, 1))
     return out * dsp.ar(n, attack, release, max(dur - attack, 0.0)) / voices
+
+
+# The Antecedent bell: a third sound world, neither Concord instrument nor
+# Combine machine. Its partials are those of a tuned bell (hum an octave down,
+# prime, a major-third tierce, quint, nominal) plus a faint raised-fourth
+# partial: the interval the Trail motif hangs on is literally in the metal.
+BELL_PARTIALS = [
+    # (ratio, amplitude, decay as a fraction of the bell's decay)
+    (0.5, 0.55, 1.6),    # hum
+    (1.0, 1.0, 1.0),     # prime
+    (1.25, 0.32, 0.7),   # tierce (major third)
+    (1.414, 0.12, 0.45), # the raised fourth, faint
+    (1.5, 0.28, 0.6),    # quint
+    (2.0, 0.5, 0.5),     # nominal
+    (2.51, 0.18, 0.3),
+    (3.0, 0.16, 0.22),
+    (4.07, 0.1, 0.12),
+    (5.43, 0.06, 0.07),
+]
+
+
+def bell(f: float, rng: np.random.Generator, decay: float = 1.5, brightness: float = 1.0,
+         strike: float = 0.5, detune_cents: float = 1.5, length: float | None = None) -> np.ndarray:
+    """Struck Antecedent bell: stone-and-brass, slow beating between paired
+    partials (each partial is two slightly detuned sines), a soft mallet strike."""
+    n = dsp.samples(length if length is not None else decay * 5.0 + 0.1)
+    t = dsp.time_axis(n)
+    out = np.zeros(n)
+    for ratio, amp, dk in BELL_PARTIALS:
+        fr = f * ratio
+        if fr >= dsp.NYQUIST * 0.9:
+            continue
+        a = amp * (brightness if ratio > 1.6 else 1.0)
+        d = dsp.cents(detune_cents * (1.0 + ratio))
+        p0, p1 = rng.random(2)
+        osc = np.sin(2 * np.pi * (fr * t + p0)) + np.sin(2 * np.pi * (fr * d * t + p1))
+        out += 0.5 * a * osc * np.exp(-t / (decay * dk))
+    out *= dsp.perc(n, 0.003, 1e6)
+    hit = strike * dsp.bandpass(dsp.white(n, rng), min(f * 4.0, 8000.0), 1.0) * dsp.perc(n, 0.0005, 0.008)
+    return (out + hit) * 0.35

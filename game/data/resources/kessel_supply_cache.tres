@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ResourceNodeDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/resource_node_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/resources/kessel_alloy.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/kessel_resource_alloy.png" id="3"]
+
+[resource]
+script = ExtResource("1")
+resource = &"alloy"
+amount = 600
+radius = 2.0
+height = 1.6
+blocks_movement = true
+id = &"kessel_supply_cache"
+display_name = "Supply cache"
+description = "Refined Alloy dropped from orbit. Haulers carry it to a Refinery."
+faction = -1
+scene = ExtResource("2")
+icon = ExtResource("3")

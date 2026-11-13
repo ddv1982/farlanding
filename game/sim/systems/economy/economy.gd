@@ -1,7 +1,8 @@
 class_name Economy
 extends RefCounted
 ## Every faction's Stockpile for one mission, plus the rules that govern them.
-## Announces changes on `Events` (resources_changed, power_changed) and raises
+## Announces changes on `Events` (resources_changed, power_changed, intel_changed)
+## and raises
 ## Advisor alerts for the player's faction only. Registered on the MissionContext
 ## as `SERVICE_KEY` by SimWorld.
 
@@ -51,6 +52,22 @@ func add(faction: int, alloy: int, flux: int) -> void:
 		return
 	stockpile(faction).add(alloy, flux)
 	_announce_resources(faction)
+
+
+## Adds Intel (discoveries) and announces the new total.
+func add_intel(faction: int, amount: int) -> void:
+	if amount == 0:
+		return
+	stockpile(faction).add_intel(amount)
+	Events.intel_changed.emit(faction, stockpile(faction).intel)
+
+
+## Pays `amount` Intel. On failure nothing is taken. Returns true when paid.
+func spend_intel(faction: int, amount: int) -> bool:
+	if not stockpile(faction).spend_intel(amount):
+		return false
+	Events.intel_changed.emit(faction, stockpile(faction).intel)
+	return true
 
 
 ## Speed factor for the faction's construction, production and tapping.
@@ -108,6 +125,7 @@ func from_dict(data: Dictionary) -> void:
 		pile.from_dict(pile_data)
 		_stockpiles[faction_text.to_int()] = pile
 		_announce_resources(faction_text.to_int())
+		Events.intel_changed.emit(faction_text.to_int(), pile.intel)
 
 
 func _announce_resources(faction: int) -> void:

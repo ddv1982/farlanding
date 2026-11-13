@@ -3,6 +3,11 @@ extends Node
 ## Plays a MusicScore: builds an AudioStreamInteractive whose clips are
 ## AudioStreamSynchronized layer stacks, switches clips on the bar, and fades
 ## layers through a MusicBlender. Also plays the score's ambience bed.
+##
+## Layer gains (by layer name, e.g. &"trail") are added to every state's level
+## for that layer, so game progress can shape a layer without new states: the
+## trail layer surfaces as the player resolves discovery sites. A state that
+## silences a layer keeps it silent whatever its gain.
 
 const MUSIC_BUS: StringName = &"Music"
 const AMBIENCE_BUS: StringName = &"Ambience"
@@ -16,6 +21,7 @@ var _ambience: AudioStreamPlayer
 var _interactive: AudioStreamInteractive
 var _clips: Array[AudioStreamSynchronized] = []
 var _clip: int = -1
+var _layer_gains: Dictionary[StringName, float] = {}
 
 
 func _ready() -> void:
@@ -91,6 +97,29 @@ func current_state() -> StringName:
 	return _blender.current_state
 
 
+## Adds `gain_db` to layer `layer_name` in every state (AudioMix.SILENT_DB
+## silences it). Fades like a state change.
+func set_layer_gain(layer_name: StringName, gain_db: float) -> void:
+	var current: float = _layer_gains.get(layer_name, 0.0)
+	if _layer_gains.has(layer_name) and is_equal_approx(current, gain_db):
+		return
+	_layer_gains[layer_name] = gain_db
+	if score != null and _clip >= 0 and _blender.current_state != &"":
+		_apply(_blender.current_state)
+
+
+func layer_gain_db(layer_name: StringName) -> float:
+	return _layer_gains.get(layer_name, 0.0)
+
+
+## Target volumes (dB) of the playing clip's layers, for tests and debugging.
+func layer_targets_db(state_name: StringName) -> PackedFloat32Array:
+	var state: MusicState = score.find_state(state_name) if score != null else null
+	if state == null:
+		return PackedFloat32Array()
+	return _state_volumes(state, score.clips[maxi(score.clip_index(state.clip), 0)])
+
+
 func stop() -> void:
 	_player.stop()
 	_ambience.stop()
@@ -111,11 +140,19 @@ func _apply(state_name: StringName) -> void:
 		if playback != null:
 			playback.switch_to_clip(index)
 	_clip = index
+	_blender.set_targets(_state_volumes(state, score.clips[index]))
+
+
+func _state_volumes(state: MusicState, clip: MusicClip) -> PackedFloat32Array:
 	var volumes: PackedFloat32Array = []
-	volumes.resize(_clips[index].stream_count)
+	volumes.resize(clip.layers.size())
 	for i: int in volumes.size():
-		volumes[i] = state.layer_volumes_db[i] if i < state.layer_volumes_db.size() else 0.0
-	_blender.set_targets(volumes)
+		var level: float = state.layer_volumes_db[i] if i < state.layer_volumes_db.size() else 0.0
+		if i < clip.layer_names.size() and level > AudioMix.SILENT_DB:
+			var gain: float = _layer_gains.get(StringName(clip.layer_names[i]), 0.0)
+			level = AudioMix.SILENT_DB if gain <= AudioMix.SILENT_DB else level + gain
+		volumes[i] = level
+	return volumes
 
 
 func _build_stream() -> void:

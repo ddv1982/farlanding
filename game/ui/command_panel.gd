@@ -9,21 +9,29 @@ extends PanelContainer
 ##   now), right click cancels the last one of that type (refunded). Each button
 ##   shows how many are queued, and the unit in progress has a progress bar.
 ## - A building under construction: its progress.
+## - The Survey Lab selected: one button per field option (Intel cost, cooldown,
+##   locked until a discovery unlocks it). A click starts aiming it; the next left
+##   click on the map uses it there.
+## - Surveyors selected: how to scan a site.
 ## - Haulers selected: how to send them harvesting.
+##
+## Hints name the command button of the current mouse scheme (Settings).
 
 const PLACE_HINT: String = (
 	"Left-click: place  ·  Shift+click: place another  ·  " + "right-click or Esc: cancel"
 )
-const BUILD_HINT: String = (
-	"Pick a building, then left-click the ground  ·  " + "right-click a site to help build"
-)
-const HAUL_HINT: String = (
-	"Right-click an Alloy deposit to harvest it  ·  " + "new Haulers start on their own"
-)
+const AIM_HINT: String = "Left-click the map: use it there  ·  right-click or Esc: cancel"
+## %s = the command button ("Left-click" or "Right-click").
+const BUILD_HINT: String = "Pick a building, then left-click the ground  ·  %s a site to help build"
+const HAUL_HINT: String = "%s an Alloy deposit to harvest it  ·  new Haulers start on their own"
+const SCAN_HINT: String = "%s a ? on the map to scan it for Intel  ·  moving away stops the scan"
 const PRODUCE_HINT: String = (
-	"Left-click: queue  ·  right-click a button: cancel  ·  " + "right-click ground: rally point"
+	"Left-click: queue  ·  right-click a button: cancel  ·  " + "%s ground: rally point"
 )
-const SITE_HINT: String = "Select Fabricators and right-click the site to help build"
+const SITE_HINT: String = "Select Fabricators and %s the site to help build"
+const LAB_HINT: String = (
+	"Pick a field option, then left-click the map  ·  " + "Intel comes from discoveries"
+)
 
 var controller: SelectionController = null
 var world: SimWorld = null
@@ -83,6 +91,8 @@ func _process(_delta: float) -> void:
 func _current_mode() -> String:
 	if controller.placement.is_active():
 		return "place:%s" % controller.placement.def.id
+	if controller.is_targeting():
+		return "aim:%s" % controller.targeting_option.id
 	var building: Building = controller.selected_building
 	if building != null and is_instance_valid(building):
 		var stage: String = "site" if building.is_under_construction else "done"
@@ -92,6 +102,13 @@ func _current_mode() -> String:
 		for def: BuildingDef in _build_options():
 			ids.append(String(def.id))
 		return "build:%s" % ",".join(ids)
+	return _unit_mode()
+
+
+## Hint-only modes for units without buttons: Surveyors, then Haulers.
+func _unit_mode() -> String:
+	if not SelectionRules.able(controller.selection, Scanner.KIND).is_empty():
+		return "scan"
 	if not SelectionRules.able(controller.selection, Harvester.KIND).is_empty():
 		return "haul"
 	return ""
@@ -117,6 +134,13 @@ func _rebuild() -> void:
 		if building.is_operational() and building.producer != null:
 			for def: UnitDef in building.producer.options:
 				_add_unit_button(def, building)
+		if building.is_operational():
+			for option: FieldOptionDef in building.def.field_options:
+				_add_option_button(option, building)
+	elif _mode.begins_with("aim:"):
+		_title.text = controller.targeting_option.display_name.to_upper()
+	elif _mode == "scan":
+		_title.text = "SURVEYORS"
 	elif _mode == "haul":
 		_title.text = "HAULERS"
 	_buttons.visible = _buttons.get_child_count() > 0
@@ -132,14 +156,23 @@ func _refresh() -> void:
 			HudStyle.WARNING_COLOR if reason != "" else HudStyle.TEXT_COLOR
 		)
 		_hint.text = PLACE_HINT
+	elif _mode.begins_with("aim:"):
+		var option: FieldOptionDef = controller.targeting_option
+		_set_status(option.description, HudStyle.TEXT_COLOR)
+		_hint.text = AIM_HINT
 	elif _mode.begins_with("build:"):
-		_hint.text = BUILD_HINT
+		_hint.text = BUILD_HINT % _command_click()
+	elif _mode == "scan":
+		_hint.text = SCAN_HINT % _command_click()
 	elif _mode == "haul":
-		_hint.text = HAUL_HINT
+		_hint.text = HAUL_HINT % _command_click()
 	elif _mode.begins_with("building:"):
 		_refresh_building(controller.selected_building)
 	for entry: Dictionary in _entries:
-		_refresh_entry(entry, pile)
+		if entry.has("option"):
+			_refresh_option(entry, pile)
+		else:
+			_refresh_entry(entry, pile)
 
 
 func _refresh_building(building: Building) -> void:
@@ -160,7 +193,7 @@ func _refresh_building(building: Building) -> void:
 			),
 			HudStyle.TEXT_COLOR
 		)
-		_hint.text = SITE_HINT
+		_hint.text = SITE_HINT % _command_click().to_lower()
 		return
 	var producer: Producer = building.producer
 	if producer != null:
@@ -174,7 +207,12 @@ func _refresh_building(building: Building) -> void:
 		if low:
 			line += "  ·  LOW POWER: %d%% speed" % roundi(world.rules.low_power_rate * 100.0)
 		_set_status(line, HudStyle.WARNING_COLOR if low else HudStyle.TEXT_COLOR)
-		_hint.text = PRODUCE_HINT
+		_hint.text = PRODUCE_HINT % _command_click().to_lower()
+		return
+	if not building.def.field_options.is_empty():
+		var intel: int = world.economy.stockpile(faction).intel
+		_set_status("Intel %d" % intel, HudStyle.INTEL_COLOR)
+		_hint.text = LAB_HINT
 		return
 	_set_status(_power_line(building.def), HudStyle.TEXT_COLOR)
 	_hint.text = building.def.description
@@ -241,6 +279,54 @@ func _add_unit_button(def: UnitDef, building: Building) -> void:
 	holder.add_child(bar)
 	_buttons.add_child(holder)
 	_entries.append({"def": def, "button": button, "badge": badge, "bar": bar})
+
+
+func _add_option_button(option: FieldOptionDef, building: Building) -> void:
+	var button: Button = HudStyle.make_button(option.icon, option.display_name)
+	button.custom_minimum_size = Vector2(120, 104)
+	button.tooltip_text = (
+		"%s  ·  %d Intel  ·  cooldown %d s\n%s"
+		% [option.display_name, option.intel_cost, roundi(option.cooldown), option.description]
+	)
+	button.pressed.connect(_on_option_pressed.bind(option, building))
+	_buttons.add_child(button)
+	_entries.append({"option": option, "button": button})
+
+
+func _refresh_option(entry: Dictionary, _pile: Stockpile) -> void:
+	var option: FieldOptionDef = entry["option"]
+	var button: Button = entry["button"]
+	var options: FieldOptions = world.discovery.field_options
+	var state: StringName = options.check(faction, option)
+	var line: String = "%d Intel" % option.intel_cost
+	match state:
+		FieldOptions.LOCKED:
+			line = "locked: needs a discovery"
+		FieldOptions.COOLDOWN:
+			line = "ready in %d s" % ceili(options.cooldown_left(faction, option))
+		FieldOptions.NO_INTEL:
+			line += "\nneed more Intel"
+	button.modulate = Color.WHITE if state == FieldOptions.OK else Color(1, 1, 1, 0.55)
+	var caption: String = "%s\n%s" % [option.display_name, line]
+	if button.text != caption:
+		button.text = caption
+
+
+func _on_option_pressed(option: FieldOptionDef, building: Building) -> void:
+	if not is_instance_valid(building) or not building.is_operational():
+		return
+	var state: StringName = world.discovery.field_options.check(faction, option)
+	if state != FieldOptions.OK:
+		Events.ui_feedback.emit(
+			&"not_enough_resources" if state == FieldOptions.NO_INTEL else &"invalid"
+		)
+		return
+	controller.begin_field_option(building, option)
+
+
+## "Left-click" or "Right-click": the button that gives commands in the current scheme.
+static func _command_click() -> String:
+	return "Left-click" if Settings.control_scheme == Settings.SCHEME_CLASSIC else "Right-click"
 
 
 func _on_build_pressed(def: BuildingDef) -> void:

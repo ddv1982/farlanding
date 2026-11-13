@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://sim/entities/discovery_site.gd" id="1_site"]
+[ext_resource type="Script" path="res://presentation/site_visual.gd" id="2_visual"]
+
+[node name="DiscoverySite" type="Node3D"]
+script = ExtResource("1_site")
+
+[node name="Visual" type="Node3D" parent="."]
+script = ExtResource("2_visual")
+
+[connection signal="scan_progress_changed" from="." to="Visual" method="set_scan_progress"]
+[connection signal="resolved_changed" from="." to="Visual" method="set_resolved"]
+[connection signal="discovery_color_changed" from="." to="Visual" method="set_discovery_color"]

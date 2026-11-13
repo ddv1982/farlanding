@@ -1,9 +1,10 @@
 class_name Unit
 extends Node3D
 ## A mobile unit: a thin root holding its definition and faction, composed of
-## component nodes (Locomotion, UnitOrders, and OrderHandlers such as Harvester or
-## Builder) plus a presentation child. Health (always) and a Weapon (when the def has
-## one) are added from the def when it enters the tree. Spawned by SimWorld, which
+## component nodes (Locomotion, UnitOrders, and OrderHandlers such as Harvester,
+## Builder or Scanner) plus a presentation child. Health (always), a Weapon (when the
+## def has one), a Scanner (when it can scan) and a Dormancy (Custodians that start
+## dormant) are added from the def when it enters the tree. Spawned by SimWorld, which
 ## sets `def`, `faction`, `world` and `entity_id` before adding it to the tree.
 ##
 ## Armed units fight on their own: idle ones engage enemies they can see within
@@ -17,8 +18,10 @@ signal health_changed(fraction: float)
 signal aim_changed(point: Vector3)
 ## The weapon stopped aiming.
 signal aim_cleared
+## A dormant Custodian woke up.
+signal woke
 
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 const GROUP: StringName = &"units"
 ## How far beyond weapon range an idle unit walks to engage an enemy it sees.
 const AUTO_CHASE: float = 8.0
@@ -38,6 +41,10 @@ var locomotion: Locomotion = null
 var orders: UnitOrders = null
 var harvester: Harvester = null
 var builder: Builder = null
+## Null for units that cannot scan.
+var scanner: Scanner = null
+## Null for units that are never dormant.
+var dormancy: Dormancy = null
 var health: Health = null
 ## Null for unarmed units.
 var weapon: Weapon = null
@@ -52,6 +59,14 @@ var is_dead: bool:
 var speed: float:
 	get:
 		return locomotion.mover.speed if locomotion != null else 0.0
+## True while a dormant Custodian has not been disturbed. Read by audio and UI.
+var is_dormant: bool:
+	get:
+		return dormancy != null and dormancy.is_dormant
+## True while scanning a discovery site. Read by audio and UI.
+var is_scanning: bool:
+	get:
+		return scanner != null and scanner.is_scanning()
 ## True while mining at a deposit. Read by audio for the mining loop.
 var is_harvesting: bool:
 	get:
@@ -68,6 +83,10 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	if def != null and def.can_scan() and find_children("*", "Scanner", false).is_empty():
+		var added: Scanner = Scanner.new()
+		added.name = &"Scanner"
+		add_child(added)
 	for child: Node in get_children():
 		if child is Locomotion:
 			locomotion = child
@@ -79,6 +98,8 @@ func _ready() -> void:
 				harvester = child
 			elif child is Builder:
 				builder = child
+			elif child is Scanner:
+				scanner = child
 		elif child is Health:
 			health = child
 		elif child is Weapon:
@@ -91,12 +112,21 @@ func _ready() -> void:
 			orders.add_handler(handler)
 	if def != null:
 		_add_combat_components()
+	if def != null and def.starts_dormant:
+		dormancy = Dormancy.new()
+		dormancy.name = &"Dormancy"
+		add_child(dormancy)
+		dormancy.setup(self)
+		dormancy.woke.connect(woke.emit)
 
 
 ## One sim tick: orders first (they may start a new path), then movement, then the
 ## weapon. Dead units do nothing.
 func sim_tick(dt: float) -> void:
 	if is_dead:
+		return
+	if dormancy != null and dormancy.is_dormant:
+		dormancy.tick()
 		return
 	if orders != null:
 		orders.tick(dt)
@@ -132,6 +162,7 @@ func to_dict() -> Dictionary:
 		"handlers": handlers,
 		"health": health.to_dict() if health != null else {},
 		"weapon": weapon.to_dict() if weapon != null else {},
+		"dormancy": dormancy.to_dict() if dormancy != null else {},
 	}
 
 
@@ -158,6 +189,9 @@ func from_dict(data: Dictionary) -> void:
 	var weapon_data: Dictionary = data.get("weapon", {})
 	if weapon != null and not weapon_data.is_empty():
 		weapon.from_dict(weapon_data)
+	var dormancy_data: Dictionary = data.get("dormancy", {})
+	if dormancy != null and not dormancy_data.is_empty():
+		dormancy.from_dict(dormancy_data)
 
 
 func _add_combat_components() -> void:
@@ -210,6 +244,8 @@ func _tick_weapon(dt: float) -> void:
 
 ## Hit: remember who did it; an idle unit answers as soon as it can see them.
 func _on_damaged(_amount: float, attacker: Node3D) -> void:
+	if dormancy != null:
+		dormancy.wake()
 	if weapon == null or orders == null or is_dead or attacker == null:
 		return
 	_attacker = attacker

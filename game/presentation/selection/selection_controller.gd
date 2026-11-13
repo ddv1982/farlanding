@@ -1,20 +1,24 @@
 class_name SelectionController
 extends Node
-## Player selection and order input.
+## Player selection and order input, in one of two mouse schemes
+## (`Settings.control_scheme`; the rules live in SelectionRules.resolve()):
 ##
-## Left click selects (Shift toggles), left drag box-selects units (Shift adds),
-## double-click selects every visible unit of that type. Left click on an own building
-## selects it alone. With units selected, left or right click on an enemy (unit or
-## building) attacks it, right click on a deposit sends Haulers to harvest it, right
-## click on an own construction site sends Fabricators to help, and right click on the
-## ground moves there (Shift queues). With a producer building selected, right click
-## on the ground sets its rally point. Enemies out of sight cannot be clicked: hidden
-## ones are not there for the mouse, remembered buildings count as ground. While
-## placing a building (BuildPlacement), left click places it and right click or Esc
-## cancels. X stops. Ctrl+1..9 stores a control
-## group, 1..9 recalls it, a quick second press centres the camera on it. The cursor
-## turns into a red reticle over an enemy while units are selected. Every order goes
-## through the mission's CommandQueue.
+## - classic (default, Command & Conquer style): left click does everything by
+##   context. On an own unit or building it selects; with units selected it moves,
+##   attacks an enemy in sight, harvests a deposit (Haulers), scans a site
+##   (Surveyors) or helps build an own site (Fabricators); with a producer building
+##   selected it sets the rally point. Right click deselects.
+## - modern: left click selects (and attacks an enemy in sight), right click
+##   commands with the same context rules.
+##
+## In both: left drag box-selects units (Shift adds), Shift+click toggles a unit,
+## double-click selects every visible unit of that type, Shift queues orders. While
+## placing a building (BuildPlacement) or aiming a field option, left click confirms
+## and right click or Esc cancels. X stops. Ctrl+1..9 stores a control group, 1..9
+## recalls it, a quick second press centres the camera on it. The cursor shows what
+## a command click would do (CursorIcons). Enemies out of sight cannot be clicked:
+## hidden ones are not there for the mouse, remembered buildings count as ground.
+## Every order goes through the mission's CommandQueue.
 
 const DRAG_THRESHOLD_PX: float = 6.0
 const DOUBLE_TAP_SECONDS: float = 0.35
@@ -22,8 +26,15 @@ const MOVE_MARKER_COLOR: Color = Color(0.45, 1.0, 0.55)
 const ATTACK_MARKER_COLOR: Color = Color(1.0, 0.4, 0.3)
 ## Point above a unit's origin used for screen-space picking, in metres.
 const PICK_HEIGHT: float = 1.0
-## Attack cursor: size and hotspot (its centre) in pixels.
-const ATTACK_CURSOR_SIZE: int = 32
+## Cursor shown for each click action (SelectionRules.CLICK_*).
+const CURSOR_FOR_ACTION: Dictionary[StringName, StringName] = {
+	SelectionRules.CLICK_ATTACK: CursorIcons.ATTACK,
+	SelectionRules.CLICK_MOVE: CursorIcons.MOVE,
+	SelectionRules.CLICK_SCAN: CursorIcons.SCAN,
+	SelectionRules.CLICK_HARVEST: CursorIcons.HARVEST,
+	SelectionRules.CLICK_ASSIST: CursorIcons.ASSIST,
+	SelectionRules.CLICK_RALLY: CursorIcons.RALLY,
+}
 
 @export var camera: RtsCamera
 @export var world: SimWorld
@@ -33,14 +44,16 @@ var selection: Array[Unit] = []
 ## The selected building (selected alone, never together with units), or null.
 var selected_building: Building = null
 var placement: BuildPlacement = null
+## The field option being aimed, and the lab that will use it (null when not aiming).
+var targeting_option: FieldOptionDef = null
+var targeting_lab: Building = null
 
 var _groups: ControlGroups = ControlGroups.new()
 var _box: SelectionBox
 var _press_position: Vector2 = Vector2.ZERO
 var _pressing: bool = false
 var _box_dragging: bool = false
-var _attack_cursor: Texture2D = null
-var _attack_cursor_shown: bool = false
+var _cursor_shown: StringName = &""
 var _last_group_key: int = 0
 var _last_group_time: float = -10.0
 var _rally_marker: RallyMarker = null
@@ -67,24 +80,12 @@ func _process(_delta: float) -> void:
 	var mouse: Vector2 = _pointer
 	if placement.is_active():
 		placement.update(camera.ground_point(mouse))
-	var hovering_enemy: bool = false
-	if not selection.is_empty() and not placement.is_active():
-		var hovered: Unit = unit_at(mouse)
-		hovering_enemy = (
-			SelectionRules.right_click(selection, hovered, player_faction)
-			== SelectionRules.CLICK_ATTACK
-		)
-		if hovered == null:
-			hovering_enemy = (
-				SelectionRules.right_click_target(selection, building_at(mouse), player_faction)
-				== SelectionRules.CLICK_ATTACK
-			)
-	_show_attack_cursor(hovering_enemy)
+	_show_cursor(_hover_cursor(mouse))
 	_update_rally_marker()
 
 
 func _exit_tree() -> void:
-	_show_attack_cursor(false)
+	_show_cursor(&"")
 
 
 func _input(event: InputEvent) -> void:
@@ -98,6 +99,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if button != null:
 		if placement.is_active():
 			_handle_placement_button(button)
+			return
+		if is_targeting():
+			_handle_targeting_button(button)
 			return
 		_handle_mouse_button(button)
 		return
@@ -120,6 +124,88 @@ func begin_placement(def: BuildingDef) -> void:
 		return
 	Events.ui_feedback.emit(&"build_button")
 	placement.begin(def, builders, world)
+
+
+## Starts aiming `option` of the Survey Lab `lab`; the next left click uses it there.
+func begin_field_option(lab: Building, option: FieldOptionDef) -> void:
+	placement.cancel()
+	targeting_lab = lab
+	targeting_option = option
+	Events.ui_feedback.emit(&"option_button")
+
+
+## Stops aiming a field option.
+func cancel_field_option() -> void:
+	targeting_lab = null
+	targeting_option = null
+
+
+func is_targeting() -> bool:
+	return targeting_option != null and is_instance_valid(targeting_lab)
+
+
+## Applies a click of `button` on `target` (unit, building, site, resource node, or
+## null for ground at `ground`) under the current scheme. Returns what it did.
+func apply_click(button: MouseButton, target: Node3D, ground: Vector3, shift: bool) -> StringName:
+	var action: StringName = SelectionRules.resolve(
+		Settings.control_scheme, button, selection, selected_building, target, player_faction
+	)
+	match action:
+		SelectionRules.CLICK_SELECT:
+			_select_target(target, shift)
+		SelectionRules.CLICK_DESELECT:
+			if selected_building != null:
+				select_building(null)
+			elif not selection.is_empty():
+				set_selection([])
+		SelectionRules.CLICK_ATTACK:
+			_issue_attack(target, shift)
+		SelectionRules.CLICK_MOVE:
+			_move_to_point(ground, shift)
+		SelectionRules.CLICK_HARVEST:
+			_issue_on_target(HarvestCommand.new(player_faction, [], target, shift), target, shift)
+		SelectionRules.CLICK_ASSIST:
+			_issue_on_target(BuildCommand.new(player_faction, [], target, shift), target, shift)
+		SelectionRules.CLICK_SCAN:
+			_issue_on_target(ScanCommand.new(player_faction, [], target, shift), target, shift)
+		SelectionRules.CLICK_RALLY:
+			_rally_at(ground)
+	return action
+
+
+## The unit, building, discovery site or resource node under a screen position (in
+## that order of priority), or null for ground.
+func target_at(screen_position: Vector2) -> Node3D:
+	var unit: Unit = unit_at(screen_position)
+	if unit != null:
+		return unit
+	# Buildings before nodes: a Flux Tap stands on its vent, and the click means the Tap.
+	var building: Building = building_at(screen_position)
+	if building != null:
+		return building
+	var site: DiscoverySite = site_at(screen_position)
+	if site != null:
+		return site
+	return resource_node_at(screen_position)
+
+
+## Charted discovery site under a screen position, or null.
+func site_at(screen_position: Vector2) -> DiscoverySite:
+	if world.discovery == null:
+		return null
+	var origin: Vector3 = camera.camera.project_ray_origin(screen_position)
+	var direction: Vector3 = camera.camera.project_ray_normal(screen_position)
+	for site: DiscoverySite in world.discovery.sites:
+		if not site.visible or site.def == null:
+			continue
+		var radius: float = site.def.radius
+		var box: AABB = AABB(
+			site.position - Vector3(radius, 0.5, radius),
+			Vector3(radius * 2.0, site.def.height + 1.0, radius * 2.0)
+		)
+		if box.intersects_ray(origin, direction) != null:
+			return site
+	return null
 
 
 ## Selects one own building alone (null clears it), dropping any unit selection.
@@ -263,39 +349,24 @@ func _handle_mouse_button(button: InputEventMouseButton) -> void:
 				else:
 					_left_click(button.position, button.shift_pressed)
 		MOUSE_BUTTON_RIGHT:
-			if not button.pressed:
-				return
-			if selected_building != null:
-				_issue_rally(button.position)
-				return
-			var clicked: Unit = unit_at(button.position)
-			if clicked != null:
-				match SelectionRules.right_click(selection, clicked, player_faction):
-					SelectionRules.CLICK_ATTACK:
-						_issue_attack(clicked, button.shift_pressed)
-					SelectionRules.CLICK_MOVE:
-						_issue_move(button.position, button.shift_pressed)
-				return
-			_right_click_world(button.position, button.shift_pressed)
+			if button.pressed:
+				_click(MOUSE_BUTTON_RIGHT, button.position, button.shift_pressed)
 
 
-func _right_click_world(screen_position: Vector2, queued: bool) -> void:
-	# Buildings first: a Flux Tap stands on its vent, and the click means the Tap.
-	var target: Node3D = building_at(screen_position)
-	if target == null:
-		target = resource_node_at(screen_position)
-	match SelectionRules.right_click_target(selection, target, player_faction):
-		SelectionRules.CLICK_ATTACK:
-			_issue_attack(target, queued)
-		SelectionRules.CLICK_HARVEST:
-			_issue_on_target(HarvestCommand.new(player_faction, [], target, queued), target, queued)
-		SelectionRules.CLICK_ASSIST:
-			_issue_on_target(BuildCommand.new(player_faction, [], target, queued), target, queued)
-		SelectionRules.CLICK_MOVE:
-			_issue_move(screen_position, queued)
+func _click(button: MouseButton, screen_position: Vector2, shift: bool) -> void:
+	apply_click(button, target_at(screen_position), camera.ground_point(screen_position), shift)
 
 
-## Gives `command` (harvest, build) to the units able to do it; the rest move next to
+func _select_target(target: Node3D, shift: bool) -> void:
+	var building: Building = target as Building
+	if building != null and building.faction == player_faction:
+		select_building(building)
+		return
+	var unit: Unit = target as Unit
+	set_selection(SelectionRules.click(selection, unit, shift, player_faction))
+
+
+## Gives `command` (harvest, build, scan) to the units able to do it; the rest move next to
 ## the target.
 func _issue_on_target(command: Command, target: Node3D, queued: bool) -> void:
 	var able: Array[Unit] = SelectionRules.able(selection, command.kind)
@@ -312,10 +383,9 @@ func _issue_on_target(command: Command, target: Node3D, queued: bool) -> void:
 	OrderMarker.spawn(world, target.position, MOVE_MARKER_COLOR)
 
 
-func _issue_rally(screen_position: Vector2) -> void:
-	if selected_building.producer == null:
+func _rally_at(target: Vector3) -> void:
+	if selected_building == null or selected_building.producer == null:
 		return
-	var target: Vector3 = camera.ground_point(screen_position)
 	if target == Vector3.INF:
 		Events.ui_feedback.emit(&"invalid_target")
 		return
@@ -337,27 +407,33 @@ func _handle_placement_button(button: InputEventMouseButton) -> void:
 			placement.cancel()
 
 
+func _handle_targeting_button(button: InputEventMouseButton) -> void:
+	if not button.pressed:
+		return
+	match button.button_index:
+		MOUSE_BUTTON_LEFT:
+			var point: Vector3 = camera.ground_point(button.position)
+			if point == Vector3.INF:
+				Events.ui_feedback.emit(&"invalid_target")
+				return
+			_push(FieldOptionCommand.new(player_faction, targeting_lab, targeting_option, point))
+			OrderMarker.spawn(world, point, CursorIcons.COLORS[CursorIcons.TARGET])
+			cancel_field_option()
+		MOUSE_BUTTON_RIGHT:
+			cancel_field_option()
+
+
 func _left_click(screen_position: Vector2, shift: bool) -> void:
-	var clicked: Unit = unit_at(screen_position)
-	if clicked == null:
-		var building: Building = building_at(screen_position)
-		if building != null and building.faction == player_faction:
-			select_building(building)
-			return
-		if building != null and building.is_visible_to_player:
-			if not selection.is_empty():
-				_issue_attack(building, shift)
-			return
-	match SelectionRules.left_click(selection, clicked, player_faction):
-		SelectionRules.CLICK_ATTACK:
-			_issue_attack(clicked, shift)
-		SelectionRules.CLICK_SELECT:
-			set_selection(SelectionRules.click(selection, clicked, shift, player_faction))
+	_click(MOUSE_BUTTON_LEFT, screen_position, shift)
 
 
 func _handle_key(key: InputEventKey) -> void:
 	if placement.is_active() and key.keycode == KEY_ESCAPE:
 		placement.cancel()
+		get_viewport().set_input_as_handled()
+		return
+	if is_targeting() and key.keycode == KEY_ESCAPE:
+		cancel_field_option()
 		get_viewport().set_input_as_handled()
 		return
 	var group: int = _group_index(key)
@@ -413,10 +489,9 @@ func move_selection_to(target: Vector3, queued: bool) -> void:
 	_move_to(target, queued)
 
 
-func _issue_move(screen_position: Vector2, queued: bool) -> void:
+func _move_to_point(target: Vector3, queued: bool) -> void:
 	if selection.is_empty():
 		return
-	var target: Vector3 = camera.ground_point(screen_position)
 	if target == Vector3.INF:
 		Events.ui_feedback.emit(&"invalid_target")
 		return
@@ -449,40 +524,35 @@ func _selected_entities() -> Array[Node3D]:
 	return entities
 
 
-func _show_attack_cursor(show: bool) -> void:
-	if show == _attack_cursor_shown:
+## The cursor for what a command click at `mouse` would do now ("" = the default).
+func _hover_cursor(mouse: Vector2) -> StringName:
+	if placement.is_active() or get_viewport().gui_get_hovered_control() != null:
+		return &""
+	if is_targeting():
+		return CursorIcons.TARGET
+	if selection.is_empty() and selected_building == null:
+		return &""
+	var scheme: StringName = Settings.control_scheme
+	var action: StringName = SelectionRules.resolve(
+		scheme,
+		SelectionRules.command_button(scheme),
+		selection,
+		selected_building,
+		target_at(mouse),
+		player_faction
+	)
+	return CURSOR_FOR_ACTION.get(action, &"")
+
+
+func _show_cursor(kind: StringName) -> void:
+	if kind == _cursor_shown:
 		return
-	_attack_cursor_shown = show
-	if not show:
+	_cursor_shown = kind
+	var texture: Texture2D = CursorIcons.get_cursor(kind) if kind != &"" else null
+	if texture == null:
 		Input.set_custom_mouse_cursor(null)
 		return
-	if _attack_cursor == null:
-		_attack_cursor = _build_attack_cursor()
-	var centre: float = ATTACK_CURSOR_SIZE * 0.5
-	Input.set_custom_mouse_cursor(_attack_cursor, Input.CURSOR_ARROW, Vector2(centre, centre))
-
-
-## A red reticle: a ring with four ticks pointing in and a centre dot, outlined dark.
-static func _build_attack_cursor() -> Texture2D:
-	var size: int = ATTACK_CURSOR_SIZE
-	var image: Image = Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
-	var red: Color = Color(1.0, 0.22, 0.15)
-	var dark: Color = Color(0.08, 0.02, 0.02, 0.9)
-	var centre: Vector2 = Vector2(size, size) * 0.5 - Vector2(0.5, 0.5)
-	for pass_index: int in 2:
-		var color: Color = dark if pass_index == 0 else red
-		var grow: float = 1.0 if pass_index == 0 else 0.0
-		for y: int in size:
-			for x: int in size:
-				var offset: Vector2 = Vector2(x, y) - centre
-				var r: float = offset.length()
-				var ring: bool = absf(r - 10.0) <= 1.0 + grow
-				var on_axis: bool = absf(offset.x) <= 0.5 + grow or absf(offset.y) <= 0.5 + grow
-				var tick: bool = on_axis and r >= 5.0 - grow and r <= 15.0 + grow
-				var dot: bool = r <= 1.5 + grow
-				if ring or tick or dot:
-					image.set_pixel(x, y, color)
-	return ImageTexture.create_from_image(image)
+	Input.set_custom_mouse_cursor(texture, Input.CURSOR_ARROW, CursorIcons.hotspot())
 
 
 func _update_rally_marker() -> void:

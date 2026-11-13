@@ -26,6 +26,19 @@
 [ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit.tres" id="18_deposit"]
 [ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="19_rich"]
 [ext_resource type="Resource" path="res://data/resources/kessel_flux_vent.tres" id="20_vent"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_ore_seam.tres" id="d0"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_basalt_shelf.tres" id="d1"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_fumarole.tres" id="d2"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_dust_bloom.tres" id="d3"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_lichen_garden.tres" id="d4"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_trail_beacon.tres" id="d5"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_trail_ruin.tres" id="d6"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_sealed_cache.tres" id="d7"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_combine_survey_cut.tres" id="d8"]
+[ext_resource type="Resource" path="res://data/discoveries/kessel_combine_relay.tres" id="d9"]
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="30_discovery_def"]
+[ext_resource type="Resource" path="res://data/units/custodian_warden.tres" id="31_warden"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="32_surveyor"]
 
 [node name="KesselProving" type="Node3D" node_paths=PackedStringArray("context", "world", "camera", "navigation_region")]
 script = ExtResource("1_map")
@@ -36,13 +49,17 @@ navigation_region = NodePath("NavigationRegion3D")
 economy_rules = ExtResource("14_rules")
 damage_table = ExtResource("21_damage")
 lander = ExtResource("15_lander")
-start_roster = Array[ExtResource("13_unit_def")]([ExtResource("16_fabricator"), ExtResource("16_fabricator"), ExtResource("17_hauler")])
+start_roster = Array[ExtResource("13_unit_def")]([ExtResource("16_fabricator"), ExtResource("16_fabricator"), ExtResource("17_hauler"), ExtResource("32_surveyor")])
 deposit = ExtResource("18_deposit")
 deposit_positions = PackedVector3Array(-102, 0, 66, -56, 0, 98, -94, 0, 50, 98, 0, -100, 97, 0, -82, -6, 0, -2, 8, 0, -12)
 rich_deposit = ExtResource("19_rich")
 rich_deposit_positions = PackedVector3Array(-20, 0, 92, 36, 0, 34, -96, 0, -30, 88, 0, -88, 55, 0, 90)
 vent = ExtResource("20_vent")
 vent_positions = PackedVector3Array(-60, 0, 70, -100, 0, 95, -28, 0, 30, 70, 0, 10, -30, 0, -85, 25, 0, -30)
+discoveries = Array[ExtResource("30_discovery_def")]([ExtResource("d0"), ExtResource("d1"), ExtResource("d2"), ExtResource("d3"), ExtResource("d4"), ExtResource("d5"), ExtResource("d6"), ExtResource("d7"), ExtResource("d8"), ExtResource("d9")])
+discovery_positions = PackedVector3Array(-41, 0, 54, 44, 0, 62, -90, 0, 15, -12, 0, 45, 64, 0, 40, -51, 0, -55, 0, 0, -73, 95, 0, 35, 30, 0, -50, 100, 0, -40)
+custodian_roster = Array[ExtResource("13_unit_def")]([ExtResource("31_warden"), ExtResource("31_warden")])
+custodian_positions = PackedVector3Array(11, 0, -80, 89, 0, 42)
 hostile_hq = ExtResource("24_hub")
 hostile_hq_position = Vector3(66, 0, -95)
 hostile_buildings = Array[ExtResource("27_building_def")]([ExtResource("25_forge"), ExtResource("26_spire")])

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="BuildingDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/buildings/concord_survey_lab.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_building_survey_lab.png" id="3"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_building_survey_lab.glb" id="20"]
+[ext_resource type="Script" path="res://core/defs/field_option_def.gd" id="4"]
+[ext_resource type="Resource" path="res://data/field_options/orbital_scan.tres" id="5"]
+[ext_resource type="Resource" path="res://data/field_options/supply_drop.tres" id="6"]
+[ext_resource type="Resource" path="res://data/field_options/antecedent_power.tres" id="7"]
+
+[resource]
+script = ExtResource("1")
+id = &"concord_survey_lab"
+display_name = "Survey Lab"
+description = "Spends Intel on field options: orbital scans, supply drops, and what Antecedent finds unlock."
+faction = 0
+max_health = 900
+footprint = Rect2(-4.5, -4.5, 9, 9)
+height = 4.9
+armour_type = &"structure"
+vision_range = 18.0
+power_use = 3
+field_options = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7")])
+cost_alloy = 200
+cost_flux = 50
+build_time = 30.0
+scene = ExtResource("2")
+icon = ExtResource("3")
+model = ExtResource("20")
+sound_set = &"survey_lab"

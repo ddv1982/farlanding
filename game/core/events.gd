@@ -73,4 +73,22 @@ signal mission_started
 ## The mission is over: `won` is true when the player won.
 signal mission_ended(won: bool)
 
+## A unit began scanning a discovery site.
+signal scan_started(scanner: Node3D, site: Node3D)
+
+## A scan stopped before it finished (the scanner left, died or was reassigned).
+signal scan_interrupted(scanner: Node3D, site: Node3D)
+
+## A site was resolved: the discovery is now known. `discovery` is its DiscoveryDef.
+signal discovery_made(site: Node3D, discovery: Resource, faction: int)
+
+## A faction's Intel total changed.
+signal intel_changed(faction: int, intel: int)
+
+## A field option bought at the Survey Lab took effect at `at`. `option` is its definition.
+signal field_option_used(option: Resource, faction: int, at: Vector3)
+
+## The player's codex gained an entry. `entry` is the DiscoveryDef it describes.
+signal codex_entry_added(entry: Resource)
+
 @warning_ignore_restore("unused_signal")

@@ -2,6 +2,7 @@ extends GutTest
 ## Integration checks on the real data and assets, decoded by Godot itself.
 
 const EVENTS_DIR: String = "res://data/sounds"
+const SCORE: String = "res://data/sounds/music/kessel_reach.tres"
 const LOOPS: Array[String] = [
 	"res://assets/audio/movement/move_rover.wav",
 	"res://assets/audio/movement/move_walker.wav",
@@ -23,6 +24,17 @@ const LOOPS: Array[String] = [
 	"res://assets/audio/music/kessel/mus_kessel_tension_drive.ogg",
 	"res://assets/audio/music/kessel/mus_kessel_combat_drums.ogg",
 	"res://assets/audio/music/kessel/mus_kessel_combat_brass.ogg",
+	"res://assets/audio/movement/move_warden.wav",
+	"res://assets/audio/movement/move_scrapper.wav",
+	"res://assets/audio/movement/move_rigger.wav",
+	"res://assets/audio/base/loops/loop_hum_hub.wav",
+	"res://assets/audio/base/loops/loop_hum_forge.wav",
+	"res://assets/audio/base/loops/loop_hum_spire.wav",
+	"res://assets/audio/base/loops/loop_hum_warden.wav",
+	"res://assets/audio/base/loops/loop_hum_survey_lab.wav",
+	"res://assets/audio/discovery/signal_pulse.wav",
+	"res://assets/audio/discovery/scan_loop.wav",
+	"res://assets/audio/music/kessel/mus_kessel_explore_trail.ogg",
 ]
 const WEAPON_SETS: Array[String] = [
 	"repeater", "cannon", "light_gun", "sentry", "skitter_gun", "lance", "siege"
@@ -183,7 +195,7 @@ func test_synchronized_layer_volume_changes_while_playing() -> void:
 
 
 func test_kessel_score_states_match_its_layers() -> void:
-	var score: MusicScore = load("res://data/sounds/music/kessel_reach.tres")
+	var score: MusicScore = load(SCORE)
 	assert_not_null(score)
 	assert_not_null(score.find_state(score.default_state))
 	for state: MusicState in score.states:
@@ -203,3 +215,60 @@ func _rms(frames: PackedVector2Array) -> float:
 	for frame: Vector2 in frames:
 		total += frame.x * frame.x + frame.y * frame.y
 	return sqrt(total / maxf(frames.size() * 2.0, 1.0))
+
+
+func test_discovery_events_exist_with_their_buses() -> void:
+	var expected: Dictionary[String, StringName] = {
+		"signal/signal_pulse": &"Discovery",
+		"signal/scan_loop": &"Discovery",
+		"signal/scan_interrupted": &"Discovery",
+		"sting/mus_swell_antecedent": &"Discovery",
+		"ui/ui_codex_open": &"UI",
+		"ui/ui_codex_close": &"UI",
+		"ui/ui_codex_entry": &"UI",
+		"ui/ui_intel_tick": &"UI",
+		"ui/ui_option_button": &"UI",
+		"advisor/advisor_discovery": &"Advisor",
+		"advisor/advisor_field_option_ready": &"Advisor",
+		"building/building_survey_lab_select": &"Buildings",
+		"baseloop/loop_hum_survey_lab": &"Buildings",
+		"weapon/weapon_warden_fire": &"Weapons",
+		"explosion/death_warden": &"Explosions",
+		"antecedent/unit_warden_wake": &"Units",
+	}
+	for kind: String in ["geological", "biological", "antecedent", "enemy"]:
+		expected["discovery/discovery_resolve_%s" % kind] = &"Discovery"
+	for id: String in ["orbital_scan", "supply_drop", "antecedent_power"]:
+		expected["field/field_%s" % id] = &"SFX"
+	for id: String in ["warden", "scrapper", "rigger"]:
+		expected["movement/move_%s" % id] = &"Units"
+	for id: String in ["hub", "forge", "spire", "warden"]:
+		expected["baseloop/loop_hum_%s" % id] = &"Buildings"
+	for path: String in expected:
+		var event: SoundEvent = load("%s/%s.tres" % [EVENTS_DIR, path]) as SoundEvent
+		assert_not_null(event, path)
+		if event != null:
+			assert_eq(event.bus, expected[path], "%s bus" % path)
+	for path: String in ["signal/signal_pulse", "signal/scan_loop", "baseloop/loop_hum_warden"]:
+		var event: SoundEvent = load("%s/%s.tres" % [EVENTS_DIR, path]) as SoundEvent
+		assert_true(event.positional, "%s is positional" % path)
+		var wav: AudioStreamWAV = event.streams[0] as AudioStreamWAV
+		assert_eq(wav.loop_mode, AudioStreamWAV.LOOP_FORWARD, "%s loops" % path)
+
+
+func test_trail_layer_is_silent_until_discoveries_raise_it() -> void:
+	var score: MusicScore = load(SCORE)
+	var clip: MusicClip = score.clips[0]
+	var trail: int = Array(clip.layer_names).find("trail")
+	assert_ne(trail, -1, "explore clip has a trail layer")
+	assert_eq(clip.layers[trail].get_length(), clip.layers[0].get_length(), "same grid")
+	var director: MusicDirector = MusicDirector.new()
+	add_child_autofree(director)
+	director.set_layer_gain(&"trail", AudioMix.SILENT_DB)
+	director.play_score(score)
+	assert_eq(director.layer_targets_db(&"explore")[trail], AudioMix.SILENT_DB)
+	director.set_layer_gain(&"trail", -6.0)
+	assert_almost_eq(director.layer_targets_db(&"explore")[trail], -6.0, 0.001)
+	assert_eq(director.layer_targets_db(&"combat")[trail], AudioMix.SILENT_DB, "combat stays dry")
+	assert_almost_eq(director.layer_targets_db(&"explore")[0], 0.0, 0.001, "other layers untouched")
+	director.stop()

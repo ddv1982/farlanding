@@ -11,6 +11,7 @@ const WARNING_COLOR := Color(1.0, 0.42, 0.25)
 const ALLOY_COLOR := Color(0.80, 0.84, 0.90)
 const FLUX_COLOR := Color(0.45, 0.85, 1.0)
 const POWER_COLOR := Color(1.0, 0.82, 0.35)
+const INTEL_COLOR := Color(0.62, 1.0, 0.78)
 const BUTTON_COLOR := Color(0.10, 0.125, 0.15, 0.95)
 const BUTTON_HOVER_COLOR := Color(0.15, 0.19, 0.23, 0.98)
 const MARGIN := 14
@@ -19,16 +20,21 @@ const ICON_SIZE := 52
 
 ## A dark panel with the orange accent along its top edge.
 static func make_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override(&"panel", panel_style())
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return panel
+
+
+## The panels' look: dark, the orange accent along the top edge.
+static func panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = PANEL_COLOR
 	style.border_color = ACCENT_COLOR
 	style.border_width_top = 2
 	style.set_corner_radius_all(3)
 	style.set_content_margin_all(10)
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override(&"panel", style)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return panel
+	return style
 
 
 static func make_label(font_size: int, color: Color, text: String = "") -> Label:
@@ -56,6 +62,20 @@ static func make_button(icon: Texture2D, caption: String) -> Button:
 	button.add_theme_color_override(&"font_disabled_color", MUTED_COLOR)
 	button.add_theme_constant_override(&"icon_max_width", ICON_SIZE)
 	for state: StringName in [&"normal", &"pressed", &"disabled", &"focus"]:
+		button.add_theme_stylebox_override(state, _button_style(BUTTON_COLOR))
+	button.add_theme_stylebox_override(&"hover", _button_style(BUTTON_HOVER_COLOR))
+	return button
+
+
+## A small text button for the HUD's corners (codex, control scheme).
+static func make_small_button(caption: String) -> Button:
+	var button := Button.new()
+	button.text = caption
+	button.focus_mode = Control.FOCUS_NONE
+	button.add_theme_font_size_override(&"font_size", 11)
+	button.add_theme_color_override(&"font_color", TEXT_COLOR)
+	button.add_theme_color_override(&"font_hover_color", Color.WHITE)
+	for state: StringName in [&"normal", &"pressed", &"focus"]:
 		button.add_theme_stylebox_override(state, _button_style(BUTTON_COLOR))
 	button.add_theme_stylebox_override(&"hover", _button_style(BUTTON_HOVER_COLOR))
 	return button

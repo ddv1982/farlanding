@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://sim/entities/discovery_site.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://assets/models/kessel/kessel_site_flora.glb" id="2_model"]
+
+[node name="KesselSiteFlora" instance=ExtResource("1_base")]
+
+[node name="Visual" parent="." index="0"]
+model_scene = ExtResource("2_model")
+radius = 5.5
+marker_height = 7.5

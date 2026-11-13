@@ -2,7 +2,8 @@ class_name ConquestOutcome
 extends RefCounted
 ## Win/lose rules of a conquest skirmish: the player loses when their last
 ## headquarters (a building of `headquarters`) is destroyed and wins when every
-## unit and building of every other faction is destroyed. `check()` is called after
+## unit and building of every other faction is destroyed. The neutral Custodians
+## (Factions.CUSTODIANS) do not count: they need not be destroyed. `check()` is called after
 ## each death and announces the result once on `Events.mission_ended`.
 
 enum Result { NONE, WON, LOST }
@@ -33,12 +34,16 @@ static func evaluate(
 			continue
 		if building.faction == faction:
 			has_hq = has_hq or building.def == hq
-		else:
+		elif not Factions.is_custodian(building.faction):
 			enemies += 1
 	if not has_hq:
 		return Result.LOST
 	for unit: Unit in units:
-		if unit.faction != faction and Combat.is_alive(unit):
+		if (
+			unit.faction != faction
+			and not Factions.is_custodian(unit.faction)
+			and Combat.is_alive(unit)
+		):
 			enemies += 1
 	return Result.WON if enemies == 0 else Result.NONE
 
