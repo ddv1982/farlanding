@@ -116,7 +116,11 @@ func on_tick(tick: int) -> void:
 		return
 	var dt: float = SimClock.TICK_DELTA
 	var contested: bool = _contested()
-	for faction: int in [mission.player_faction, mission.def.hostile_faction]:
+	# The first side to fill the Core has it: nothing charges or drains after that.
+	var sides: Array[int] = [mission.player_faction, mission.def.hostile_faction]
+	if charge_of(sides[0]) >= 1.0 or charge_of(sides[1]) >= 1.0:
+		sides = []
+	for faction: int in sides:
 		var charge: float = charge_of(faction)
 		if is_linked(faction):
 			if not contested and engines_of(faction) >= rules.engines_needed:
@@ -129,7 +133,8 @@ func on_tick(tick: int) -> void:
 	if tick % _profile.behaviour_interval_ticks == 0:
 		_command_enemy(tick)
 		_tick_groups(tick)
-	if not awakened and charge_of(mission.player_faction) >= 1.0:
+	var enemy_has_it: bool = charge_of(mission.def.hostile_faction) >= 1.0
+	if not awakened and not enemy_has_it and charge_of(mission.player_faction) >= 1.0:
 		awakened = true
 		Events.core_awakened.emit(_core)
 

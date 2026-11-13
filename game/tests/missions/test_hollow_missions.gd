@@ -305,3 +305,16 @@ func test_the_finale_state_saves_and_loads() -> void:
 	var charges: Dictionary = saved["charges"]
 	assert_eq(charges_again, charges)
 	restored.stop()
+
+
+func test_the_core_does_not_wake_for_the_player_once_the_combine_has_it() -> void:
+	var mission: Mission = _start_finale()
+	_f.spawn(_f.discovery.surveyor, 0, Vector3(6, 0, 0))
+	_engines(0, 2, 30)
+	var script: CoreScript = _script(mission)
+	script.charges[mission.def.hostile_faction] = 1.0
+	script.charges[mission.player_faction] = 0.9999
+	script.on_tick(1)
+	script.on_tick(2)
+	assert_true(_awakened.is_empty(), "the Combine filled it first")
+	assert_lt(script.charge_of(mission.player_faction), 1.0, "nothing charges after that")

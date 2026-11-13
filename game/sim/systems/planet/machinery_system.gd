@@ -167,13 +167,16 @@ func _work(engine: Building, dt: float) -> void:
 		return  # contested: nobody gets on
 	var faction: int = by_faction.keys()[0]
 	var amount: float = by_faction[faction] * dt / seconds_to_claim(engine)
+	var had: float = machine.progress
 	if machine.claimant >= 0 and machine.claimant != faction:
-		var left: float = machine.progress - amount
+		var left: float = had - amount
 		if left > 0.0:
 			machine.set_progress(left, machine.claimant)
 			return
+		# The other side's work is used up: only what is left over counts for us.
 		amount = -left
-	var done: float = machine.progress + amount
+		had = 0.0
+	var done: float = had + amount
 	machine.set_progress(done, faction)
 	if done >= 1.0 - DONE_SLACK:
 		_hand_over(engine, faction)

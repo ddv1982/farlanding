@@ -355,3 +355,18 @@ func test_the_engines_state_saves_and_loads() -> void:
 	restored.setup(_f.world, _rule)
 	restored.from_dict(system_data)
 	assert_eq(restored.to_dict(), system_data)
+
+
+func test_draining_their_progress_does_not_hand_it_to_us() -> void:
+	var engine: Building = _engine()
+	_start()
+	var worker: Unit = _worker(0, Vector3(-8, 0, 0))
+	_f.tick(4)
+	engine.machine.set_progress(0.6, 1)
+	_reactivate(worker, engine)
+	var ticks: int = 0
+	while engine.machine.claimant != 0 and ticks < 600:
+		_f.tick(1)
+		ticks += 1
+	assert_eq(engine.machine.claimant, 0, "their work is used up")
+	assert_lt(engine.machine.progress, 0.1, "and ours starts from nothing")
