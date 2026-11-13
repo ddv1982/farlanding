@@ -21,7 +21,7 @@ signal aim_cleared
 ## A dormant Custodian woke up.
 signal woke
 
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 const GROUP: StringName = &"units"
 ## How far beyond weapon range an idle unit walks to engage an enemy it sees.
 const AUTO_CHASE: float = 8.0
@@ -45,6 +45,12 @@ var builder: Builder = null
 var scanner: Scanner = null
 ## Null for units that are never dormant.
 var dormancy: Dormancy = null
+## Null for units that cannot sabotage.
+var saboteur: Saboteur = null
+## Null for units that cannot cloak.
+var cloak: Cloak = null
+## Null for units that never notice intruders (sensor 0).
+var watcher: Watcher = null
 var health: Health = null
 ## Null for unarmed units.
 var weapon: Weapon = null
@@ -72,6 +78,38 @@ var is_harvesting: bool:
 	get:
 		return harvester != null and harvester.is_mining()
 
+## How sure this unit is that an intruder is near, 0..1 (watchers). Read by audio
+## and the sight-cone visual.
+var suspicion: float:
+	get:
+		return watcher.suspicion if watcher != null else 0.0
+## True once this watcher spotted an intruder, or while its faction is alerted.
+var is_alerted: bool:
+	get:
+		return watcher != null and watcher.is_alerted
+## How far this unit notices intruders, in metres (its vision range).
+var sight_range: float:
+	get:
+		return def.vision_range if def != null else 0.0
+## Full width of its sight cone in degrees (360 = all round).
+var sight_angle: float:
+	get:
+		return def.sight_angle if def != null else 360.0
+## True while cloaked. Read by audio and presentation.
+var is_cloaked: bool:
+	get:
+		return cloak != null and cloak.is_cloaked
+## How easily it is noticed now, 0..1 (lower while cloaked).
+var signature: float:
+	get:
+		if cloak != null:
+			return cloak.signature()
+		return def.signature if def != null else 1.0
+## True while working on a sabotage. Read by audio and UI.
+var is_sabotaging: bool:
+	get:
+		return saboteur != null and saboteur.is_working()
+
 var _handlers: Array[OrderHandler] = []
 ## Who last hit this unit, answered once it can be seen (it may only be exposed by
 ## its own shot on the next vision update).
@@ -87,6 +125,10 @@ func _ready() -> void:
 		var added: Scanner = Scanner.new()
 		added.name = &"Scanner"
 		add_child(added)
+	if def != null and def.can_sabotage() and find_children("*", "Saboteur", false).is_empty():
+		var sabotage_handler: Saboteur = Saboteur.new()
+		sabotage_handler.name = &"Saboteur"
+		add_child(sabotage_handler)
 	for child: Node in get_children():
 		if child is Locomotion:
 			locomotion = child
@@ -100,6 +142,8 @@ func _ready() -> void:
 				builder = child
 			elif child is Scanner:
 				scanner = child
+			elif child is Saboteur:
+				saboteur = child
 		elif child is Health:
 			health = child
 		elif child is Weapon:
@@ -118,6 +162,17 @@ func _ready() -> void:
 		add_child(dormancy)
 		dormancy.setup(self)
 		dormancy.woke.connect(woke.emit)
+	if def != null and def.sensor > 0.0:
+		watcher = Watcher.new()
+		watcher.name = &"Watcher"
+		add_child(watcher)
+		watcher.setup(self)
+	if def != null and def.can_cloak:
+		cloak = Cloak.new()
+		cloak.name = &"Cloak"
+		add_child(cloak)
+		cloak.setup(self)
+		cloak.changed.connect(_on_cloak_changed)
 
 
 ## One sim tick: orders first (they may start a new path), then movement, then the
@@ -132,6 +187,8 @@ func sim_tick(dt: float) -> void:
 		orders.tick(dt)
 	if locomotion != null:
 		locomotion.tick(dt)
+	if cloak != null:
+		cloak.tick(dt, speed)
 	if weapon != null:
 		_tick_weapon(dt)
 
@@ -163,6 +220,8 @@ func to_dict() -> Dictionary:
 		"health": health.to_dict() if health != null else {},
 		"weapon": weapon.to_dict() if weapon != null else {},
 		"dormancy": dormancy.to_dict() if dormancy != null else {},
+		"watcher": watcher.to_dict() if watcher != null else {},
+		"cloak": cloak.to_dict() if cloak != null else {},
 	}
 
 
@@ -192,6 +251,12 @@ func from_dict(data: Dictionary) -> void:
 	var dormancy_data: Dictionary = data.get("dormancy", {})
 	if dormancy != null and not dormancy_data.is_empty():
 		dormancy.from_dict(dormancy_data)
+	var watcher_data: Dictionary = data.get("watcher", {})
+	if watcher != null and not watcher_data.is_empty():
+		watcher.from_dict(watcher_data)
+	var cloak_data: Dictionary = data.get("cloak", {})
+	if cloak != null and not cloak_data.is_empty():
+		cloak.from_dict(cloak_data)
 
 
 func _add_combat_components() -> void:
@@ -246,6 +311,8 @@ func _tick_weapon(dt: float) -> void:
 func _on_damaged(_amount: float, attacker: Node3D) -> void:
 	if dormancy != null:
 		dormancy.wake()
+	if cloak != null:
+		cloak.break_cloak()
 	if weapon == null or orders == null or is_dead or attacker == null:
 		return
 	_attacker = attacker
@@ -267,6 +334,10 @@ func _answer(attacker: Node3D) -> bool:
 		return true
 	orders.engage(attacker, sim_position(), RETURN_FIRE_CHASE)
 	return true
+
+
+func _on_cloak_changed(cloaked: bool) -> void:
+	Events.cloak_changed.emit(self, cloaked)
 
 
 func _can_target(target: Variant) -> bool:

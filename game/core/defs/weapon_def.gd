@@ -17,6 +17,8 @@ extends Resource
 @export_group("Firing")
 ## Reach from the shooter to the target's body edge.
 @export_range(1.0, 200.0, 0.5, "suffix:m") var max_range: float = 15.0
+## Targets whose body is closer than this cannot be hit (artillery); 0 = none.
+@export_range(0.0, 100.0, 0.5, "suffix:m") var min_range: float = 0.0
 ## Seconds between shots.
 @export_range(0.05, 60.0, 0.05, "suffix:s") var cooldown: float = 1.0
 ## Projectiles per shot (a twin gun fires 2), side by side `salvo_spacing` apart.

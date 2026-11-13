@@ -87,9 +87,11 @@ func tick(
 		_fire(position, point)
 
 
-## True if `entity`'s body is within the weapon's range of `position`.
+## True if `entity`'s body is within the weapon's range of `position` (and not
+## inside its minimum range).
 func in_range(entity: Node3D, position: Vector3) -> bool:
-	return Combat.reach_to(entity, position) <= def.max_range
+	var reach: float = Combat.reach_to(entity, position)
+	return reach <= def.max_range and reach >= def.min_range
 
 
 ## Where to aim at `entity`: a metre above its origin.
@@ -135,7 +137,9 @@ func _choose(position: Vector3, ordered: Node3D, may_auto: bool, sight_reach: fl
 ## One look through the grid: the nearest enemy in range, else null with `sighted`
 ## set to one within `sight_reach` beyond it.
 func _look(position: Vector3, sight_reach: float) -> Node3D:
-	var found: Node3D = combat.find_target(faction, position, def.max_range + sight_reach)
+	var found: Node3D = combat.find_target(
+		faction, position, def.max_range + sight_reach, def.min_range
+	)
 	if found != null and not in_range(found, position):
 		sighted = found
 		return null

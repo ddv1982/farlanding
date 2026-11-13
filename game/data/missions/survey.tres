@@ -1,0 +1,89 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
+[ext_resource type="Script" path="res://missions/objective_def.gd" id="e1"]
+[ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="e3"]
+[ext_resource type="PackedScene" path="res://maps/kessel_proving/kessel_proving.tscn" id="e4"]
+[ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="e5"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="e6"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e7"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="e8"]
+[ext_resource type="Resource" path="res://data/buildings/combine_hub.tres" id="e9"]
+[ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="e11"]
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="e12"]
+[ext_resource type="Resource" path="res://data/units/combine_scrapper.tres" id="e13"]
+[ext_resource type="Resource" path="res://data/units/combine_rigger.tres" id="e14"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e15"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="e16"]
+[ext_resource type="Resource" path="res://data/ai/combine_raiders.tres" id="e17"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+id = &"bank_intel"
+title = "Bank 300 Intel before the dust storm"
+kind = &"primary"
+type = &"gather_intel"
+amount = 300
+deadline_seconds = 900
+
+[sub_resource type="Resource" id="s1"]
+script = ExtResource("e1")
+id = &"keep_lander"
+title = "Keep the Lander standing"
+kind = &"primary"
+type = &"keep_alive"
+side = &"player"
+passive = true
+defs = Array[ExtResource("e3")]([ExtResource("e2")])
+
+[sub_resource type="Resource" id="s2"]
+script = ExtResource("e1")
+id = &"follow_trail"
+title = "Follow the Antecedent trail"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"kessel_trail_beacon", &"kessel_trail_ruin"])
+area_center = Vector3(-51, 0, -55)
+area_radius = 8
+
+[sub_resource type="Resource" id="s3"]
+script = ExtResource("e1")
+id = &"scan_cut"
+title = "Scan the Combine survey cut"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"kessel_combine_survey_cut"])
+area_center = Vector3(30, 0, -50)
+area_radius = 8
+
+[sub_resource type="Resource" id="s4"]
+script = ExtResource("e1")
+id = &"open_cache"
+title = "Open the sealed cache"
+kind = &"hidden"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"kessel_sealed_cache"])
+
+[resource]
+script = ExtResource("e0")
+id = &"survey"
+title = "Before the Storm"
+mission_type = &"survey"
+summary = "Bank 300 Intel from the basin's signals before the dust storm closes in."
+briefing = "A dust storm is building over the Kessel basin and will bury every signal in it within fifteen minutes. The orbital scan shows a dozen unresolved contacts.\n\nScan them and bank 300 Intel before the storm arrives. Intel spent at the Survey Lab no longer counts, so spend it only if it buys you time. The Combine does not want us here: expect raiders after your Surveyors and your base, not a war."
+map_scene = ExtResource("e4")
+player_hq = ExtResource("e2")
+player_start = Vector3(-80, 0, 85)
+player_roster = Array[ExtResource("e8")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e7")])
+hostile_faction = 1
+hostile_hq = ExtResource("e9")
+hostile_hq_position = Vector3(66, 0, -95)
+hostile_buildings = Array[ExtResource("e12")]([ExtResource("e10"), ExtResource("e11")])
+hostile_building_positions = PackedVector3Array(47, 0, -92, 54, 0, -79)
+hostile_roster = Array[ExtResource("e8")]([ExtResource("e13"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e15"), ExtResource("e16")])
+hostile_start = Vector3(56, 0, -84)
+commander_profile = ExtResource("e17")
+enemy_difficulty = "normal"
+objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3"), SubResource("s4")])

@@ -43,6 +43,8 @@ var _reported_speed: float = 0.0
 var _repaths: int = 0
 var _facing: bool = false
 var _face_point: Vector3 = Vector3.ZERO
+var _base_speed: float = INF
+var _speed_limit: float = INF
 
 
 ## Configures the component from a definition and places it. Call once after the
@@ -54,7 +56,8 @@ func setup(
 	p_paths: PathService,
 	heights: HeightField,
 ) -> void:
-	mover.max_speed = def.move_speed
+	_base_speed = def.move_speed
+	mover.max_speed = minf(def.move_speed, _speed_limit)
 	mover.acceleration = def.acceleration
 	mover.turn_speed = deg_to_rad(def.turn_speed)
 	radius = def.radius
@@ -88,6 +91,15 @@ func follow_path(path: PackedVector3Array) -> bool:
 	_repaths = 0
 	_facing = false
 	return _start_path(path)
+
+
+## Caps the top speed at `limit` m/s (INF = the definition's own speed), e.g. while
+## a unit creeps in stealth mode.
+func set_speed_limit(limit: float) -> void:
+	_speed_limit = limit
+	mover.max_speed = minf(_base_speed, limit)
+	if _agent.is_valid():
+		NavigationServer3D.agent_set_max_speed(_agent, mover.max_speed)
 
 
 ## Brakes to a halt and forgets the destination.
@@ -251,7 +263,7 @@ func _create_agent(def: UnitDef) -> void:
 	_agent = NavigationServer3D.agent_create()
 	NavigationServer3D.agent_set_use_3d_avoidance(_agent, false)
 	NavigationServer3D.agent_set_radius(_agent, def.radius + 0.25)
-	NavigationServer3D.agent_set_max_speed(_agent, def.move_speed)
+	NavigationServer3D.agent_set_max_speed(_agent, mover.max_speed)
 	NavigationServer3D.agent_set_neighbor_distance(_agent, maxf(8.0, def.radius * 6.0))
 	NavigationServer3D.agent_set_max_neighbors(_agent, 8)
 	NavigationServer3D.agent_set_time_horizon_agents(_agent, 0.8)

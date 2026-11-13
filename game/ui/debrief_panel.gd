@@ -1,0 +1,106 @@
+class_name DebriefPanel
+extends CenterContainer
+## The debrief after a mission: won or lost, every known objective's result, the
+## time taken, Intel earned and losses, then Retry or Back to missions.
+
+signal retry_pressed
+signal back_pressed
+
+var _title: Label
+var _mission: Label
+var _objectives: VBoxContainer
+var _stats: GridContainer
+
+
+func _ready() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	var panel: PanelContainer = HudStyle.make_panel()
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(panel)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override(&"separation", 10)
+	column.custom_minimum_size = Vector2(460, 0)
+	panel.add_child(column)
+	_title = HudStyle.make_label(40, HudStyle.TEXT_COLOR)
+	column.add_child(_title)
+	_mission = HudStyle.make_label(13, HudStyle.MUTED_COLOR)
+	column.add_child(_mission)
+	column.add_child(HudStyle.make_label(11, HudStyle.MUTED_COLOR, "OBJECTIVES"))
+	_objectives = VBoxContainer.new()
+	_objectives.add_theme_constant_override(&"separation", 3)
+	column.add_child(_objectives)
+	column.add_child(HudStyle.make_label(11, HudStyle.MUTED_COLOR, "REPORT"))
+	_stats = GridContainer.new()
+	_stats.columns = 2
+	_stats.add_theme_constant_override(&"h_separation", 24)
+	column.add_child(_stats)
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_END
+	buttons.add_theme_constant_override(&"separation", 10)
+	column.add_child(buttons)
+	var back: Button = HudStyle.make_small_button("BACK TO MISSIONS")
+	back.custom_minimum_size = Vector2(170, 38)
+	back.pressed.connect(_on_back)
+	buttons.add_child(back)
+	var retry: Button = HudStyle.make_small_button("RETRY")
+	retry.custom_minimum_size = Vector2(120, 38)
+	retry.add_theme_color_override(&"font_color", HudStyle.ACCENT_COLOR)
+	retry.pressed.connect(_on_retry)
+	buttons.add_child(retry)
+
+
+## Shows `result`.
+func show_result(result: MissionResult) -> void:
+	Events.ui_feedback.emit(&"debrief_open")
+	_title.text = "Mission accomplished" if result.won else "Mission failed"
+	_title.add_theme_color_override(
+		&"font_color", HudStyle.ACCENT_COLOR if result.won else HudStyle.WARNING_COLOR
+	)
+	_mission.text = result.title
+	for child: Node in _objectives.get_children():
+		child.queue_free()
+	for entry: Dictionary in result.objectives:
+		var title: String = entry["title"]
+		var kind: StringName = entry["kind"]
+		var state: StringName = entry["state"]
+		_objectives.add_child(_objective_line(title, kind, state))
+	for child: Node in _stats.get_children():
+		child.queue_free()
+	_stat("Time", MissionResult.clock_text(result.seconds))
+	_stat("Intel earned", str(result.intel_earned))
+	_stat("Units lost", str(result.units_lost))
+	_stat("Structures lost", str(result.buildings_lost))
+	_stat("Enemies destroyed", str(result.enemies_destroyed))
+
+
+static func _objective_line(title: String, kind: StringName, state: StringName) -> Label:
+	var verdict: String = "not achieved"
+	var color: Color = HudStyle.MUTED_COLOR
+	if state == Objective.STATE_DONE:
+		verdict = "done"
+		color = ObjectivesPanel.DONE_COLOR
+	elif state == Objective.STATE_FAILED:
+		verdict = "failed"
+		color = ObjectivesPanel.FAILED_COLOR
+	var tag: String = ""
+	if kind == Objective.KIND_SECONDARY:
+		tag = "  (optional)"
+	elif kind == Objective.KIND_HIDDEN:
+		tag = "  (hidden)"
+	return HudStyle.make_label(14, color, "·  %s%s  —  %s" % [title, tag, verdict])
+
+
+func _stat(caption: String, value: String) -> void:
+	_stats.add_child(HudStyle.make_label(13, HudStyle.MUTED_COLOR, caption))
+	_stats.add_child(HudStyle.make_label(13, HudStyle.TEXT_COLOR, value))
+
+
+func _on_retry() -> void:
+	Events.ui_feedback.emit(&"click")
+	retry_pressed.emit()
+
+
+func _on_back() -> void:
+	Events.ui_feedback.emit(&"click")
+	back_pressed.emit()

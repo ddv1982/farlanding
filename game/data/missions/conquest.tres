@@ -1,0 +1,81 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
+[ext_resource type="Script" path="res://missions/objective_def.gd" id="e1"]
+[ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="e3"]
+[ext_resource type="Resource" path="res://data/units/custodian_warden.tres" id="e4"]
+[ext_resource type="PackedScene" path="res://maps/kessel_proving/kessel_proving.tscn" id="e5"]
+[ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="e6"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="e7"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e8"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="e9"]
+[ext_resource type="Resource" path="res://data/buildings/combine_hub.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="e11"]
+[ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="e12"]
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="e13"]
+[ext_resource type="Resource" path="res://data/units/combine_scrapper.tres" id="e14"]
+[ext_resource type="Resource" path="res://data/units/combine_rigger.tres" id="e15"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e16"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="e17"]
+[ext_resource type="Resource" path="res://data/ai/combine_commander.tres" id="e18"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+id = &"destroy_base"
+title = "Destroy the Combine base"
+kind = &"primary"
+type = &"destroy_all"
+side = &"enemy"
+
+[sub_resource type="Resource" id="s1"]
+script = ExtResource("e1")
+id = &"keep_lander"
+title = "Keep the Lander standing"
+kind = &"primary"
+type = &"keep_alive"
+side = &"player"
+passive = true
+defs = Array[ExtResource("e3")]([ExtResource("e2")])
+
+[sub_resource type="Resource" id="s2"]
+script = ExtResource("e1")
+id = &"scan_relay"
+title = "Scan the Combine relay"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"kessel_combine_relay"])
+area_center = Vector3(100, 0, -40)
+area_radius = 8
+
+[sub_resource type="Resource" id="s3"]
+script = ExtResource("e1")
+id = &"silence_warden"
+title = "Silence a Custodian Warden"
+kind = &"hidden"
+type = &"destroy_count"
+side = &"custodian"
+defs = Array[ExtResource("e3")]([ExtResource("e4")])
+amount = 1
+
+[resource]
+script = ExtResource("e0")
+id = &"conquest"
+title = "Proving Ground"
+mission_type = &"conquest"
+summary = "Land, build a base and destroy the Combine operation across the basin."
+briefing = "The Combine has dug in on the far side of the Kessel basin, stripping the dust for anything the Antecedents left behind. The Meridian puts the Lander down in the south-west.\n\nBuild an economy, field an army and wipe their operation off the map. Their relay to the east would tell us how they think, if a Surveyor gets close enough to scan it. Keep the Lander standing: it is the expedition's only way home."
+map_scene = ExtResource("e5")
+player_hq = ExtResource("e2")
+player_start = Vector3(-80, 0, 85)
+player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8")])
+hostile_faction = 1
+hostile_hq = ExtResource("e10")
+hostile_hq_position = Vector3(66, 0, -95)
+hostile_buildings = Array[ExtResource("e13")]([ExtResource("e11"), ExtResource("e12")])
+hostile_building_positions = PackedVector3Array(47, 0, -92, 54, 0, -79)
+hostile_roster = Array[ExtResource("e9")]([ExtResource("e14"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e16"), ExtResource("e16"), ExtResource("e17")])
+hostile_start = Vector3(56, 0, -84)
+commander_profile = ExtResource("e18")
+enemy_difficulty = "easy"
+objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3")])

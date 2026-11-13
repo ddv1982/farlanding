@@ -22,3 +22,13 @@ func push(_command: Command) -> void:
 ## Enemy units and buildings this faction sees now within `radius` of `center`.
 func seen_enemies(_center: Vector3, _radius: float) -> Array[Node3D]:
 	return []
+
+
+## This faction's alert level (StealthSystem.LEVEL_*): its own knowledge.
+func alert_level() -> StringName:
+	return StealthSystem.LEVEL_UNAWARE
+
+
+## Where this faction last noticed an intruder; Vector3.INF if never.
+func alert_position() -> Vector3:
+	return Vector3.INF

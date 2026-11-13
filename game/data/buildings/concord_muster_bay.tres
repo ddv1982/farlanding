@@ -7,11 +7,15 @@
 [ext_resource type="PackedScene" path="res://assets/models/concord/concord_building_muster_bay.glb" id="20"]
 [ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="5"]
 
+[ext_resource type="Resource" path="res://data/units/concord_lancer.tres" id="6"]
+
+[ext_resource type="Resource" path="res://data/units/concord_wisp.tres" id="7"]
+
 [resource]
 script = ExtResource("1")
 vision_range = 16.0
 display_name = "Muster Bay"
-description = "Trains infantry: Rangers."
+description = "Trains infantry: Rangers, Lancers and Wisps."
 max_health = 1000
 footprint = Rect2(-4.3, -4.3, 8.6, 8.6)
 height = 7.2
@@ -20,7 +24,7 @@ door = Vector3(0, 0, 8.5)
 cost_alloy = 200
 cost_flux = 0
 build_time = 25.0
-produces = Array[ExtResource("4")]([ExtResource("5")])
+produces = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7")])
 scene = ExtResource("2")
 icon = ExtResource("3")
 sound_set = &"muster_bay"

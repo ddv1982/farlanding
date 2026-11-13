@@ -14,6 +14,8 @@ extends PanelContainer
 ##   click on the map uses it there.
 ## - Surveyors selected: how to scan a site.
 ## - Haulers selected: how to send them harvesting.
+## - Wisps selected: the stealth-mode toggle (creep and cloak, or run in the open) and
+##   how to sabotage.
 ##
 ## Hints name the command button of the current mouse scheme (Settings).
 
@@ -29,6 +31,10 @@ const PRODUCE_HINT: String = (
 	"Left-click: queue  ·  right-click a button: cancel  ·  " + "%s ground: rally point"
 )
 const SITE_HINT: String = "Select Fabricators and %s the site to help build"
+const STEALTH_HINT: String = (
+	"%s an enemy building in sight to sabotage it  ·  in stealth mode Wisps creep "
+	+ "and cloak when still or slow"
+)
 const LAB_HINT: String = (
 	"Pick a field option, then left-click the map  ·  " + "Intel comes from discoveries"
 )
@@ -107,6 +113,8 @@ func _current_mode() -> String:
 
 ## Hint-only modes for units without buttons: Surveyors, then Haulers.
 func _unit_mode() -> String:
+	if not _cloakers().is_empty():
+		return "stealth"
 	if not SelectionRules.able(controller.selection, Scanner.KIND).is_empty():
 		return "scan"
 	if not SelectionRules.able(controller.selection, Harvester.KIND).is_empty():
@@ -139,6 +147,9 @@ func _rebuild() -> void:
 				_add_option_button(option, building)
 	elif _mode.begins_with("aim:"):
 		_title.text = controller.targeting_option.display_name.to_upper()
+	elif _mode == "stealth":
+		_title.text = "WISPS"
+		_add_stealth_button()
 	elif _mode == "scan":
 		_title.text = "SURVEYORS"
 	elif _mode == "haul":
@@ -162,6 +173,8 @@ func _refresh() -> void:
 		_hint.text = AIM_HINT
 	elif _mode.begins_with("build:"):
 		_hint.text = BUILD_HINT % _command_click()
+	elif _mode == "stealth":
+		_refresh_stealth()
 	elif _mode == "scan":
 		_hint.text = SCAN_HINT % _command_click()
 	elif _mode == "haul":
@@ -169,6 +182,8 @@ func _refresh() -> void:
 	elif _mode.begins_with("building:"):
 		_refresh_building(controller.selected_building)
 	for entry: Dictionary in _entries:
+		if entry.has("stealth"):
+			continue
 		if entry.has("option"):
 			_refresh_option(entry, pile)
 		else:
@@ -370,6 +385,66 @@ func _set_status(text: String, color: Color) -> void:
 	_status.visible = true
 	_status.text = text
 	_status.add_theme_color_override(&"font_color", color)
+
+
+func _add_stealth_button() -> void:
+	var icon: Texture2D = _cloakers()[0].def.icon
+	var button: Button = HudStyle.make_button(icon, "Stealth")
+	button.tooltip_text = (
+		"Stealth mode on: the Wisps creep and cloak when they hold still or move slowly.\n"
+		+ "Off: full speed, but plainly visible to any guard that looks their way."
+	)
+	button.pressed.connect(_on_stealth_pressed)
+	_buttons.add_child(button)
+	_entries.append({"stealth": true, "button": button})
+
+
+func _refresh_stealth() -> void:
+	var cloakers: Array[Unit] = _cloakers()
+	var cloaked: int = 0
+	var stealthy: int = 0
+	for unit: Unit in cloakers:
+		if unit.is_cloaked:
+			cloaked += 1
+		if unit.cloak.stealth_mode:
+			stealthy += 1
+	var on: bool = stealthy * 2 >= cloakers.size()
+	_set_status(
+		"Stealth mode %s  ·  %d of %d cloaked" % ["ON" if on else "OFF", cloaked, cloakers.size()],
+		HudStyle.INTEL_COLOR if on else HudStyle.WARNING_COLOR
+	)
+	_hint.text = STEALTH_HINT % _command_click()
+	for entry: Dictionary in _entries:
+		if entry.has("stealth"):
+			var button: Button = entry["button"]
+			var caption: String = "Stealth\n%s" % ("ON" if on else "OFF")
+			if button.text != caption:
+				button.text = caption
+
+
+func _on_stealth_pressed() -> void:
+	var cloakers: Array[Unit] = _cloakers()
+	if cloakers.is_empty():
+		return
+	var stealthy: int = 0
+	for unit: Unit in cloakers:
+		if unit.cloak.stealth_mode:
+			stealthy += 1
+	var entities: Array[Node3D] = []
+	entities.assign(cloakers)
+	Events.ui_feedback.emit(&"click")
+	world.context.command_queue.push(
+		CloakCommand.new(faction, entities, stealthy * 2 < cloakers.size())
+	)
+
+
+## Selected units that can cloak.
+func _cloakers() -> Array[Unit]:
+	var result: Array[Unit] = []
+	for unit: Unit in controller.selection:
+		if is_instance_valid(unit) and unit.cloak != null:
+			result.append(unit)
+	return result
 
 
 func _builders() -> Array[Unit]:

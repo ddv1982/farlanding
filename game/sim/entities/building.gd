@@ -17,8 +17,10 @@ signal health_changed(fraction: float)
 signal aim_changed(point: Vector3)
 ## The weapon stopped aiming.
 signal aim_cleared
+## A saboteur disabled the building for good.
+signal sabotaged
 
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
 const GROUP: StringName = &"buildings"
 
 var def: BuildingDef
@@ -38,6 +40,10 @@ var weapon: Weapon = null
 var is_visible_to_player: bool = true
 ## True once the player has seen it; an enemy building stays shown from then on.
 var seen_by_player: bool = true
+## Sabotage work done on it so far, 0..1 (1 = sabotaged). Read by UI.
+var sabotage_progress: float = 0.0
+## True once sabotaged: it no longer works. Read by audio, UI and presentation.
+var is_sabotaged: bool = false
 ## True from the moment its health ran out.
 var is_dead: bool:
 	get:
@@ -103,7 +109,16 @@ func _ready() -> void:
 
 
 func is_operational() -> bool:
-	return construction != null and construction.is_complete()
+	return construction != null and construction.is_complete() and not is_sabotaged
+
+
+## Disables the building for good (SimWorld.sabotage announces it).
+func sabotage() -> void:
+	if is_sabotaged:
+		return
+	sabotage_progress = 1.0
+	is_sabotaged = true
+	sabotaged.emit()
 
 
 ## Ground area this building occupies (world X/Z).
@@ -172,6 +187,8 @@ func to_dict() -> Dictionary:
 		"vent": Order.entity_id_of(vent),
 		"health": health.to_dict() if health != null else {},
 		"weapon": weapon.to_dict() if weapon != null else {},
+		"sabotage": sabotage_progress,
+		"sabotaged": is_sabotaged,
 	}
 
 
@@ -199,3 +216,5 @@ func from_dict(data: Dictionary) -> void:
 	var weapon_data: Dictionary = data.get("weapon", {})
 	if weapon != null and not weapon_data.is_empty():
 		weapon.from_dict(weapon_data)
+	sabotage_progress = data.get("sabotage", 0.0)
+	is_sabotaged = data.get("sabotaged", false)

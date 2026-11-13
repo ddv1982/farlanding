@@ -40,6 +40,8 @@ var faction: int = 0
 ## World X/Z area the map shows.
 var area: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
 
+## Known active objectives with an area, drawn as rings (from the objective events).
+var _objectives: Array[Objective] = []
 var _terrain: TextureRect = null
 var _overlay: Control = null
 var _dragging: bool = false
@@ -80,6 +82,10 @@ func setup(
 	_overlay.draw.connect(_draw_overlay)
 	_terrain.add_child(_overlay)
 	_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	Events.objective_added.connect(track_objective)
+	Events.objective_updated.connect(track_objective)
+	Events.objective_completed.connect(track_objective)
+	Events.objective_failed.connect(track_objective)
 
 
 func _process(_delta: float) -> void:
@@ -159,7 +165,37 @@ func _draw_overlay() -> void:
 		_overlay.draw_rect(
 			Rect2(at - Vector2(half, half), Vector2(half, half) * 2.0), _color_for(unit.faction)
 		)
+	_draw_objectives(scale)
 	_draw_view()
+
+
+## Active objective areas: a pulsing ring in the objective's colour.
+func _draw_objectives(scale: float) -> void:
+	var pulse: float = 0.75 + 0.25 * sin(Time.get_ticks_msec() / 250.0)
+	for objective: Objective in _objectives:
+		var color: Color = (
+			ObjectivesPanel.PRIMARY_COLOR
+			if objective.kind == Objective.KIND_PRIMARY
+			else ObjectivesPanel.SECONDARY_COLOR
+		)
+		color.a = pulse
+		var at: Vector2 = to_map(objective.area_center)
+		var radius: float = maxf(objective.area_radius * scale, 4.0)
+		_overlay.draw_arc(at, radius, 0.0, TAU, 24, Color(0, 0, 0, 0.6), 3.0)
+		_overlay.draw_arc(at, radius, 0.0, TAU, 24, color, 1.5)
+
+
+## Shows `objective`'s area while it is known and active (also fed by the objective
+## events).
+func track_objective(objective: RefCounted) -> void:
+	var changed: Objective = objective as Objective
+	if changed == null:
+		return
+	var shown: bool = changed.is_known and changed.has_area and changed.is_active()
+	if shown and not _objectives.has(changed):
+		_objectives.append(changed)
+	elif not shown:
+		_objectives.erase(changed)
 
 
 ## Charted sites: an unresolved signal is a "?" in a ring, a resolved one a dot.

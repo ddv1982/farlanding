@@ -1,35 +1,37 @@
 class_name KesselProving
 extends Node3D
-## Kessel Reach proving ground: wires the mission services together (combat, fog of
-## war, win/lose), lands the player's Lander (it becomes the HQ) with a small starting
-## crew, places the Alloy deposits and Flux vents, and sets up a Combine base on the
-## far side of the basin, run by a Commander AI (ai/commander.gd), charts the
-## discovery sites the orbital scan found (a chain's later steps stay hidden until
-## led to) and posts the dormant Custodian Wardens. The player wins by destroying
-## every Combine unit and building (Custodians do not count) and loses with the
-## Lander. Every spawn is data in the exported properties.
+## Kessel Reach proving ground: the map, not the mission. It builds the terrain data,
+## wires the mission services (world, combat, fog of war), places the Alloy deposits
+## and Flux vents, charts the discovery sites the orbital scan found (a chain's later
+## steps stay hidden until led to) and posts the dormant Custodian Wardens. Then the
+## MissionDef in `mission` supplies the forces and rules through a Mission node
+## (missions/mission.gd): who lands where, the enemy, objectives, script. Without one
+## it plays the default mission, so the scene also runs on its own.
 
 ## The terrain is 240 m square, centred on the origin.
 const TERRAIN_AREA: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
 const HEIGHT_SPACING: float = 1.0
 ## Vision grid cell size, in metres.
 const VISION_CELL: float = 2.0
+## The usual landing site (the conquest Lander's place).
+const LANDING_ZONE: Vector3 = Vector3(-80.0, 0.0, 85.0)
 
 @export var context: MissionContext
 @export var world: SimWorld
 @export var camera: RtsCamera
 @export var navigation_region: NavigationRegion3D
+@export var hud: Hud
+@export var selection_controller: SelectionController
 @export var economy_rules: EconomyRules
-## Armour x damage multipliers for this mission.
+## Armour x damage multipliers for this map.
 @export var damage_table: DamageTable
 ## Fog of war on (off shows the whole map, for testing).
 @export var fog_of_war: bool = true
-@export var player_faction: int = 0
-## Where the Lander stands (its centre).
-@export var player_start: Vector3 = Vector3(-80.0, 0.0, 85.0)
-@export var lander: BuildingDef
-## Starting crew, lined up in front of the Lander's door. Haulers start harvesting.
-@export var start_roster: Array[UnitDef] = []
+## Played when nothing set `mission` before the map entered the tree (a path, not a
+## reference: the mission refers to this scene).
+@export_file("*.tres") var default_mission_path: String = ""
+## False: terrain, resources and sites only, no mission (benchmarks).
+@export var with_mission: bool = true
 ## Buildings may only be placed inside this area (world X/Z).
 @export var build_bounds: Rect2 = Rect2(-104.0, -104.0, 208.0, 208.0)
 @export_group("Resources")
@@ -46,38 +48,26 @@ const VISION_CELL: float = 2.0
 ## Dormant Custodians, one position per entry of `custodian_positions`.
 @export var custodian_roster: Array[UnitDef] = []
 @export var custodian_positions: PackedVector3Array = PackedVector3Array()
-@export_group("Combine")
-@export var hostile_faction: int = 1
-## The Combine base, pre-built: its HQ (a Hub) first, then its other buildings.
-@export var hostile_hq: BuildingDef
-@export var hostile_hq_position: Vector3 = Vector3(66.0, 0.0, -95.0)
-@export var hostile_buildings: Array[BuildingDef] = []
-## One position per entry of `hostile_buildings` (building centres).
-@export var hostile_building_positions: PackedVector3Array = PackedVector3Array()
-## The Combine crew, lined up at `hostile_start` facing `hostile_facing`: harvesters
-## start mining, the rest wait for the commander.
-@export var hostile_roster: Array[UnitDef] = []
-@export var hostile_start: Vector3 = Vector3(56.0, 0.0, -83.0)
-@export var hostile_facing: Vector3 = Vector3(0.0, 0.0, 1.0)
 @export_group("Enemy AI")
-## The commander that plays the Combine; none leaves the base idle (testing).
-@export var commander_profile: CommanderProfile
-@export_enum("easy", "normal", "hard") var enemy_difficulty: String = "easy"
 ## Prints the commander's notable decisions to the output (play-testing).
 @export var log_enemy_ai: bool = false
 
+## The mission to play; set before the map enters the tree.
+var mission: MissionDef = null
+## The running mission, or null.
+var runner: Mission = null
 var heights: HeightField
 var walk_grid: WalkGrid
-var outcome: ConquestOutcome
 var fog: FogOfWar
-var commander: Commander
-
-var _outcome_check_pending: bool = false
+var presentation: MissionPresentation
 
 
 func _ready() -> void:
 	var started: int = Time.get_ticks_msec()
 	Events.mission_started.emit()
+	if mission == null and with_mission and default_mission_path != "":
+		mission = load(default_mission_path) as MissionDef
+	var player_faction: int = mission.player_faction if mission != null else 0
 	heights = HeightField.from_physics(
 		get_world_3d().direct_space_state, TERRAIN_AREA, HEIGHT_SPACING
 	)
@@ -92,38 +82,38 @@ func _ready() -> void:
 	if fog_of_war:
 		world.enable_vision(TERRAIN_AREA, VISION_CELL)
 	camera.heights = heights
-	# Look a little in front of the Lander so its door and the units it
-	# produces are not hidden behind the command panel.
-	camera.center_on(player_start + Vector3(0.0, 0.0, 9.0))
 	print("kessel_proving: terrain data built in %d ms" % (Time.get_ticks_msec() - started))
 	started = Time.get_ticks_msec()
 	_spawn_nodes(deposit, deposit_positions)
 	_spawn_nodes(rich_deposit, rich_deposit_positions)
 	_spawn_nodes(vent, vent_positions)
-	var hq: Building = null
-	if lander != null:
-		hq = world.spawn_building(lander, player_faction, player_start, true)
-	_spawn_hostile_base()
+	if mission != null:
+		runner = Mission.new()
+		runner.name = &"Mission"
+		runner.log_enemy_ai = log_enemy_ai
+		add_child(runner)
+		runner.setup(mission, context, world, TERRAIN_AREA)
+		runner.spawn_structures()
 	_spawn_sites()
 	paths.apply_cuts()
 	print(
 		(
-			"kessel_proving: %d resource nodes and the Lander placed, navmesh cut in %d ms"
+			"kessel_proving: %d resource nodes and the bases placed, navmesh cut in %d ms"
 			% [world.resource_nodes.size(), Time.get_ticks_msec() - started]
 		)
 	)
-	var crew_at: Vector3 = hq.door_position() + Vector3(0.0, 0.0, -5.0) if hq else player_start
-	for unit: Unit in spawn_group(start_roster, player_faction, crew_at, Vector3.FORWARD):
-		if unit.harvester != null:
-			world.auto_harvest(unit, unit.sim_position())
-	for unit: Unit in spawn_group(hostile_roster, hostile_faction, hostile_start, hostile_facing):
-		if unit.harvester != null:
-			world.auto_harvest(unit, unit.sim_position())
 	for i: int in mini(custodian_roster.size(), custodian_positions.size()):
 		var towards_centre: float = Mover.yaw_for(-custodian_positions[i])
 		world.spawn_unit(
 			custodian_roster[i], Factions.CUSTODIANS, custodian_positions[i], towards_centre
 		)
+	presentation = MissionPresentation.new()
+	presentation.name = &"MissionPresentation"
+	add_child(presentation)
+	presentation.setup(world, player_faction)
+	if runner != null:
+		runner.spawn_units()
+	_center_camera()
 	if world.vision != null:
 		# See the landing site from the first frame, not one sim tick later.
 		world.vision.update_faction(
@@ -133,63 +123,24 @@ func _ready() -> void:
 		fog.name = &"FogOfWar"
 		add_child(fog)
 		fog.setup(world.vision, player_faction)
-	outcome = ConquestOutcome.new(player_faction, lander)
-	Events.entity_died.connect(_on_entity_died)
-	if commander_profile != null:
-		commander = Commander.new()
-		commander.name = &"Commander"
-		add_child(commander)
-		commander.verbose = log_enemy_ai
-		commander.setup(
-			context,
-			world,
-			hostile_faction,
-			commander_profile,
-			StringName(enemy_difficulty),
-			TERRAIN_AREA
-		)
+	if hud != null and mission != null and mission.enemy_alert_meter:
+		hud.show_alert_meter(mission.hostile_faction)
+	if runner != null:
+		runner.start()
 
 
-## Spawns `defs` as one formation centred on `center`, facing `facing`.
-func spawn_group(
-	defs: Array[UnitDef], faction: int, center: Vector3, facing: Vector3
-) -> Array[Unit]:
-	var spawned: Array[Unit] = []
-	if defs.is_empty():
-		return spawned
-	var radii: PackedFloat32Array = PackedFloat32Array()
-	for def: UnitDef in defs:
-		radii.append(def.radius)
-	var formation: Formation = Formation.new(
-		defs.size(), center, facing, Formation.spacing_for(radii), world.paths.is_walkable
-	)
-	var yaw: float = Mover.yaw_for(formation.forward)
-	for i: int in defs.size():
-		spawned.append(world.spawn_unit(defs[i], faction, formation.slots[i], yaw))
-	return spawned
-
-
-# Judged once the frame's deaths are all in, not per death: if the Lander and the
-# last enemy die together, the order they died in must not decide the mission.
-func _on_entity_died(_entity: Node3D) -> void:
-	if _outcome_check_pending:
+func _center_camera() -> void:
+	if mission == null:
+		camera.center_on(LANDING_ZONE)
 		return
-	_outcome_check_pending = true
-	_check_outcome.call_deferred()
-
-
-func _check_outcome() -> void:
-	_outcome_check_pending = false
-	outcome.check(world)
-
-
-func _spawn_hostile_base() -> void:
-	if hostile_hq != null:
-		world.spawn_building(hostile_hq, hostile_faction, hostile_hq_position, true)
-	for i: int in mini(hostile_buildings.size(), hostile_building_positions.size()):
-		world.spawn_building(
-			hostile_buildings[i], hostile_faction, hostile_building_positions[i], true
-		)
+	if mission.camera_start != Vector3.INF:
+		camera.center_on(mission.camera_start)
+	elif runner != null and runner.player_hq != null:
+		# Look a little in front of the Lander so its door and the units it
+		# produces are not hidden behind the command panel.
+		camera.center_on(runner.player_hq.position + Vector3(0.0, 0.0, 9.0))
+	else:
+		camera.center_on(mission.player_start)
 
 
 func _spawn_sites() -> void:

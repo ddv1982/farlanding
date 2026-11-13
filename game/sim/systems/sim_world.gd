@@ -9,7 +9,7 @@ extends Node3D
 ## `Combat.SERVICE_KEY`, Discovery as `Discovery.SERVICE_KEY`.
 
 const SERVICE_KEY: StringName = &"world"
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 ## Produced units without a rally point walk this far out of the door.
 const DOOR_CLEARANCE: float = 4.0
 
@@ -26,6 +26,8 @@ var economy: Economy = null
 var combat: Combat = null
 ## Fog of war, or null when the mission has none (everything is seen).
 var vision: VisionSystem = null
+## Signatures, watchers' suspicion and alert meters (created with vision), or null.
+var stealth: StealthSystem = null
 var rules: EconomyRules = EconomyRules.new()
 var player_faction: int = 0
 ## Area buildings may be placed in (world X/Z).
@@ -73,6 +75,8 @@ func setup(
 ## before spawning. Every faction then sees only what its units and buildings see.
 func enable_vision(area: Rect2, cell_size: float = 2.0) -> VisionSystem:
 	vision = VisionSystem.new(area, cell_size, player_faction)
+	stealth = StealthSystem.new(vision.grid, combat, heights)
+	vision.stealth = stealth
 	return vision
 
 
@@ -183,6 +187,17 @@ func disturb(at: Vector3) -> void:
 		var there: Vector3 = unit.sim_position()
 		if Vector2(there.x - at.x, there.z - at.z).length() <= unit.def.guard_radius:
 			unit.dormancy.wake()
+
+
+## `saboteur` finished sabotaging `building`: it stops working for good.
+func sabotage(building: Building, saboteur: Node3D) -> void:
+	if building == null or building.is_sabotaged:
+		return
+	building.sabotage()
+	Events.entity_sabotaged.emit(building, saboteur)
+	economy.update_power(buildings)
+	if stealth != null:
+		stealth.notice_sabotage(building)
 
 
 ## The entity with save id `id`, or null.
@@ -313,6 +328,8 @@ func _on_ticked(tick: int) -> void:
 	combat.begin_tick(units, buildings)
 	if vision != null:
 		vision.tick(tick, units, buildings, resource_nodes)
+	if stealth != null:
+		stealth.tick(tick, dt, units)
 	for unit: Unit in units:
 		unit.sim_tick(dt)
 	for building: Building in buildings.duplicate():
@@ -516,6 +533,7 @@ func to_dict() -> Dictionary:
 		"discovery": discovery.to_dict(),
 		"combat": combat.to_dict(),
 		"vision": vision.to_dict() if vision != null else {},
+		"stealth": stealth.to_dict() if stealth != null else {},
 	}
 
 
@@ -577,6 +595,9 @@ func from_dict(data: Dictionary) -> void:
 	var vision_data: Dictionary = data.get("vision", {})
 	if vision != null and not vision_data.is_empty():
 		vision.from_dict(vision_data)
+	var stealth_data: Dictionary = data.get("stealth", {})
+	if stealth != null and not stealth_data.is_empty():
+		stealth.from_dict(stealth_data)
 	var combat_data: Dictionary = data.get("combat", {})
 	if not combat_data.is_empty():
 		combat.from_dict(combat_data, entity)
