@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentation/campaign/star_backdrop.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_ship_meridian.glb" id="2"]
+[ext_resource type="Shader" path="res://presentation/shaders/star_sky.gdshader" id="3"]
+[ext_resource type="Shader" path="res://presentation/shaders/planet.gdshader" id="4"]
+
+[sub_resource type="ShaderMaterial" id="sky_material"]
+shader = ExtResource("3")
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_material")
+radiance_size = 1
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.2, 0.26, 0.36, 1)
+ambient_light_energy = 0.9
+reflected_light_source = 1
+tonemap_mode = 3
+glow_enabled = true
+glow_intensity = 0.45
+glow_bloom = 0.0
+glow_hdr_threshold = 1.6
+
+[sub_resource type="SphereMesh" id="planet_mesh"]
+radius = 260.0
+height = 520.0
+radial_segments = 96
+rings = 48
+
+[sub_resource type="ShaderMaterial" id="planet_material"]
+shader = ExtResource("4")
+
+[node name="StarBackdrop" type="Node3D" node_paths=PackedStringArray("ship", "planet", "camera")]
+script = ExtResource("1")
+ship = NodePath("Meridian")
+planet = NodePath("Planet")
+camera = NodePath("Camera3D")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.74, 0.303, -0.6, 0, 0.892, 0.45, 0.673, -0.333, 0.66, 0, 0, 0)
+light_color = Color(1, 0.95, 0.88, 1)
+light_energy = 1.5
+shadow_enabled = true
+directional_shadow_max_distance = 200.0
+
+[node name="Meridian" parent="." instance=ExtResource("2")]
+transform = Transform3D(0.77, -0.1, 0.63, 0.14, 0.99, -0.02, -0.62, 0.1, 0.77, 34, 58, -40)
+
+[node name="Planet" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.94, 0.34, 0, -0.34, 0.94, -170, -250, -200)
+mesh = SubResource("planet_mesh")
+material_override = SubResource("planet_material")
+cast_shadow = 0
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.985, 0.174, 0, -0.174, 0.985, -8, 50, 62)
+fov = 40.0
+far = 2000.0
+current = true
