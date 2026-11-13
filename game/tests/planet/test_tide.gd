@@ -109,6 +109,12 @@ func test_the_tide_is_announced_rises_holds_and_falls() -> void:
 	assert_almost_eq(conditions.shallows_close_seconds, 20.0, 0.5, "the low hold starts")
 
 
+func test_a_new_landing_reports_where_the_sea_is() -> void:
+	_tide()
+	_f.tick(1)
+	assert_eq(_levels, [0.0] as Array[float], "low water is reported at once")
+
+
 func test_the_level_is_reported_a_few_times_a_second_at_most() -> void:
 	_tide()
 	_seconds(10.0 + 8.0 + 1.0)

@@ -147,6 +147,36 @@ func test_units_caught_wade_out_slowly_take_light_damage_and_are_reported() -> v
 	assert_eq(_alerts.count(&"units_in_water"), 1, "enemies in water are no news")
 
 
+func test_a_unit_with_an_order_caught_in_the_water_gets_out_and_keeps_the_order() -> void:
+	var unit: Unit = _f.world.spawn_unit(_f.ranger, 0, Vector3(0, 0, 0))
+	# Its goal is further along the channel bed: fine at low water.
+	_move(unit, Vector3(0, 0, 30))
+	_sea(HIGH)
+	_seconds(8.0)
+	assert_false(unit.is_dead)
+	assert_gt(absf(unit.sim_position().x), BAND_HALF_WIDTH, "it left the water")
+	assert_false(unit.orders.is_idle(), "and still means to go there")
+	var health: float = unit.health.current
+	_seconds(5.0)
+	assert_almost_eq(unit.health.current, health, 0.01, "no more damage while it waits")
+	_sea(LOW)
+	_seconds(12.0)
+	assert_almost_eq(unit.sim_position().z, 30.0, 1.5, "it goes on once the sea fell")
+
+
+func test_a_new_world_checks_its_routes_against_the_sea_once() -> void:
+	_sea(HIGH)
+	_seconds(1.0)
+	var unit: Unit = _f.world.spawn_unit(_f.ranger, 0, Vector3(-30, 0, 0))
+	_move(unit, Vector3(20, 0, 0))
+	# As after a load: the stage already matches, so no switch announces itself.
+	_f.world.flood._started = false
+	_f.world.flood._replan_at = -1
+	_f.world.flood._replan_until = -1
+	_f.tick(1)
+	assert_gt(_f.world.flood._replan_until, 0, "the routes are checked anyway")
+
+
 func test_building_on_ground_that_floods_is_refused() -> void:
 	var placement: PlacementRules = _f.world.placement_rules()
 	assert_eq(

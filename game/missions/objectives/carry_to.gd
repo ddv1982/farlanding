@@ -20,7 +20,10 @@ func _evaluate() -> void:
 			Vector2(at.x - area_center.x, at.z - area_center.z).length() <= area_radius
 		)
 		var holder: int = prop.carrier_faction()
-		if inside and (holder < 0 or sides.has(holder)) and prop.was_moved():
+		# Put down in the area counts only if the side's own unit carried it last: an
+		# enemy carrier killed there has not delivered it.
+		var by_side: bool = sides.has(holder) or (holder < 0 and sides.has(prop.last_faction))
+		if inside and by_side and prop.was_moved():
 			complete()
 			return
 		if sides.has(holder):

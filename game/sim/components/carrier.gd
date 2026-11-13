@@ -52,6 +52,8 @@ func step(order: Order, _dt: float) -> bool:
 	if Vector2(prop.position.x - at.x, prop.position.z - at.z).length() <= reach:
 		pick_up(prop)
 		return true
+	if unit.locomotion.is_waiting_for_tide():
+		return false  # the way is under water: the order holds until the sea falls
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
 		if _attempts > MAX_ATTEMPTS:

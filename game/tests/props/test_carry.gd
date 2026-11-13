@@ -203,6 +203,51 @@ func test_carry_to_is_done_when_it_reaches_the_area() -> void:
 	assert_eq(objective.state, Objective.STATE_DONE)
 
 
+func test_an_enemy_dropping_it_in_the_goal_delivers_nothing() -> void:
+	var prop: Prop = _artefact(Vector3(2, 0, -20))
+	var thief: Unit = _soldier(1, Vector3(4, 0, -20))
+	var props: Dictionary = {
+		"side": ObjectiveDef.SIDE_PLAYER,
+		"defs": [_artefact_def] as Array[EntityDef],
+		"area_center": Vector3(0, 0, -20),
+		"area_radius": 8.0,
+	}
+	var mission: Mission = _f.start(
+		(
+			[MissionFixture.objective(&"bring", ObjectiveDef.TYPE_CARRY_TO, &"primary", props)]
+			as Array[ObjectiveDef]
+		)
+	)
+	var objective: Objective = mission.objective(&"bring")
+	_carry(1, [thief] as Array[Node3D], prop)
+	_seconds(2.0)
+	assert_true(prop.is_carried(), "the enemy has it, inside the player's goal")
+	thief.health.take(100000.0)
+	_seconds(1.0)
+	assert_false(prop.is_carried())
+	assert_true(objective.is_active(), "dropped there by the enemy: not delivered")
+
+
+func test_a_carried_prop_is_drawn_only_while_its_carrier_is_seen() -> void:
+	var prop: Prop = _artefact(Vector3(20, 0, 0))
+	var thief: Unit = _soldier(1, Vector3(17, 0, 0))
+	_carry(1, [thief] as Array[Node3D], prop)
+	_seconds(2.0)
+	assert_true(prop.is_carried())
+	thief.is_visible_to_player = false
+	prop._process(0.1)
+	assert_false(prop.visible, "it must not show where a hidden carrier is")
+	thief.is_visible_to_player = true
+	prop._process(0.1)
+	assert_true(prop.visible)
+	thief.is_visible_to_player = false
+	prop._process(0.1)
+	thief.health.take(100000.0)
+	_seconds(0.5)
+	prop._process(0.1)
+	assert_true(prop.visible, "dropped, it is drawn like any prop")
+
+
 func test_keep_from_enemy_fails_when_the_enemy_brings_it_home() -> void:
 	var prop: Prop = _artefact(Vector3(2, 0, 0))
 	var raider: Unit = _soldier(1, Vector3(4, 0, 0))

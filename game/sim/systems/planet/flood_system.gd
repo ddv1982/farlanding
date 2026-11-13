@@ -34,6 +34,8 @@ const DRY_SEARCH_STEP: float = 2.0
 const DRY_MARGIN: float = 0.2
 ## Spacing of the samples along a route checked against the sea, in metres.
 const ROUTE_SAMPLE: float = 2.0
+## A unit on its way through water keeps going if dry ground is this near on its route.
+const WADE_OUT_METRES: float = 8.0
 
 var world: SimWorld = null
 ## Wall-clock cost of the last tick, in microseconds.
@@ -44,6 +46,9 @@ var wading_count: int = 0
 var _replan_at: int = -1
 var _replan_until: int = -1
 var _next_alert_tick: int = 0
+## False until the first tick: a new world (also one restored from a save) checks
+## its routes against the sea once, whatever stage it starts in.
+var _started: bool = false
 
 
 func _init(p_world: SimWorld) -> void:
@@ -56,7 +61,8 @@ func tick(tick_number: int, dt: float) -> void:
 	if not conditions.has_sea():
 		return
 	var started: int = Time.get_ticks_usec()
-	if sync():
+	if sync() or not _started:
+		_started = true
 		_replan_at = tick_number + REPLAN_DELAY_TICKS
 		_replan_until = tick_number + REPLAN_WINDOW_TICKS
 	if _replan_at >= 0 and tick_number >= _replan_at:
@@ -158,14 +164,44 @@ func _check_units(tick_number: int, step_seconds: float) -> void:
 		var damage: float = conditions.wading_damage_per_second * step_seconds
 		if damage > 0.0 and unit.health != null:
 			unit.health.take(damage)
-		if unit.is_dead or unit.is_dormant or unit.orders == null or not unit.orders.is_idle():
+		if unit.is_dead or unit.is_dormant or unit.orders == null:
 			continue
+		# Standing in the water, idle or with an order that waits for the tide: get
+		# out first. A waiting order is kept and goes on from dry ground.
+		var idle: bool = unit.orders.is_idle()
+		if not idle and not unit.locomotion.is_waiting_for_tide():
+			# On its way: fine if the route leaves the water soon, else get out.
+			if _reaches_dry_soon(unit.locomotion.remaining_route()):
+				continue
 		var dry: Vector3 = nearest_dry(at)
-		if dry != Vector3.INF:
+		if dry == Vector3.INF:
+			continue
+		if idle:
 			unit.orders.give(Order.new(MoveCommand.KIND_MOVE, dry))
+		else:
+			unit.orders.interrupt(Order.new(MoveCommand.KIND_MOVE, dry))
 	if player_wading and tick_number >= _next_alert_tick:
 		_next_alert_tick = tick_number + roundi(ALERT_SECONDS * SimClock.TICK_RATE)
 		Events.advisor_alert.emit(&"units_in_water")
+
+
+## True if `route` (the unit's position first) comes out of closed water within
+## WADE_OUT_METRES of walking.
+func _reaches_dry_soon(route: PackedVector3Array) -> bool:
+	var closed: float = world.paths.closed_below
+	var walked: float = 0.0
+	for i: int in range(1, route.size()):
+		var from: Vector3 = route[i - 1]
+		var to: Vector3 = route[i]
+		var length: float = Vector2(to.x - from.x, to.z - from.z).length()
+		var steps: int = maxi(1, ceili(length / ROUTE_SAMPLE))
+		for step: int in range(1, steps + 1):
+			walked += length / steps
+			if walked > WADE_OUT_METRES:
+				return false
+			if not _closed_at(from.lerp(to, float(step) / steps), closed):
+				return true
+	return false
 
 
 func _check_nodes() -> void:

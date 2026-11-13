@@ -35,7 +35,8 @@ var _turn_at: int = 0
 ## Tick the current rise or fall began and ends.
 var _phase_start: int = 0
 var _phase_end: int = 0
-var _emitted: float = 0.0
+## The last level reported (-1: none yet, so a new landing reports where the sea is).
+var _emitted: float = -1.0
 var _emitted_tick: int = -1000
 
 

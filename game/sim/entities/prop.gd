@@ -65,14 +65,17 @@ func _enter_tree() -> void:
 func _process(delta: float) -> void:
 	if _spinner != null:
 		_spinner.rotate_y(SPIN_SPEED * delta)
-	if carrier == null:
-		return
-	if not is_instance_valid(carrier):
+	if carrier == null or not is_instance_valid(carrier):
+		# Lying on the ground it is terrain-like again: always drawn.
 		carrier = null
 		is_visible_to_player = true
+		visible = true
 		return
 	position = carrier.position + Vector3.UP * CARRY_LIFT
+	# Carried, it is seen exactly as its carrier is: it must not give away a carrier
+	# the fog hides.
 	is_visible_to_player = carrier.is_visible_to_player
+	visible = carrier.is_visible_to_player
 
 
 func _ready() -> void:
