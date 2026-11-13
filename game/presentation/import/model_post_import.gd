@@ -9,6 +9,9 @@ const MATERIALS: Dictionary[String, String] = {
 	"fl_terrain": "res://assets/materials/fl_terrain_kessel.tres",
 	"fl_terrain_thalassa": "res://assets/materials/fl_terrain_thalassa.tres",
 	"fl_terrain_emberfall": "res://assets/materials/fl_terrain_emberfall.tres",
+	"fl_terrain_verdance": "res://assets/materials/fl_terrain_verdance.tres",
+	"fl_canopy": "res://assets/materials/fl_canopy.tres",
+	"fl_bark": "res://assets/materials/fl_bark.tres",
 }
 
 
