@@ -234,6 +234,14 @@ func update_launch(now: float) -> bool:
 	return true
 
 
+## The campaign took the player back aboard the ship (Phase 7): a briefing
+## left without closing it, or a launch that never landed, is over.
+func handle_left_landing() -> void:
+	_briefing_open = false
+	_launch_pending = false
+	_launch_due = INF
+
+
 func is_briefing_open() -> bool:
 	return _briefing_open
 

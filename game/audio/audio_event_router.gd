@@ -11,7 +11,8 @@ extends Node
 ## Advisor alerts go through an AdvisorQueue (throttled, never stacked, and
 ## place alerts such as under_attack skipped while the camera shows the place).
 ## Combat events (fire, impacts, deaths) are the CombatSoundRouter's; the
-## objective Advisor kinds (objective_new/_done/_failed) the MissionSoundRouter's.
+## objective Advisor kinds (objective_new/_done/_failed) the MissionSoundRouter's;
+## the campaign hovers (map_node_hover, tech_hover) the CampaignSoundRouter's.
 
 const BUILDINGS_GROUP: StringName = &"buildings"
 ## A production_started this soon after the same producer finished a unit is
@@ -135,6 +136,8 @@ func _on_command_issued(command: Command) -> void:
 
 
 func _on_ui_feedback(kind: StringName) -> void:
+	if kind in CampaignSoundRouter.HOVER_KINDS:
+		return  # rate-limited by the CampaignSoundRouter
 	_play(AudioCueSelector.feedback_event(kind), Vector3.INF)
 
 

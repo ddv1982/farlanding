@@ -45,6 +45,11 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"detected": 10.0,
 	&"storm_passed": 10.0,
 	&"enemy_intel": 25.0,
+	&"campaign_route_open": 10.0,
+	&"campaign_tech_available": 20.0,
+	&"campaign_intel_banked": 8.0,
+	&"campaign_return_won": 5.0,
+	&"campaign_return_lost": 5.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -69,11 +74,17 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"objective_new": 72,
 	&"storm_passed": 88,
 	&"enemy_intel": 66,
+	&"campaign_return_won": 92,
+	&"campaign_return_lost": 92,
+	&"campaign_intel_banked": 70,
+	&"campaign_route_open": 60,
+	&"campaign_tech_available": 55,
 }
 ## Kind -> the family whose throttle it shares (kinds not listed are their own).
 const FAMILY: Dictionary[StringName, StringName] = {
 	&"objective_hidden": &"objective_new",
 	&"objective_done_secondary": &"objective_done",
+	&"campaign_return_lost": &"campaign_return_won",
 }
 ## Kind -> the queued kind it makes stale.
 const SUPERSEDES: Dictionary[StringName, StringName] = {

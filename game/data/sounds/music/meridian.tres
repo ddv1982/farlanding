@@ -1,0 +1,72 @@
+[gd_resource type="Resource" script_class="MusicScore" format=3]
+
+[ext_resource type="Script" path="res://audio/music_score.gd" id="1_score"]
+[ext_resource type="Script" path="res://audio/music_clip.gd" id="2_clip"]
+[ext_resource type="Script" path="res://audio/music_state.gd" id="3_state"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/meridian/mus_meridian_pad.ogg" id="4_pad"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/meridian/mus_meridian_pulse.ogg" id="5_pulse"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/meridian/mus_meridian_melody.ogg" id="6_melody"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/meridian/mus_meridian_title.ogg" id="7_title"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/meridian/mus_meridian_web.ogg" id="8_web"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/meridian/mus_meridian_loadout.ogg" id="9_loadout"]
+
+[sub_resource type="Resource" id="Resource_ship_clip"]
+script = ExtResource("2_clip")
+name = &"ship"
+layers = Array[AudioStream]([ExtResource("4_pad"), ExtResource("5_pulse"), ExtResource("6_melody"), ExtResource("7_title"), ExtResource("8_web"), ExtResource("9_loadout")])
+layer_names = PackedStringArray("pad", "pulse", "melody", "title", "web", "loadout")
+layer_groups = PackedStringArray("", "", "", "", "", "")
+loop_beats = 64
+
+[sub_resource type="Resource" id="Resource_title"]
+script = ExtResource("3_state")
+name = &"title"
+clip = &"ship"
+layer_volumes_db = PackedFloat32Array(0, -80, -80, 0, -80, -80)
+intensity = 0
+fade_seconds = 4.0
+
+[sub_resource type="Resource" id="Resource_star_map"]
+script = ExtResource("3_state")
+name = &"star_map"
+clip = &"ship"
+layer_volumes_db = PackedFloat32Array(0, 0, 0, -80, -80, -80)
+intensity = 0
+fade_seconds = 3.0
+
+[sub_resource type="Resource" id="Resource_meridian"]
+script = ExtResource("3_state")
+name = &"meridian"
+clip = &"ship"
+layer_volumes_db = PackedFloat32Array(0, -4, -6, -80, -80, -80)
+intensity = 0
+fade_seconds = 3.0
+
+[sub_resource type="Resource" id="Resource_tech_web"]
+script = ExtResource("3_state")
+name = &"tech_web"
+clip = &"ship"
+layer_volumes_db = PackedFloat32Array(-2, -8, -10, -80, 0, -80)
+intensity = 0
+fade_seconds = 2.5
+
+[sub_resource type="Resource" id="Resource_loadout"]
+script = ExtResource("3_state")
+name = &"loadout"
+clip = &"ship"
+layer_volumes_db = PackedFloat32Array(-2, -5, -12, -80, -80, 0)
+intensity = 0
+fade_seconds = 2.5
+
+[resource]
+script = ExtResource("1_score")
+id = &"meridian"
+clips = Array[ExtResource("2_clip")]([SubResource("Resource_ship_clip")])
+states = Array[ExtResource("3_state")]([SubResource("Resource_title"), SubResource("Resource_star_map"), SubResource("Resource_meridian"), SubResource("Resource_tech_web"), SubResource("Resource_loadout")])
+default_state = &"star_map"
+transition_beats = 4.0
+min_hold = 0.0
+layer_fade = 3.0
+bpm = 70.0
+quantize_beats = 1.0
+ambience = &"amb_ship_hum"

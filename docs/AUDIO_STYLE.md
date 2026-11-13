@@ -250,6 +250,69 @@ loudness targets and the naming, and says how to add a sound.
   −24), `boulder` (crack, rockfall, dust, −22). Props never raise `under_attack` and never heat
   the score.
 
+- **Aboard the Meridian** (Phase 7, the campaign layer). Between landings the player is on a
+  quiet survey ship, and everything there is the *Meridian's own voice* (the Advisor's sine dyads)
+  rather than the Concord's outdoor instruments:
+
+  - **The ship theme** (`res://data/sounds/music/meridian.tres`, one 70 BPM loop of 16 bars,
+    54.86 s, six synchronised layers in `music/meridian/`). Still D Lydian, but its own harmony:
+    F#m9 → Bm(add9) → Dmaj9/A → E6/9, four bars each, ending on the bright Lydian II so it never
+    quite comes home. `pad` (the Meridian dyad as a glass pad: near-unison sine pairs, slow
+    tremolo, soft bass), `pulse` (sonar chimes on dotted quarters, drifting three against four),
+    `melody` (the theme on the Meridian lead, a pure sine with a chime touch: four questions, the
+    last hanging on G#), `title` (the theme broad and low on a warm reed with bells), `web`
+    (muted high marimba sixteenths and data ticks: thinking), `loadout` (a soft heartbeat on two
+    and four, brushed eighths, a reed drone: getting ready). One state per screen; moving between
+    screens fades layers on the beat and never restarts the piece:
+
+    | Screen / state | pad | pulse | melody | title | web | loadout | fade |
+    |---|---|---|---|---|---|---|---|
+    | `title` | 0 | – | – | 0 | – | – | 4 s |
+    | `star_map` | 0 | 0 | 0 | – | – | – | 3 s |
+    | `meridian` | 0 | −4 | −6 | – | – | – | 3 s |
+    | `tech_web` | −2 | −8 | −10 | – | 0 | – | 2.5 s |
+    | `loadout` | −2 | −5 | −12 | – | – | 0 | 2.5 s |
+
+  - **Ship ambience.** Two beds of different lengths on the AmbienceDirector's own players,
+    wandering in level like the planet's: `amb_ship_hum` (the hull: a hum on D2 with its octave
+    and fifth, two generators a hair apart so it beats slowly, a low rumble, a faint hull
+    resonance; 41 s, −31, wanders −3..0 dB) and `amb_ship_air` (air handling: a fan band breathing
+    at its blade rate, vent hiss, a far pump sighing five times a loop, a faint whine on A6; 29 s,
+    −33, −7..−1 dB). Every 5–12 s (twice that on the title, where the beds also sit 6 dB lower) a
+    flat ship detail, never the same twice running (group `shipdetail`, stereo, the pan in the
+    file): `amb_ship_relay` (two relay clicks and a tiny telemetry beep, −33), `amb_ship_creak`
+    (the hull settling: stick-slip friction through hull resonances, −34), `amb_ship_machine` (a
+    deck away: a clunk and a servo whirring up, −34), `amb_ship_ping` (a coolant line ticking as
+    it cools, −35).
+  - **Interface** (Concord glass and wood with a sonar colour on the map):
+
+    | `ui_feedback` kind | Event | Sound |
+    |---|---|---|
+    | `title_open` | `ui_title_open` | a Meridian dyad swelling D+A → A+E with a glass touch (−28) |
+    | `map_open` | `ui_map_open` | an air sweep, chimes A5 → E6, a sonar tick |
+    | `map_node_hover` | `ui_map_node_hover` (4 variations) | tiny glass ticks on E7 F#7 A7 B7 (−35), rate-limited (below) |
+    | `map_node_select` | `ui_map_node_select` | locking on: a wooden D6, a glass A6, a short sonar ping |
+    | `map_launch` | `ui_map_launch` | Meridian dyads climbing D+A, F#+C#, A+E to a high D+A over rising air (1.1 s, −24); the ship theme starts handing over at once |
+    | `tech_open` | `ui_tech_open` | the web lights up: glass B5 D6 F#6 A6 |
+    | `tech_hover` | `ui_tech_hover` (3 variations) | softer, lower glass ticks (C#7, E7, G#6; −35), rate-limited |
+    | `tech_buy` | `ui_tech_buy` | a wooden D5, glass D6 + A6, sealed by a low bell on D3 (with its fifth) that rings on: permanent (1.5 s, −24) |
+    | `tech_denied` | `ui_tech_denied` (fallback `ui_invalid`) | two muted wooden notes falling a semitone, a dull stop |
+    | `loadout_open` | `ui_loadout_open` | a latch, a slide, marimba A4 → D5 |
+    | `loadout_change` | `ui_loadout_change` | a clack and a glass F#6 (−28) |
+    | (`tech_unlocked` signal) | `ui_tech_unlocked` | the seal alone, only for a tech granted without a `tech_buy` click (−26) |
+    | (`campaign_saved` signal) | `ui_campaign_saved` | two tiny glass ticks and a soft latch (−31) |
+
+  - **Advisor campaign lines** (Meridian dyads through the ship channel, through the Advisor
+    queue like every Advisor phrase):
+
+    | Kind | Phrase | Priority / throttle |
+    |---|---|---|
+    | `campaign_return_won` | home: A+E, C#+G#, then D+A held with its octave, warm (−21) | 92 / 5 s |
+    | `campaign_return_lost` | home, quietly: D+A sinking three semitones as its filter closes, a low D under it (−22) | 92 / 5 s (shares the won throttle) |
+    | `campaign_intel_banked` | four counting dyads climbing, a held D+A, a low "bank" thunk (−20) | 70 / 8 s |
+    | `campaign_route_open` | D+A, E+B, then F#+C# held and opening up, a high ping: new ways (−21) | 60 / 10 s |
+    | `campaign_tech_available` | G#+D twice, lifting into A+E, a bright answer (−21) | 55 / 20 s |
+
 ## Loudness targets
 
 Integrated loudness per ITU-R BS.1770 (gated; files shorter than 400 ms are one block). Every
@@ -296,6 +359,11 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `explosion` props | WAV mono | crates −23, tank −21, barrier −24, boulder −22 | positional |
 | `advisor` Phase 6 | WAV mono | storm passed −21, enemy Intel −20 | flat, Advisor bus |
 | `discovery` enemy Intel | WAV mono | −24 | flat, Discovery bus |
+| `music` Meridian layers (Phase 7) | Ogg stereo, loop | pad −26, pulse −30, melody −28, title −27, web −31, loadout −29 | 70 BPM, 54.86 s (2 419 200 samples) |
+| `ambience` ship beds | Ogg stereo, loop | hum −31, air −33 | 41 / 29 s, AmbienceDirector's ship players |
+| `shipdetail` | WAV stereo | relay −33, creak −34, machine −34, ping −35 | flat, Ambience bus, priority 10 |
+| `ui` Phase 7 | WAV mono | −27 (hovers −35, title −28, loadout change −28, saved −31, launch and tech buy −24, unlocked −26) | launch 1.1 s and tech buy 1.5 s: the two deliberate exceptions to ≤ 0.3 s |
+| `advisor` Phase 7 | WAV mono | intel banked −20, route, tech, return won −21, return lost −22 | flat, Advisor bus |
 
 Also checked on every build: DC offset ≤ 0.002, energy below 25 Hz ≤ 3 %, duration within the
 recipe's bounds, and for loops the seam (no step, kink or level jump bigger than the loop's own
@@ -332,6 +400,8 @@ in the worst case, and a glue compressor would pump a battle without protecting 
 | Storm cover | the planet's ambience beds | down to −16.5 dB at full storm |
 | Pause menu open | Music −6, Ambience −8, Weather −8, SFX −10, Discovery −6, Stealth −6 dB | UI, Advisor, replies unchanged |
 | Mission-select menu | Ambience −10, Weather −10 dB | under the menu theme |
+| Aboard the ship (any campaign screen) | SFX, Weather, Stealth, Discovery silent; zoom offsets as fully zoomed out (Music, Ambience 0 dB) | nothing of a planet is heard aboard |
+| Landing hand-over (launch or leaving the ship) | the planet's score at −14 dB | held until the briefing bed takes it, or the mission starts |
 | Camera zoom | Units +1.5 → −7, Buildings 0 → −4, Weapons 0 → −2, Music −3 → 0, Ambience −4 → 0 dB | close: detail; far: score |
 
 **Voice budget.** 16 flat and 32 positional players, priority stealing, per-event caps and
@@ -347,6 +417,7 @@ settings: master 1.0, music 0.8, effects 1.0):
 | Scene | Master integrated | Master peak (pre-limiter) |
 |---|---|---|
 | explore: the explore score and the planet ambience | −27.2 LUFS | −16.0 dBFS |
+| ship (Phase 7): the star map's theme and the ship ambience, a map hover every 50 ms, clicks, a tech purchase, a campaign Advisor phrase every 1.5 s | −23.3 LUFS | −11.0 dBFS |
 | worst case: `combat_heavy` + urgency + storm layers, a full storm (beds, gusts, debris, muffle), 6 weapon and 6 impact starts per 50 ms frame within 35 m plus blasts, an Advisor or stealth alarm every 1.5 s, interface clicks | −19.4 LUFS | −5.7 dBFS (limiter never engaged) |
 
 Worst-case loudness per category (each bus before its fader, LUFS): Music −25.3, Weather −25.8,
@@ -356,6 +427,12 @@ Advisor speaks the Music bus sits at −30.4 against the Advisor's −20.9 (9.5 
 The test asserts: Master below −0.9 dBFS, the mix below 0 dBFS before the limiter, the worst
 case within −24..−13 LUFS and explore within −36..−22 LUFS, the voice budget, and the Advisor
 at least 3 LU over the music while it speaks.
+
+Aboard (per bus before its fader): Music −31.2, Ambience −40.1, Advisor −25.1, UI −27.4 LUFS; while
+the Advisor speaks the ship theme sits at −31.3 against its −25.3. The ship test asserts no
+clipping, headroom before the limiter, −36..−22 LUFS, the Advisor 3 LU over the music and the
+interface under the Advisor. (The scene is deliberately busy; a player idling on the map hears the
+theme and the hull, around the explore level.)
 
 The first measurement found one problem, fixed: heavy combat with the storm and urgency layers
 stacked integrated to −21.7 LUFS of music, louder than the weapons (−25) and level with the
@@ -376,6 +453,9 @@ Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capp
 - `amb_storm_<layer>`, `storm_<what>[_<n>]` (group `weather`, Weather bus), `amb_<what>[_<n>]`
   details (group `ambdetail`), `death_prop_<kind>` (a prop's `def.sound_set` is `prop_<kind>`),
   `mus_hit_<state>` (transition hits)
+- Phase 7: `amb_ship_<bed>` (ambience), `amb_ship_<detail>_<n>` (group `shipdetail`),
+  `mus_meridian_<layer>` (the ship score `meridian.tres`), `ui_<campaign kind>`,
+  `advisor_campaign_<kind>`
 
 The event router looks events up by these names: a unit's `def.sound_set` picks
 `unit_<set>_select`; a selection of buildings only (group `buildings`) picks
@@ -500,6 +580,44 @@ node is in group `watchers`; a watcher's suspicion alone does not (a Wisp in Con
 combat score). It rises at once and falls after the lower level has held 6 s (from Alerted) or
 4 s (from Suspicious). `MusicArbiter`: with stealth active its state plays, except that combat
 always wins and tension or aftermath win over Unaware. `mission_started` resets all of it.
+
+Campaign (`CampaignSoundRouter`, pure rules in `CampaignCues`, Phase 7).
+`campaign_screen_changed(screen)`: any screen but `&""` is aboard. Coming aboard: the world's
+positional voices and loops stop, a storm left on the planet is reset, the MissionSoundRouter
+forgets an open briefing or a pending launch, the bed stops (the debrief's, or a hand-over dip;
+not the mission-select theme), the MusicDirector `switch_score`s to the ship theme in the
+screen's state, the AmbienceDirector `start_ship`s, the ship mix applies. Between ship screens:
+only the state changes (`CampaignCues.music_state`; an unknown screen plays `star_map`). `&""`
+(a landing takes over): the planet's score (the one `Audio.play_score` set last; Kessel by
+default) switches back in held at −14 dB, the planet ambience returns. `map_launch` starts that
+music hand-over at once, under the launch gesture; the ambience waits for the screen.
+`mission_started` always leaves the ship (without the hold: the mission router has set the
+level). A **score switch** fades the playing score out (1.5 s) and the new one in (2 s) on the
+one player, so two scores can never sound together; a score younger than 1 s is cut; switching
+back before the fade ends calls the switch off; states asked for meanwhile are the incoming
+score's. Launch to mission: `ui_map_launch` → ship theme fades, planet score waits at −14 →
+`briefing_open` (briefing bed, −14) → `briefing_close` (bed out, `mus_sting_launch`, score up).
+Debrief to ship: debrief bed (score −18) → `star_map` (bed out, score switch to the ship theme).
+
+`ui_feedback`: `map_node_hover` and `tech_hover` are the CampaignSoundRouter's (the
+AudioEventRouter skips them): two hovers never start within 70 ms; after four within 0.6 s the
+gap is 160 ms and they play 5 dB quieter (a sweep across 75 nodes in 1.5 s plays about ten
+ticks). The SoundEvents add `cooldown` 0.05 and one instance. Every other campaign kind plays
+`ui_<kind>` by the naming rule. `tech_unlocked` plays `ui_tech_unlocked` only when no
+`tech_buy` came within 0.5 s either side (the click already carries the seal).
+`campaign_saved(slot)`: `ui_campaign_saved`, at most once a minute for a slot whose name
+contains "auto", once per 2 s otherwise.
+
+Landing results: the debrief's victory or defeat sting is the verdict; the ship's
+`campaign_return_won` / `_lost` phrase is the welcome home. They never stack: the return phrase
+waits for the first ship screen after `landing_resolved` (never during the debrief), and is
+skipped if a mission-ending sting played less than 10 s before (the player skipped the debrief
+and has just heard the verdict). Resolved while already aboard: at once. It goes through the
+Advisor queue at priority 92, so a `campaign_intel_banked` (70) or `campaign_route_open` (60)
+raised at the same moment follows it rather than talking over it (all three fit within the
+queue's 4 s wait). `mission_started` and `campaign_loaded` drop anything pending. Gameplay
+raises `campaign_route_open`, `campaign_tech_available` and `campaign_intel_banked` as ordinary
+`advisor_alert`s.
 
 ## Adding a sound
 

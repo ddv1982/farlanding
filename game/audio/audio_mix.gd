@@ -47,6 +47,18 @@ const MENU_DB: Dictionary[StringName, float] = {
 	&"Weather": -10.0,
 }
 
+## Aboard the Meridian (Phase 7, any campaign screen) nothing of a planet is
+## heard: the world's buses are silenced (a guard: their sources also stop),
+## and the mix uses the far-zoom balance (SHIP_ZOOM: music and ambience at
+## full, no close-up detail).
+const SHIP_DB: Dictionary[StringName, float] = {
+	&"SFX": SILENT_DB,
+	&"Weather": SILENT_DB,
+	&"Stealth": SILENT_DB,
+	&"Discovery": SILENT_DB,
+}
+const SHIP_ZOOM: float = 1.0
+
 ## Buses the storm muffles (low-pass + level), see StormCues.
 const MUFFLED_BUSES: Array[StringName] = [&"SFX", &"Ambience"]
 ## Name of the low-pass effect on those buses in default_bus_layout.tres.
@@ -61,6 +73,12 @@ static func overlay_db(bus: StringName, paused: bool, menu: bool, muffle: float)
 	if menu:
 		offset += MENU_DB.get(bus, 0.0)
 	offset += StormCues.muffle_db(bus, muffle)
+	return offset
+
+
+## Extra dB on `bus` aboard the ship.
+static func ship_db(bus: StringName) -> float:
+	var offset: float = SHIP_DB.get(bus, 0.0)
 	return offset
 
 
