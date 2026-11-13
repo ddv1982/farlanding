@@ -180,7 +180,6 @@ func from_dict(data: Dictionary) -> void:
 	stages_woken = data.get("stages", 0)
 	awakened = data.get("awakened", false)
 	enemy_linker = data.get("linker", -1)
-	_reserve_linker()
 	enemy_warned = data.get("enemy_warned", false)
 	custodian_groups.clear()
 	var groups: Array = data.get("custodians", [])
@@ -191,6 +190,7 @@ func from_dict(data: Dictionary) -> void:
 			custodian_groups.append(group)
 	var strike_data: Dictionary = data.get("strike", {})
 	strike = _restore_group(strike_data, _enemy_port) if not strike_data.is_empty() else null
+	_reserve_linker()
 
 
 func _rate(faction: int) -> float:
@@ -272,14 +272,22 @@ func _command_enemy(_tick: int) -> void:
 		if squad.size() >= 2:
 			strike = _make_group(squad, _enemy_port)
 			strike.start()
+			_reserve_linker()
 
 
-## The commander leaves the linker alone: it may be a builder it would send elsewhere.
+## The commander leaves the linker and the strike squad alone: it would send the
+## linker (often a builder) to an engine and pull the squad into its own groups.
 func _reserve_linker() -> void:
-	if mission.commander != null:
-		mission.commander.hands_off.clear()
-		if enemy_linker >= 0:
-			mission.commander.hands_off[enemy_linker] = true
+	if mission.commander == null:
+		return
+	var held: Dictionary[int, bool] = mission.commander.hands_off
+	held.clear()
+	if enemy_linker >= 0:
+		held[enemy_linker] = true
+	if strike != null:
+		for unit: Unit in strike.members:
+			if is_instance_valid(unit):
+				held[unit.entity_id] = true
 
 
 func _send_linker(enemy: int) -> void:
@@ -376,3 +384,4 @@ func _tick_groups(tick: int) -> void:
 		strike.tick(tick)
 		if strike.finished:
 			strike = null
+			_reserve_linker()

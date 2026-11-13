@@ -315,7 +315,7 @@ func build_view(tick: int) -> CommanderView:
 		elif unit.weapon != null:
 			view.army.append(unit)
 			view.army_strength += AiKnowledge.strength_of(unit)
-			if not grouped.has(unit):
+			if not grouped.has(unit) and not hands_off.has(unit.entity_id):
 				view.guards.append(unit)
 				view.guard_strength += AiKnowledge.strength_of(unit)
 	view.deposits_near_home = _known_deposits(home, profile.deposit_radius).size()
