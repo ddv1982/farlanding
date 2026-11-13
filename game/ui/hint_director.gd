@@ -30,6 +30,7 @@ func setup(p_catalog: HintCatalog) -> void:
 	Events.tide_turning.connect(_on_tide_turning)
 	Events.eruption_warning.connect(_on_eruption_warning)
 	Events.alert_level_changed.connect(_on_alert_level_changed)
+	Events.canopy_cover_changed.connect(_on_canopy_cover_changed)
 
 
 ## Stops listening (the flow is being freed).
@@ -43,6 +44,7 @@ func dispose() -> void:
 	Events.tide_turning.disconnect(_on_tide_turning)
 	Events.eruption_warning.disconnect(_on_eruption_warning)
 	Events.alert_level_changed.disconnect(_on_alert_level_changed)
+	Events.canopy_cover_changed.disconnect(_on_canopy_cover_changed)
 
 
 ## A mission of `type` began: hints may show, starting with the mission-start ones.
@@ -168,3 +170,11 @@ func _on_eruption_warning(_vent: Node3D, _seconds: float, _radius: float) -> voi
 
 func _on_alert_level_changed(_faction: int, _level: StringName, _previous: StringName) -> void:
 	fire(HintDef.TRIGGER_ALERT_METER)
+
+
+func _on_canopy_cover_changed(unit: Node3D, covered: bool) -> void:
+	var own: Unit = unit as Unit
+	if not covered or own == null or own.world == null:
+		return
+	if own.faction == own.world.player_faction:
+		fire(HintDef.TRIGGER_CANOPY_COVER, subjects_of(own))

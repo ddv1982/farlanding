@@ -67,6 +67,11 @@ var is_dead: bool:
 var speed: float:
 	get:
 		return locomotion.mover.speed if locomotion != null else 0.0
+## True for a flying unit (ADR 0016): above everything, hit only by weapons that hit
+## air. Read by combat, vision, audio and presentation.
+var flies: bool:
+	get:
+		return def != null and def.flies
 ## True while a dormant Custodian has not been disturbed. Read by audio and UI.
 var is_dormant: bool:
 	get:
@@ -432,6 +437,8 @@ func _on_cloak_changed(cloaked: bool) -> void:
 
 func _can_target(target: Variant) -> bool:
 	if world != null and world.combat != null:
+		if weapon != null:
+			return world.combat.can_engage(self, weapon.def, target)
 		return world.combat.can_target(faction, target)
 	return AttackCommand.is_valid_target(target, faction)
 

@@ -6,6 +6,8 @@ extends Resource
 const ARMOUR_LIGHT: StringName = &"light"
 const ARMOUR_HEAVY: StringName = &"heavy"
 const ARMOUR_STRUCTURE: StringName = &"structure"
+## Flying units (ADR 0016).
+const ARMOUR_AIR: StringName = &"air"
 
 ## Keyed "<damage type>/<armour type>", e.g. &"light/heavy".
 @export var multipliers: Dictionary[StringName, float] = {}

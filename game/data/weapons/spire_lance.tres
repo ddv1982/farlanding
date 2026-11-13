@@ -8,6 +8,7 @@ id = &"spire_lance"
 display_name = "Spire lance"
 damage = 26.0
 damage_type = &"pierce"
+hits_air = true
 splash_radius = 0.0
 max_range = 22.0
 cooldown = 1.4

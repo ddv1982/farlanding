@@ -8,6 +8,7 @@ id = &"ranger_repeater"
 display_name = "Repeater"
 damage = 9.0
 damage_type = &"light"
+hits_air = true
 splash_radius = 0.0
 max_range = 16.0
 cooldown = 0.5

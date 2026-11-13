@@ -304,7 +304,7 @@ func _erupt(vent: ResourceNode, state: Dictionary) -> void:
 			building.flux_extractor.stall(_eruption.knockout_seconds)
 		player_hurt = player_hurt or _hurt_badly(building, building.faction, building.health)
 	for unit: Unit in world.units.duplicate():
-		if unit.is_dead or unit.health == null:
+		if unit.is_dead or unit.health == null or unit.flies:
 			continue
 		var there: Vector3 = unit.sim_position()
 		var reach: float = radius + (unit.def.radius if unit.def != null else 0.0)

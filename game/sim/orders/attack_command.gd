@@ -36,6 +36,17 @@ static func is_valid_target(target: Variant, faction: int) -> bool:
 	return false
 
 
+## True unless `unit` is armed with a gun that cannot hit the target (a flying target
+## and a gun that does not hit air; ADR 0016): such units keep their orders.
+func _can_reach(unit: Unit, world: SimWorld) -> bool:
+	if unit.weapon == null:
+		return true
+	if world != null and world.combat != null:
+		return world.combat.can_engage(unit, unit.weapon.def, target_entity)
+	var target_unit: Unit = target_entity as Unit
+	return unit.weapon.def.reaches(target_unit != null and target_unit.flies)
+
+
 ## How far the target's body reaches from its origin: a building's footprint.
 static func body_radius(target: Node3D) -> float:
 	var building: Building = target as Building
@@ -104,6 +115,7 @@ func execute() -> void:
 			and unit != target_entity
 			and unit.orders != null
 			and unit.faction == issuer_faction
+			and _can_reach(unit, world)
 		):
 			units.append(unit)
 	if units.is_empty():

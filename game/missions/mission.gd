@@ -170,6 +170,8 @@ func resume(data: Dictionary) -> void:
 		add_child(guards)
 		guards.setup(context, world, def.hostile_faction)
 		guards.from_dict(guards_data, def.patrols)
+		if commander != null:
+			commander.guards = guards
 	_listen()
 	_make_script()
 	var saved_objectives: Array = data.get("objectives", [])
@@ -391,6 +393,8 @@ func _start_commander() -> void:
 		StringName(def.enemy_difficulty),
 		map_area
 	)
+	# Units on patrol are the guards', not the commander's army.
+	commander.guards = guards
 
 
 func _listen() -> void:

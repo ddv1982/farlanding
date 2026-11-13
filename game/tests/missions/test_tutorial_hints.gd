@@ -4,6 +4,7 @@ extends GutTest
 ## (Settings), shows again after "Reset hints", and its card never blocks the map.
 
 const PATH: String = "user://test_tutorial_hints.cfg"
+const CATALOG: String = "res://data/hints/catalog.tres"
 
 var _director: HintDirector
 var _catalog: HintCatalog
@@ -168,7 +169,7 @@ func test_settings_over_the_pause_menu_only_pass_menu_keys() -> void:
 
 
 func test_the_real_catalog_loads() -> void:
-	var real: HintCatalog = load("res://data/hints/catalog.tres")
+	var real: HintCatalog = load(CATALOG)
 	assert_gte(real.hints.size(), 9)
 	var ids: Array[StringName] = []
 	for hint: HintDef in real.hints:
@@ -176,3 +177,28 @@ func test_the_real_catalog_loads() -> void:
 		ids.append(hint.id)
 	for wanted: StringName in [&"select_move", &"build_reactor", &"storm", &"sabotage"]:
 		assert_true(ids.has(wanted), "has %s" % wanted)
+
+
+func test_going_under_a_crown_fires_the_canopy_hint_for_own_units_only() -> void:
+	var canopy: HintDef = _hint(&"canopy", HintDef.TRIGGER_CANOPY_COVER)
+	_catalog.hints.append(canopy)
+	_director.begin(&"conquest")
+	_due_ids()
+	var fixture: EconomyFixture = EconomyFixture.new(self)
+	var enemy: Unit = fixture.world.spawn_unit(fixture.ranger, 1, Vector3.ZERO)
+	var own: Unit = fixture.world.spawn_unit(fixture.ranger, 0, Vector3(5, 0, 0))
+	Events.canopy_cover_changed.emit(enemy, true)
+	assert_eq(_due_ids(), [] as Array[StringName], "not for the enemy's units")
+	Events.canopy_cover_changed.emit(own, false)
+	assert_eq(_due_ids(), [] as Array[StringName], "not on coming out")
+	Events.canopy_cover_changed.emit(own, true)
+	assert_eq(_due_ids(), [&"canopy"] as Array[StringName], "the player's unit went under")
+	fixture.dispose()
+	var real: HintCatalog = load(CATALOG)
+	var triggers: Dictionary[StringName, StringName] = {}
+	for hint: HintDef in real.hints:
+		triggers[hint.id] = hint.trigger
+	var canopy_trigger: StringName = triggers.get(&"canopy", &"")
+	var air_trigger: StringName = triggers.get(&"air_units", &"")
+	assert_eq(canopy_trigger, HintDef.TRIGGER_CANOPY_COVER, "Verdance's hint")
+	assert_eq(air_trigger, HintDef.TRIGGER_SELECTED, "and the Talon's")

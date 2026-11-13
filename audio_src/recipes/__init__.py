@@ -55,11 +55,11 @@ def sound(id: str, group: str, target_lufs: float, **kwargs) -> Callable:
 
 def load_all() -> list[Sound]:
     from . import (  # noqa: F401
-        advisor, ambience, antecedent, buildings, campaign, combine, discovery, emberfall, impacts, interface, missions,
+        advisor, aircraft, ambience, antecedent, buildings, campaign, combine, discovery, emberfall, impacts, interface, missions,
         movement, music_emberfall, music_kessel, music_kessel_combat, music_kessel_score, music_kessel_stealth, music_kessel_trail, music_meridian,
-        music_thalassa,
+        music_thalassa, music_verdance,
         specialists,
-        stealth, thalassa, units, vertical_slice, weapons, weather, world,
+        stealth, thalassa, units, verdance, vertical_slice, weapons, weather, world,
     )
 
     return REGISTRY

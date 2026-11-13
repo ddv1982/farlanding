@@ -5,13 +5,21 @@ extends Node3D
 ## simulation tells it how the unit is moving and what it is aiming at.
 ##
 ## Model parts are found by the names the art pipeline reserves:
-## wheel_*, leg_*, turret, barrel, dish (see art/pipeline/fl.py).
+## wheel_*, leg_*, turret, barrel, dish, fan / fan_* (see art/pipeline/fl.py).
+##
+## A flying unit's root is at its flight altitude (the sim keeps it there; ADR 0016):
+## the model sits at the root, its selection ring stays on the ground below, its fans
+## spin and it raises no dust. Units under a tree crown show a small COVER mark while
+## selected (`set_covered`).
 
 const RING_SHADER: Shader = preload("res://presentation/shaders/selection_ring.gdshader")
 const WHEEL_RADIUS := 0.4
 const LEG_SWING := 0.5
 const STRIDE_LENGTH := 2.2
 const DISH_SPEED := 1.6
+## Rotor spin of flying units' fans, radians per second.
+const FAN_SPEED := 22.0
+const COVER_COLOR := Color(0.55, 0.95, 0.45)
 const TURRET_TURN_SPEED := 4.0
 const DUST_COLOR := Color(0.78, 0.58, 0.40, 0.55)
 ## Speed in m/s at which a unit starts raising dust.
@@ -29,6 +37,12 @@ var _wheels: Array[Node3D] = []
 var _legs: Array[Node3D] = []
 var _turret: Node3D
 var _dish: Node3D
+var _fans: Array[Node3D] = []
+## Height of the root above the ground (a flying unit's altitude), 0 on the ground.
+var _altitude: float = 0.0
+var _cover_mark: Label3D
+var _covered: bool = false
+var _selected: bool = false
 var _ring: MeshInstance3D
 var _health_bar: HealthBar
 var _dust: GPUParticles3D
@@ -40,6 +54,9 @@ var _has_aim: bool = false
 
 
 func _ready() -> void:
+	var unit: Unit = get_parent() as Unit
+	if unit != null and unit.def != null and unit.def.flies:
+		_altitude = unit.def.flight_altitude
 	if model_scene != null:
 		_model = model_scene.instantiate() as Node3D
 		add_child(_model)
@@ -48,6 +65,8 @@ func _ready() -> void:
 	add_child(_ring)
 	_dust = _build_dust()
 	add_child(_dust)
+	_cover_mark = _build_cover_mark()
+	add_child(_cover_mark)
 	_health_bar = HealthBar.create(footprint_radius * 1.6, 2.6)
 	add_child(_health_bar)
 	set_selected(false)
@@ -69,6 +88,11 @@ func _process(delta: float) -> void:
 		_model.rotation.x = lerpf(_model.rotation.x, -0.02 * _speed, 4.0 * delta)
 	if _dish != null:
 		_dish.rotate_y(DISH_SPEED * delta)
+	for fan: Node3D in _fans:
+		fan.rotate_object_local(Vector3.UP, FAN_SPEED * delta)
+	if _altitude > 0.0 and _model != null:
+		_model.position.y = 0.25 * sin(_time * 1.7)
+		_model.rotation.x = lerpf(_model.rotation.x, -0.015 * _speed, 3.0 * delta)
 	if _turret != null:
 		_turn_turret(delta)
 
@@ -76,7 +100,7 @@ func _process(delta: float) -> void:
 ## Speed along the unit's facing, in metres per second.
 func set_motion(speed: float) -> void:
 	_speed = speed
-	_dust.emitting = absf(speed) > DUST_MIN_SPEED
+	_dust.emitting = _altitude <= 0.0 and absf(speed) > DUST_MIN_SPEED
 
 
 func set_team_color(color: Color) -> void:
@@ -92,8 +116,17 @@ func set_damage(amount: float) -> void:
 
 
 func set_selected(selected: bool) -> void:
+	_selected = selected
 	_ring.visible = selected
 	_health_bar.set_selected(selected)
+	_cover_mark.visible = _selected and _covered
+
+
+## True while the unit stands under a tree crown (hidden from the air and from far
+## away): a small mark shows over it while it is selected.
+func set_covered(covered: bool) -> void:
+	_covered = covered
+	_cover_mark.visible = _selected and _covered
 
 
 ## 0 = plain, 1 = cloaked (drawn as a shimmering ghost; the owner still sees it).
@@ -141,6 +174,8 @@ func _collect_parts(node: Node) -> void:
 			_turret = part
 		elif part_name == "dish":
 			_dish = part
+		elif part_name == "fan" or part_name.begins_with("fan_"):
+			_fans.append(part)
 	for child in node.get_children():
 		_collect_parts(child)
 
@@ -154,9 +189,26 @@ func _build_ring() -> MeshInstance3D:
 	ring.name = "SelectionRing"
 	ring.mesh = quad
 	ring.material_override = material
-	ring.position.y = 0.08
+	# A flying unit's ring is drawn on the ground below it.
+	ring.position.y = 0.08 - _altitude
 	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return ring
+
+
+func _build_cover_mark() -> Label3D:
+	var mark := Label3D.new()
+	mark.name = "CoverMark"
+	mark.text = "COVER"
+	mark.font_size = 28
+	mark.outline_size = 8
+	mark.modulate = COVER_COLOR
+	mark.outline_modulate = Color(0.05, 0.12, 0.04, 0.9)
+	mark.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	mark.no_depth_test = true
+	mark.pixel_size = 0.01
+	mark.position = Vector3(0.0, 3.3, 0.0)
+	mark.visible = false
+	return mark
 
 
 func _build_dust() -> GPUParticles3D:

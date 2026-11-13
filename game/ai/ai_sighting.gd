@@ -15,6 +15,8 @@ var footprint: Rect2 = Rect2()
 var strength: float = 0.0
 var armed: bool = false
 var heavy: bool = false
+## A flying unit (ADR 0016).
+var airborne: bool = false
 var last_seen_tick: int = 0
 
 var _ref: WeakRef = null
@@ -32,6 +34,7 @@ func update(entity: Node3D, now: int) -> void:
 	if unit != null and unit.def != null:
 		def_id = unit.def.id
 		heavy = unit.def.armour() == DamageTable.ARMOUR_HEAVY
+		airborne = unit.def.flies
 	var building: Building = entity as Building
 	if building != null:
 		is_building = true
@@ -66,6 +69,7 @@ func to_dict() -> Dictionary:
 		"strength": strength,
 		"armed": armed,
 		"heavy": heavy,
+		"airborne": airborne,
 		"seen": last_seen_tick,
 	}
 
@@ -82,5 +86,6 @@ func from_dict(data: Dictionary, found: Node3D) -> void:
 	strength = data.get("strength", 0.0)
 	armed = data.get("armed", false)
 	heavy = data.get("heavy", false)
+	airborne = data.get("airborne", false)
 	last_seen_tick = data.get("seen", 0)
 	_ref = weakref(found) if found != null else null

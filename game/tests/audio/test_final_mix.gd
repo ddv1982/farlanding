@@ -23,6 +23,12 @@ extends GutTest
 ##   pressure and holdout layers at full, the extraction engine approaching, a
 ##   vent near the listener building up and then erupting (the blast ducks the
 ##   mix), the worst-case battle, Advisor alarms and eruption warnings, clicks.
+## - Verdance calm (Phase 8c): the Verdance score in calm and its ambience (the
+##   leaves, the chorus, the stream, details) with the camera under a crown.
+## - Verdance air war (Phase 8c): heavy combat score with the urgency layer,
+##   four aircraft engines overhead (two Talons, two Hornets), their guns and
+##   rockets on top of the worst-case battle, aircraft falling, canopy rustles,
+##   Advisor alarms and an air-contact phrase every 1.5 s, clicks.
 ##
 ## Asserted: the Master output never clips (the limiter's ceiling holds), the mix
 ## itself has headroom before the limiter, and loudness stays in its window.
@@ -39,6 +45,8 @@ const SHIP_SCORE: String = "res://data/sounds/music/meridian.tres"
 const KESSEL_SCORE: String = "res://data/sounds/music/kessel_reach.tres"
 const THALASSA: StringName = &"thalassa_low"
 const EMBERFALL: StringName = &"emberfall"
+const VERDANCE: StringName = &"verdance"
+const AIR_SETS: Array[StringName] = [&"talon", &"hornet", &"talon", &"hornet"]
 const SHIP_ALERTS: Array[StringName] = [
 	&"advisor_campaign_return_won",
 	&"advisor_campaign_intel_banked",
@@ -83,6 +91,7 @@ func after_each() -> void:
 	_tide().handle_mission_started()
 	_eruption().handle_mission_started()
 	_holdout().handle_mission_started()
+	_canopy().handle_mission_started()
 	Audio.music().set_layer_gain(&"pressure", AudioMix.SILENT_DB)
 	Audio.music().set_layer_gain(&"holdout", AudioMix.SILENT_DB)
 	if Audio.music().target_score().id != (load(KESSEL_SCORE) as MusicScore).id:
@@ -99,6 +108,34 @@ func _eruption() -> EruptionSound:
 
 func _holdout() -> HoldoutSound:
 	return Audio.get_node(^"Holdout") as HoldoutSound
+
+
+func _canopy() -> CanopySound:
+	return Audio.get_node(^"Canopy") as CanopySound
+
+
+## Lands on Verdance (score and ambience).
+func _land_on_verdance() -> void:
+	Audio.play_planet(VERDANCE)
+	var arrived: Callable = func() -> bool:
+		return Audio.music().score != null and Audio.music().score.id == VERDANCE
+	await wait_until(arrived, 5.0)
+
+
+## An aircraft overhead (its engine loops through the MovementLoops).
+class Aircraft:
+	extends Node3D
+	var def: UnitDef
+	var speed: float = 9.0
+	var faction: int = 0
+
+
+## The camera's ground under a crown.
+class CanopyMap:
+	extends Node
+
+	func is_under_canopy(_point: Vector3) -> bool:
+		return true
 
 
 ## Lands on Emberfall (score and ambience).
@@ -143,7 +180,8 @@ func _land_on_thalassa(level: float, rate: float) -> void:
 func _record(scene: StringName) -> Array[float]:
 	var fight: bool = scene == &"thalassa_fight"
 	var ember: bool = scene == &"emberfall_fight"
-	var worst: bool = scene == &"worst" or fight or ember
+	var air: bool = scene == &"verdance_fight"
+	var worst: bool = scene == &"worst" or fight or ember or air
 	var ship: bool = scene == &"ship"
 	Audio.stop_all_voices()  # nothing left over from earlier tests
 	await wait_seconds(SETTLE_SECONDS)
@@ -176,6 +214,8 @@ func _record(scene: StringName) -> Array[float]:
 			if i == 50:
 				Events.eruption.emit(_vent, 16.0)
 			_holdout().handle_sim_ticked(int(i * FRAME * SimClock.TICK_RATE))
+		if air:  # the air war on top of the ground battle
+			_air_frame(i)
 		_mix.note_bus_peaks()
 		most_voices = maxi(most_voices, Audio.active_voices())
 		await wait_seconds(FRAME)
@@ -213,6 +253,22 @@ func _record(scene: StringName) -> Array[float]:
 	if not categories.is_empty():
 		gut.p("  category loudness before faders (LUFS): " + categories)
 	return result
+
+
+## One frame of the Verdance air war: guns and rockets from above, a craft
+## coming down now and then, units rustling under the crowns, the Advisor.
+func _air_frame(i: int) -> void:
+	var angle: float = i * 0.7
+	var above: Vector3 = Vector3(cos(angle) * 18.0, 13.0, sin(angle) * 18.0)
+	Audio.play_at(&"weapon_talon_fire", above)
+	if i % 2 == 0:
+		Audio.play_at(&"weapon_hornet_fire", -above)
+	if i % 20 == 10:
+		Audio.play_at(&"death_talon" if i % 40 == 10 else &"death_hornet", above * 0.6)
+	if i % 25 == 5:
+		Audio.play_at(&"canopy_rustle_in", Vector3(6, 0, -4))
+	if i % 30 == 15:
+		Audio.play(&"advisor_air_contact")
 
 
 ## One frame aboard: hovers sweep, a click now and then, a purchase, and a
@@ -308,6 +364,48 @@ func test_thalassa_fight_at_high_tide_never_clips() -> void:
 		speaking[0],
 		speaking[1] + ADVISOR_OVER_MUSIC_LU,
 		"the Advisor is heard over the Thalassa battle score"
+	)
+
+
+func test_verdance_calm_under_the_crowns_sits_quietly() -> void:
+	await _land_on_verdance()
+	var map: CanopyMap = CanopyMap.new()
+	map.add_to_group(CanopySound.CANOPY_GROUP)
+	add_child_autofree(map)
+	Audio.music().force_state(&"calm")
+	var result: Array[float] = await _record(&"verdance_calm")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_gt(_canopy().shade(), 0.5, "the camera is under a crown")
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_between(result[2], EXPLORE_LUFS.x, EXPLORE_LUFS.y, "Verdance calm loudness")
+	map.remove_from_group(CanopySound.CANOPY_GROUP)
+
+
+func test_verdance_air_war_never_clips() -> void:
+	await _land_on_verdance()
+	for k: int in AIR_SETS.size():
+		var craft: Aircraft = Aircraft.new()
+		craft.def = UnitDef.new()
+		craft.def.sound_set = AIR_SETS[k]
+		craft.add_to_group(MovementLoops.UNITS_GROUP)
+		add_child_autofree(craft)
+		craft.global_position = Vector3(-15.0 + 10.0 * k, 13.0, 6.0 - 4.0 * k)
+	Audio.music().set_layer_gain(&"urgency", 0.0)
+	Audio.music().force_state(&"combat_heavy")
+	var result: Array[float] = await _record(&"verdance_fight")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_lt(result[0], PRE_LIMITER_MAX_DBFS, "the mix has headroom before the limiter")
+	assert_between(result[2], WORST_LUFS.x, WORST_LUFS.y, "Verdance air war loudness")
+	assert_lte(int(result[4]), 48, "the voice budget holds")
+	var speaking: Array[float] = MixScene.loudness_while(
+		_frames[&"Advisor"], _frames[&"Music"], AudioServer.get_mix_rate()
+	)
+	gut.p("  while the Advisor speaks on Verdance: Advisor %.1f LUFS, Music %.1f LUFS" % speaking)
+	assert_gt(
+		speaking[0],
+		speaking[1] + ADVISOR_OVER_MUSIC_LU,
+		"the Advisor is heard over the Verdance air war"
 	)
 
 

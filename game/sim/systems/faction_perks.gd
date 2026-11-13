@@ -23,6 +23,8 @@ const COOLDOWN: StringName = &"cooldown"
 const ERUPTION_DAMAGE: StringName = &"eruption_damage"
 ## Cooldown of controlled venting on the faction's Flux Taps (keyed by the Tap's id).
 const VENT_COOLDOWN: StringName = &"vent_cooldown"
+## How close an observer of the faction sees a unit under a tree crown (ADR 0016).
+const CANOPY_SIGHT: StringName = &"canopy_sight"
 const STATS: Array[StringName] = [
 	MAX_HEALTH,
 	VISION_RANGE,
@@ -33,6 +35,7 @@ const STATS: Array[StringName] = [
 	COOLDOWN,
 	ERUPTION_DAMAGE,
 	VENT_COOLDOWN,
+	CANOPY_SIGHT,
 ]
 
 static var _none: FactionPerks = null

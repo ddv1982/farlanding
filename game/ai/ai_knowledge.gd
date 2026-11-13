@@ -145,6 +145,19 @@ func heavy_share() -> float:
 	return float(heavy) / units if units > 0 else 0.0
 
 
+## Share of flying units among armed enemy units remembered now, in [0, 1].
+func air_share() -> float:
+	var units: int = 0
+	var flying: int = 0
+	for sighting: AiSighting in sightings.values():
+		if sighting.is_building or not sighting.armed:
+			continue
+		units += 1
+		if sighting.airborne:
+			flying += 1
+	return float(flying) / units if units > 0 else 0.0
+
+
 ## Where an attack from `home` should go: the remembered enemy building nearest home
 ## (the edge of their base), else the most recently seen armed enemy unit at least
 ## `min_unit_distance` from home (a scout passing by is no target). Only what was

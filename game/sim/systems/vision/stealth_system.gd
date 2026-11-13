@@ -61,6 +61,9 @@ var heights: HeightField = null
 var last_tick_usec: int = 0
 ## Sight blockers (props), world X/Z rectangles: nothing is noticed through them.
 var occluders: Array[Rect2] = []
+## The planet's rule when it hides things from sight (Verdance's canopy), or null: a
+## watcher notices nobody the planet hides from it.
+var cover: PlanetRuleSystem = null
 
 var _tick: int = 0
 ## True while some watcher's suspicion has not calmed down yet.
@@ -197,7 +200,7 @@ func suspicion_rate(watcher: Unit, target: Unit, guard: bool) -> float:
 		return 0.0
 	if distance > CLOSE_RANGE and not in_cone(watcher, there):
 		return 0.0
-	if grid != null and not grid.is_visible(watcher.faction, there):
+	if not _in_view(watcher, target, there):
 		return 0.0
 	if not has_line_of_sight(origin, there):
 		return 0.0
@@ -329,6 +332,19 @@ static func _may_notice(watcher: Unit, target: Unit, guard: bool) -> bool:
 	if Factions.is_custodian(target.faction) or target.is_dormant:
 		return false
 	return guard or target.signature < 1.0
+
+
+## True if `watcher`'s faction's grid sees `there` (where `target` stands) and the
+## planet does not hide `target` from it (from its faction, or from the air when the
+## watcher flies: under a crown, ADR 0016).
+func _in_view(watcher: Unit, target: Unit, there: Vector3) -> bool:
+	if grid != null and not grid.is_visible(watcher.faction, there):
+		return false
+	if cover == null:
+		return true
+	if watcher.flies and cover.hides_from_air(target):
+		return false
+	return not cover.hides(watcher.faction, target)
 
 
 ## The intruder `watcher` grows most suspicious of now, or null.

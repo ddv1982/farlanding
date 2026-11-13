@@ -36,6 +36,13 @@ var planet: PlanetRuleSystem = null
 var flood: FloodSystem = null
 ## Crossings that stay dry at any tide (the map's causeway), for the enemy AI.
 var dry_crossings: PackedVector3Array = PackedVector3Array()
+## Flying units' paths: straight lines over everything (ADR 0016).
+var air_paths: PathService = PathService.new()
+## Keeps flying units apart (idle without any).
+var flight: FlightSystem = FlightSystem.new()
+## Tree crowns, (centre x, centre z, radius x, radius z) each (the map's
+## `canopy_zones`); a CanopyRule hides what stands under them.
+var canopy_zones: PackedVector4Array = PackedVector4Array()
 ## Map dressing that blocks movement and (when tall) sight: crates, walls, boulders.
 var props: Array[Prop] = []
 var rules: EconomyRules = EconomyRules.new()
@@ -115,9 +122,12 @@ func spawn_unit(def: UnitDef, faction: int, at: Vector3, yaw: float = 0.0) -> Un
 	add_child(unit)
 	if unit.locomotion != null:
 		# Hovering units cross flooded shallows: they path with the sea ignored.
+		# Flying units fly straight over everything.
 		var unit_paths: PathService = paths.for_hover() if def.hovers else paths
+		if def.flies:
+			unit_paths = air_paths
 		unit.locomotion.setup(def, at, yaw, unit_paths, heights)
-		unit.locomotion.set_speed_scale(conditions.speed_factor(def.hovers))
+		unit.locomotion.set_speed_scale(conditions.speed_factor(def.rides_above_ground()))
 	units.append(unit)
 	unit.tree_exiting.connect(_on_unit_exiting.bind(unit))
 	if unit.health != null:
@@ -396,6 +406,8 @@ func _on_ticked(tick: int) -> void:
 	mark = _section(&"stealth", mark)
 	for unit: Unit in units:
 		unit.sim_tick(dt)
+	flight.tick(units, dt)
+	flight.report(units, vision, player_faction)
 	mark = _section(&"units", mark)
 	for building: Building in buildings.duplicate():
 		_tick_building(building, dt)
@@ -426,7 +438,7 @@ func _apply_conditions(force: bool = false) -> void:
 	_speed_version = conditions.speed_version
 	for unit: Unit in units:
 		if unit.locomotion != null and unit.def != null:
-			unit.locomotion.set_speed_scale(conditions.speed_factor(unit.def.hovers))
+			unit.locomotion.set_speed_scale(conditions.speed_factor(unit.def.rides_above_ground()))
 
 
 func _tick_building(building: Building, dt: float) -> void:
@@ -495,7 +507,7 @@ func evacuate(area: Rect2) -> void:
 	var grown: Rect2 = area.grow(1.0)
 	for unit: Unit in units:
 		var at: Vector3 = unit.sim_position()
-		if not grown.has_point(Vector2(at.x, at.z)) or unit.orders == null:
+		if not grown.has_point(Vector2(at.x, at.z)) or unit.orders == null or unit.flies:
 			continue
 		var exit: Vector3 = _nearest_outside(grown.grow(NavmeshPathService.CUT_MARGIN), at)
 		unit.orders.interrupt(Order.new(MoveCommand.KIND_MOVE, exit))

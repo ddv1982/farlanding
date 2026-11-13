@@ -23,6 +23,9 @@ extends Resource
 @export var army_weights: PackedFloat32Array = PackedFloat32Array()
 ## Unit whose weight grows with the share of heavy armour seen in the enemy army.
 @export var anti_heavy: UnitDef
+## Unit that shoots flying units (ADR 0016): its weight grows with the share of flyers
+## seen in the enemy army, and it is made even when not in `army`.
+@export var anti_air: UnitDef
 @export_group("Opening")
 ## Build order played first, step by step in this order: a unit is queued at a
 ## producer that makes it, a building is placed by a builder. A step waits until it is

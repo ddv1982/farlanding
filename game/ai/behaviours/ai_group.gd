@@ -186,10 +186,24 @@ func _tide_waypoint(point: Vector3) -> Vector3:
 	return via
 
 
-## Orders every member to attack `target`.
+## Orders every member whose gun reaches `target` to attack it (a gun that does not
+## hit air leaves a flyer alone; ADR 0016). The others keep their orders.
 func order_attack(target: Node3D) -> void:
-	port.push(AttackCommand.new(port.faction, _as_nodes(members), target))
+	var able: Array[Unit] = able_to_hit(members, target)
+	if not able.is_empty():
+		port.push(AttackCommand.new(port.faction, _as_nodes(able), target))
 	last_order_tick = port.now()
+
+
+## The units of `units` armed with a gun that reaches `target` (flying or not).
+static func able_to_hit(units: Array[Unit], target: Node3D) -> Array[Unit]:
+	var target_unit: Unit = target as Unit
+	var airborne: bool = target_unit != null and target_unit.flies
+	var able: Array[Unit] = []
+	for unit: Unit in units:
+		if is_instance_valid(unit) and unit.weapon != null and unit.weapon.def.reaches(airborne):
+			able.append(unit)
+	return able
 
 
 ## True if enough time passed since the last order to give another one.

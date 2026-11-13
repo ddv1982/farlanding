@@ -149,6 +149,11 @@ signal tide_turning(seconds: float, rising: bool)
 ## few times a second at most.
 signal tide_changed(level: float)
 
+## `unit` went under a tree crown (`covered` true) or came out from under it. Under
+## a crown a ground unit is hidden from the air and from far away. Fires for every
+## faction's ground units.
+signal canopy_cover_changed(unit: Node3D, covered: bool)
+
 ## The campaign shows another screen: &"title", &"star_map", &"meridian",
 ## &"tech_web", &"loadout", or &"" when a landing (briefing, mission, debrief)
 ## takes over.

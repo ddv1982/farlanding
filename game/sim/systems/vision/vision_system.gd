@@ -29,6 +29,8 @@ var stealth: StealthSystem = null
 var last_update_usec: int = 0
 ## Every unit's and building's vision range is multiplied by this (a dust storm).
 var range_scale: float = 1.0
+## The planet's rule when it hides things from sight (Verdance's canopy), or null.
+var cover: PlanetRuleSystem = null
 
 var _factions: Array[int] = []
 ## Per faction: exposed entity -> sim tick its exposure ends.
@@ -137,6 +139,8 @@ func reveal_count(faction: int) -> int:
 
 ## True if `faction` sees `entity` now (buildings: any part of the footprint).
 func can_see(faction: int, entity: Node3D) -> bool:
+	if cover != null and cover.hides(faction, entity):
+		return false
 	var building: Building = entity as Building
 	if building != null:
 		return grid.is_area_visible(faction, building.footprint())
@@ -163,6 +167,7 @@ func refresh_unit(unit: Unit) -> void:
 		or (
 			grid.is_visible(player_faction, unit.sim_position())
 			and (stealth == null or not stealth.is_concealed(player_faction, unit))
+			and (cover == null or not cover.hides(player_faction, unit))
 		)
 	)
 	unit.is_visible_to_player = seen
@@ -175,7 +180,10 @@ func refresh_building(building: Building) -> void:
 		building.seen_by_player = true
 		building.visible = true
 		return
-	var seen: bool = grid.is_area_visible(player_faction, building.footprint())
+	var seen: bool = (
+		grid.is_area_visible(player_faction, building.footprint())
+		and (cover == null or not cover.hides(player_faction, building))
+	)
 	building.is_visible_to_player = seen
 	if seen:
 		building.seen_by_player = true

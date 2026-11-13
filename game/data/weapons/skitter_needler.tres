@@ -8,6 +8,7 @@ id = &"skitter_needler"
 display_name = "Needler"
 damage = 5.0
 damage_type = &"light"
+hits_air = true
 splash_radius = 0.0
 max_range = 13.0
 cooldown = 0.6

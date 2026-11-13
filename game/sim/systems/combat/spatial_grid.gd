@@ -56,6 +56,10 @@ func query(center: Vector3, radius: float) -> Array[Node3D]:
 				continue
 			var entries: Array = bucket
 			for entry: Variant in entries:
+				# The grid is as old as its last rebuild: something in it may have
+				# died and been freed since.
+				if not is_instance_valid(entry):
+					continue
 				var entity: Node3D = entry
 				result.append(entity)
 	return result

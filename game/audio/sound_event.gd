@@ -25,6 +25,9 @@ extends Resource
 @export_range(0.0, 1000.0, 0.5, "suffix:m") var max_distance: float = 60.0
 ## Never pick the same variation twice in a row.
 @export var avoid_repeat: bool = true
+## A movement loop (`move_<set>`) that keeps sounding while its unit stands
+## still, quieter and lower: an aircraft's engine never stops (Phase 8c).
+@export var loops_at_rest: bool = false
 
 
 ## Picks a variation index. `last` is the previous pick (-1 if none), `roll` a
