@@ -11,3 +11,6 @@ extends Resource
 ## Higher is more intense. Moving to a lower intensity waits for the score's
 ## `min_hold`, so the music does not flap when a threat comes and goes.
 @export_range(0, 10, 1) var intensity: int = 0
+## Seconds for this state's layer fades; 0 uses the score's `layer_fade`. A
+## short fade lets an entering layer (the stealth alarm's drums) land on the beat.
+@export_range(0.0, 30.0, 0.1, "suffix:s") var fade_seconds: float = 0.0

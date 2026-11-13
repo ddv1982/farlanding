@@ -15,6 +15,10 @@ extends Resource
 @export_range(0.0, 60.0, 0.5, "suffix:s") var min_hold: float = 8.0
 ## Seconds for a layer to fade fully in or out.
 @export_range(0.1, 30.0, 0.1, "suffix:s") var layer_fade: float = 3.0
+## Tempo of the clips' grid. With `quantize_beats`, layer changes wait for the
+## next boundary of that many beats, so they land on the beat.
+@export_range(0.0, 300.0, 0.1) var bpm: float = 0.0
+@export_range(0.0, 16.0, 0.5) var quantize_beats: float = 0.0
 ## SoundEvent id of the ambience bed that goes with this score.
 @export var ambience: StringName = &""
 

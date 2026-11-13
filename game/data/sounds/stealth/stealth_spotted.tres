@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/stealth/stealth_spotted.wav" id="2_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"stealth_spotted"
+streams = Array[AudioStream]([ExtResource("2_stream")])
+bus = &"Stealth"
+priority = 110
+max_instances = 1
+cooldown = 0.6
+positional = false
+max_distance = 0.0
