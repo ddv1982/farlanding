@@ -164,6 +164,9 @@ func to_dict() -> Dictionary:
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
 	assert(version == SAVE_VERSION, "Unsupported FieldOptions save version")
+	_unlocked.clear()
+	_ready_at.clear()
+	_waiting.clear()
 	var unlocked: Dictionary = data.get("unlocked", {})
 	for key: Variant in unlocked:
 		var ids: Array = unlocked[key]

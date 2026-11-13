@@ -122,3 +122,14 @@ func test_options_save_and_load() -> void:
 	copy.from_dict(data)
 	assert_true(copy.is_unlocked(0, _f.lance))
 	assert_gt(copy.cooldown_left(0, _f.orbital_scan), 50.0)
+
+
+func test_loading_drops_what_was_unlocked_or_used_after_the_save() -> void:
+	var options: FieldOptions = _f.world.discovery.field_options
+	var data: Dictionary = options.to_dict()
+	_f.world.economy.add_intel(0, 100)
+	options.unlock(0, &"antecedent_power")
+	_use(_f.orbital_scan, Vector3.ZERO)
+	options.from_dict(data)
+	assert_false(options.is_unlocked(0, _f.lance), "the later unlock is gone")
+	assert_eq(options.cooldown_left(0, _f.orbital_scan), 0.0, "and so is the cooldown")

@@ -52,6 +52,19 @@ func test_moving_away_interrupts_and_loses_progress() -> void:
 	assert_eq(_f.pile().intel, 0)
 
 
+func test_being_pushed_out_of_reach_interrupts() -> void:
+	watch_signals(Events)
+	var site: DiscoverySite = _f.site(_f.discovery(&"seam"), Vector3(5, 0, 0))
+	var scanner: Unit = _f.spawn(_f.surveyor, 0, Vector3.ZERO)
+	_f.scan(scanner, site, 5)
+	assert_true(site.is_being_scanned)
+	scanner.locomotion.mover.position = Vector3(-60, 0, 0)
+	_f.tick(60)
+	assert_false(site.is_being_scanned)
+	assert_false(site.is_resolved, "no discovery from across the map")
+	assert_signal_emitted_with_parameters(Events, "scan_interrupted", [scanner, site])
+
+
 func test_dying_interrupts() -> void:
 	watch_signals(Events)
 	var site: DiscoverySite = _f.site(_f.discovery(&"seam"), Vector3(5, 0, 0))

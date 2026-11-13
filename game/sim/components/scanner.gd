@@ -14,6 +14,8 @@ const STATE_APPROACH: StringName = &"approach"
 const STATE_SCANNING: StringName = &"scanning"
 ## Path attempts to reach the site before giving up.
 const MAX_ATTEMPTS: int = 3
+## Metres a scanner may drift past its reach before the scan is cut short.
+const REACH_SLACK: float = 1.0
 
 var state: StringName = STATE_IDLE
 ## The site being approached or scanned, or null.
@@ -71,8 +73,11 @@ func _step_approach() -> bool:
 	return false
 
 
-## Returns true once the site is resolved.
+## Returns true once the site is resolved, or the scanner is no longer in reach.
 func _step_scanning(dt: float) -> bool:
+	# Pushed out of reach (a building site, a crowd): the scan is cut short.
+	if not _in_reach(REACH_SLACK):
+		return true
 	site.set_scan_progress(site.scan_progress + unit.def.scan_rate * dt / site.def.scan_time)
 	if site.scan_progress < 1.0:
 		return false
@@ -105,10 +110,10 @@ func _leave(interrupted: bool) -> void:
 	site = null
 
 
-func _in_reach() -> bool:
+func _in_reach(slack: float = 0.0) -> bool:
 	var at: Vector3 = unit.sim_position()
 	var distance: float = Vector2(site.position.x - at.x, site.position.z - at.z).length()
-	return distance <= site.def.radius + unit.def.radius + unit.def.scan_range
+	return distance <= site.def.radius + unit.def.radius + unit.def.scan_range + slack
 
 
 static func _scannable(target: Variant) -> bool:
