@@ -90,6 +90,21 @@ extends Resource
 ## the open is called home when it hits. &"press": the next wave leaves as the storm
 ## arrives, even under strength, using the cover.
 @export_enum("hold", "press") var storm_tactic: String = "hold"
+@export_group("Tide")
+## What the commander does about a tide (public knowledge, ADR 0014). &"causeway": a
+## group crossing the deep channel while the shallows are unsafe walks through the
+## map's dry crossing; &"wait": no new wave leaves until the sea is back at low water
+## with `tide_safe_seconds` to spare (groups out still use the causeway).
+@export_enum("causeway", "wait") var tide_tactic: String = "causeway"
+## The shallows count as safe while they stay dry at least this long.
+@export_range(0.0, 600.0, 5.0, "suffix:s") var tide_safe_seconds: float = 70.0
+@export_group("Recovery")
+## Sends a squad to take carriable props (artefacts) home (a Recovery mission's rival).
+@export var retrieves_cargo: bool = false
+## Armed units in the squad.
+@export_range(1, 20, 1) var retrieve_squad_size: int = 3
+## The squad sets out this long after the mission began.
+@export_range(0.0, 1200.0, 5.0, "suffix:s") var retrieve_after_seconds: float = 90.0
 @export_group("Survey")
 ## Unit that scans discovery sites for the faction's Intel (null = it never scans).
 @export var surveyor: UnitDef

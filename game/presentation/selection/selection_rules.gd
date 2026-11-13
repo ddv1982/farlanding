@@ -27,6 +27,8 @@ const CLICK_ASSIST: StringName = &"assist"
 const CLICK_SCAN: StringName = &"scan"
 ## Sabotage an enemy building (Wisps, which carry no weapon).
 const CLICK_SABOTAGE: StringName = &"sabotage"
+## Pick up a carriable prop (an artefact) nobody carries.
+const CLICK_CARRY: StringName = &"carry"
 ## Sets the selected producer building's rally point.
 const CLICK_RALLY: StringName = &"rally"
 ## Clears the selection (classic right click).
@@ -136,7 +138,8 @@ static func right_click_target(
 ## or building (sabotage a working enemy building when every selected unit able to
 ## act on it is a saboteur, i.e. a squad of Wisps), harvest a deposit (if any can
 ## harvest), scan an unresolved site (if any can scan), help build an own site (if
-## any can build), or move there. Null = the ground. Nothing without a selection.
+## any can build), pick up an artefact nobody carries (if any can carry), or move
+## there. Null = the ground. Nothing without a selection.
 ## The one place these rules live.
 static func command_target(current: Array[Unit], target: Node3D, player_faction: int) -> StringName:
 	var units: Array[Unit] = selectable(current, player_faction)
@@ -151,6 +154,10 @@ static func command_target(current: Array[Unit], target: Node3D, player_faction:
 	var node: ResourceNode = target as ResourceNode
 	if node != null and node.is_minable() and _any_can(units, Harvester.KIND):
 		return CLICK_HARVEST
+	var prop: Prop = target as Prop
+	if prop != null and prop.is_carriable() and not prop.is_carried():
+		if _any_can(units, Carrier.KIND):
+			return CLICK_CARRY
 	var building: Building = target as Building
 	if building != null and is_instance_valid(building) and building.is_inside_tree():
 		if building.faction != player_faction:

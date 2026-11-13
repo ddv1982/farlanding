@@ -1,9 +1,19 @@
 [gd_resource type="Resource" script_class="PlanetDef" format=3]
 
 [ext_resource type="Script" path="res://core/defs/planet_def.gd" id="1_planet"]
+[ext_resource type="Script" path="res://core/defs/tide_rule.gd" id="2_rule"]
+[ext_resource type="Script" path="res://sim/systems/planet/tide_system.gd" id="3_system"]
+
+[sub_resource type="Resource" id="rule"]
+script = ExtResource("2_rule")
+id = &"thalassa_tide"
+summary = "The tide floods the lowlands on a timer, opening and closing the fords and the tidal pans."
+system = ExtResource("3_system")
+random_seed = 23
 
 [resource]
 script = ExtResource("1_planet")
 id = &"thalassa_low"
 display_name = "Thalassa Low"
-summary = "Tidal flats under a heavy moon. The tide rule is not surveyed yet (Phase 8): this landing plays without it."
+summary = "Tidal flats under a heavy moon: pale sand, shallow pans rich in ore, and a deep channel the sea never leaves. A causeway crosses it; two fords open only at low water."
+rule = SubResource("rule")

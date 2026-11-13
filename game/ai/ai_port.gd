@@ -49,6 +49,30 @@ func storm_is_final() -> bool:
 	return false
 
 
+## The tide (public, like the weather): 0 = low water .. 1 = high water.
+func tide_level() -> float:
+	return 0.0
+
+
+## Seconds until the shallows next start to flood (0 while the sea rises or stands
+## high); INF without a sea.
+func shallows_close_seconds() -> float:
+	return INF
+
+
+## A crossing that stays dry at any tide (the map's causeway) to route a move from
+## `from` to `to` through, when the straight way crosses the deep channel; Vector3.INF
+## when there is none or none is needed.
+func dry_crossing(_from: Vector3, _to: Vector3) -> Vector3:
+	return Vector3.INF
+
+
+## Carriable props (artefacts) this faction knows of: lying anywhere (charted from
+## orbit), carried by its own units, or carried by an enemy it sees now.
+func known_cargo() -> Array[Prop]:
+	return []
+
+
 ## Discovery sites anyone may scan now (charted on the orbital scan, unresolved).
 func open_sites() -> Array[Node3D]:
 	return []

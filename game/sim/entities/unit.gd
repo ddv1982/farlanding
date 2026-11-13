@@ -49,6 +49,8 @@ var dormancy: Dormancy = null
 var saboteur: Saboteur = null
 ## Null for units that cannot cloak.
 var cloak: Cloak = null
+## Null for units that cannot carry (an artefact).
+var carrier: Carrier = null
 ## Null for units that never notice intruders (sensor 0).
 var watcher: Watcher = null
 var health: Health = null
@@ -129,6 +131,11 @@ var signature: float:
 		if cloak != null:
 			return cloak.signature()
 		return def.signature if def != null else 1.0
+## True while carrying an artefact (it moves slower and does not fight). Read by
+## audio, UI and presentation.
+var is_carrying: bool:
+	get:
+		return carrier != null and carrier.is_carrying()
 ## True while working on a sabotage. Read by audio and UI.
 var is_sabotaging: bool:
 	get:
@@ -155,6 +162,10 @@ func _ready() -> void:
 		var sabotage_handler: Saboteur = Saboteur.new()
 		sabotage_handler.name = &"Saboteur"
 		add_child(sabotage_handler)
+	if def != null and def.can_carry and find_children("*", "Carrier", false).is_empty():
+		var carry_handler: Carrier = Carrier.new()
+		carry_handler.name = &"Carrier"
+		add_child(carry_handler)
 	for child: Node in get_children():
 		if child is Locomotion:
 			locomotion = child
@@ -170,6 +181,8 @@ func _ready() -> void:
 				scanner = child
 			elif child is Saboteur:
 				saboteur = child
+			elif child is Carrier:
+				carrier = child
 		elif child is Health:
 			health = child
 		elif child is Weapon:
@@ -182,6 +195,9 @@ func _ready() -> void:
 			orders.add_handler(handler)
 	if def != null:
 		_add_combat_components()
+	if carrier != null and health != null:
+		# A carrier that dies drops what it carried, before the world takes it away.
+		health.died.connect(carrier.on_carrier_died)
 	if def != null and def.starts_dormant:
 		dormancy = Dormancy.new()
 		dormancy.name = &"Dormancy"
@@ -301,6 +317,8 @@ func resolve_references(lookup: Callable) -> void:
 		orders.resolve_targets(lookup)
 	if weapon != null:
 		weapon.resolve_target(lookup)
+	if carrier != null:
+		carrier.resolve_cargo(lookup)
 
 
 func _add_combat_components() -> void:
@@ -340,6 +358,17 @@ func _update_engage_distances() -> void:
 
 func _tick_weapon(dt: float) -> void:
 	_update_engage_distances()
+	if is_carrying:
+		# Hands full: no target, no shot.
+		weapon.tick(
+			dt,
+			sim_position(),
+			locomotion.mover.yaw if locomotion else rotation.y,
+			null,
+			false,
+			false
+		)
+		return
 	var moving: bool = is_moving()
 	var idle: bool = orders == null or orders.is_idle()
 	var ordered: Node3D = orders.attack_target() if orders != null else null
@@ -382,6 +411,8 @@ func _on_damaged(_amount: float, attacker: Node3D) -> void:
 ## Shoots back at `attacker`, walking up to it if it is a little out of range.
 ## Returns true if it did; forgets attackers that are gone.
 func _answer(attacker: Node3D) -> bool:
+	if is_carrying:
+		return false
 	if not Combat.is_alive(attacker):
 		_attacker = null
 		return false

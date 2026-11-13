@@ -28,15 +28,21 @@ all of it, and the briefing lists what it brings. The campaign autosaves after e
 landing and purchase; **Continue** picks it up. **Single missions** plays any landing
 on its own.
 
-Landings are on Kessel Reach (Conquest, Survey or Infiltration) and, as a placeholder
-until its own map exists, Thalassa Low. Dust storms sweep Kessel's basin every few
-minutes: everyone sees half as far, ground units slow down and long guns lose reach
-(the gauge under the top-right buttons counts the next one down). Field notes explain
-each new thing the first time you meet it.
+Landings are on Kessel Reach (Conquest, Survey or Infiltration) and Thalassa Low
+(Tidewater Landing, a Conquest, and Low-Water Recovery). Dust storms sweep Kessel's
+basin every few minutes: everyone sees half as far, ground units slow down and long
+guns lose reach (the gauge under the top-right buttons counts the next one down). On
+Thalassa the tide rises and falls on the same gauge: high water closes the fords and
+floods the tidal pans (ground units caught in them wade slowly and take damage,
+haulers stop mining there, nothing can be built on ground that floods); the causeway
+always stays dry and hover units cross flooded shallows. In a Recovery, command a unit
+onto the Antecedent artefact to pick it up and bring it back to the Lander; its
+carrier is slow and cannot fight, and drops it if killed. Field notes explain each new
+thing the first time you meet it.
 
 | Input | Does |
 |---|---|
-| Left click (classic scheme) | select, and command by context: move, attack, harvest, scan, build, rally |
+| Left click (classic scheme) | select, and command by context: move, attack, harvest, scan, build, carry, rally |
 | Right click (classic scheme) | deselect, cancel placement or aiming |
 | Shift | add to selection, queue orders |
 | Ctrl+1–9 / 1–9 | store / recall a control group |

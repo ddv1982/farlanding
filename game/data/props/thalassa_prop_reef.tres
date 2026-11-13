@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PropDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/prop_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://assets/models/thalassa/thalassa_prop_reef.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_def")
+size = Vector3(3.4, 2.3, 2.4)
+max_health = 0
+armour_type = &"heavy"
+model = ExtResource("2_model")
+id = &"thalassa_prop_reef"
+display_name = "Reef rock"
+description = "A water-worn reef outcrop. Natural cover that blocks movement and sight."
+faction = -1
+sound_set = &"prop_boulder"

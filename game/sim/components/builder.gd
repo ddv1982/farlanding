@@ -65,6 +65,8 @@ func step(_order: Order, dt: float) -> bool:
 		unit.aim_changed.emit(site.position + Vector3.UP * site.def.height * 0.5)
 		return site.construction.is_complete()
 	_working = false
+	if unit.locomotion.is_waiting_for_tide():
+		return false  # the way is under water: hold until the sea falls
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
 		if _attempts > MAX_ATTEMPTS:

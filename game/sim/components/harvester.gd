@@ -8,7 +8,10 @@ extends OrderHandler
 ## The unit unloads at its faction's nearest drop-off of the highest priority (a
 ## Refinery's dock, or the Lander until a Refinery exists); with none it waits and
 ## asks again. When the deposit runs out it moves on to the nearest other deposit
-## within `rules.deposit_search_radius`, or the order ends.
+## within `rules.deposit_search_radius`, or the order ends. While the sea covers the
+## deposit (a tidal map, ADR 0014) it is not mined: the hauler delivers what it carries,
+## moves on to a dry deposit within the search radius, or else waits on ground the sea
+## never reaches and goes back once the deposit is dry.
 
 const KIND: StringName = &"harvest"
 const STATE_IDLE: StringName = &"idle"
@@ -17,6 +20,10 @@ const STATE_MINING: StringName = &"mining"
 const STATE_TO_DOCK: StringName = &"to_dock"
 const STATE_UNLOADING: StringName = &"unloading"
 const STATE_WAITING: StringName = &"waiting"
+## Waiting on high ground for the sea to leave the deposit.
+const STATE_TIDE: StringName = &"tide"
+## Seconds between looks at a flooded deposit while waiting.
+const TIDE_LOOK_SECONDS: float = 1.0
 ## Mining starts this far (metres) beyond the deposit's radius plus the unit's own.
 const DEPOSIT_REACH: float = 3.5
 ## Unloading starts within this distance of the dock point.
@@ -73,11 +80,8 @@ func step(order: Order, dt: float) -> bool:
 			return _step_to_dock()
 		STATE_UNLOADING:
 			return _step_unloading(order, dt)
-		STATE_WAITING:
-			_timer -= dt
-			if _timer <= 0.0:
-				_go_dock()
-			return false
+		STATE_WAITING, STATE_TIDE:
+			return _step_waiting(order, dt)
 	return true
 
 
@@ -127,12 +131,16 @@ func from_dict(data: Dictionary) -> void:
 func _step_to_deposit(order: Order) -> bool:
 	if not _is_minable(deposit):
 		return _after_depletion(order)
+	if deposit.is_flooded:
+		return _avoid_flood(order)
 	if _near(deposit.position, deposit.def.radius + unit.def.radius + DEPOSIT_REACH):
 		unit.locomotion.stop()
 		unit.locomotion.face(deposit.position)
 		state = STATE_MINING
 		_timer = unit.mine_time
 		return false
+	if unit.locomotion.is_waiting_for_tide():
+		return false  # the way is under water: hold until the sea falls
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
 		if _attempts > MAX_ATTEMPTS:
@@ -144,6 +152,8 @@ func _step_to_deposit(order: Order) -> bool:
 func _step_mining(order: Order, dt: float) -> bool:
 	if not _is_minable(deposit):
 		return _after_depletion(order)
+	if deposit.is_flooded:
+		return _avoid_flood(order)
 	_timer -= dt
 	if _timer > 0.0:
 		return false
@@ -163,6 +173,8 @@ func _step_to_dock() -> bool:
 		state = STATE_UNLOADING
 		_timer = unit.def.unload_time
 		return false
+	if unit.locomotion.is_waiting_for_tide():
+		return false  # the way is under water: hold until the sea falls
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
 		if _attempts > MAX_ATTEMPTS:
@@ -186,6 +198,55 @@ func _step_unloading(order: Order, dt: float) -> bool:
 		_go_deposit()
 		return false
 	return _after_depletion(order)
+
+
+## The sea covers the deposit: unload what is carried, else move on to a dry deposit
+## within the search radius, else wait on ground the sea never reaches.
+func _avoid_flood(order: Order) -> bool:
+	if cargo > 0:
+		_go_dock()
+		return false
+	var next: ResourceNode = null
+	if unit.world != null:
+		next = unit.world.nearest_deposit(
+			deposit.position, unit.world.rules.deposit_search_radius, deposit
+		)
+	if next != null:
+		deposit = next
+		order.target_entity = next
+		order.target_position = next.position
+		_go_deposit()
+		return false
+	state = STATE_TIDE
+	_timer = TIDE_LOOK_SECONDS
+	var shelter: Vector3 = Vector3.INF
+	if unit.world != null and unit.world.flood != null:
+		shelter = unit.world.flood.nearest_dry(
+			unit.sim_position(), unit.world.conditions.high_water
+		)
+	if shelter != Vector3.INF:
+		unit.locomotion.move_to(shelter)
+	else:
+		unit.locomotion.stop()
+	return false
+
+
+## Waiting for a drop-off to appear, or for the sea to leave the deposit.
+func _step_waiting(order: Order, dt: float) -> bool:
+	if state == STATE_WAITING:
+		_timer -= dt
+		if _timer <= 0.0:
+			_go_dock()
+		return false
+	if not _is_minable(deposit):
+		return _after_depletion(order)
+	_timer -= dt
+	if _timer > 0.0:
+		return false
+	_timer = TIDE_LOOK_SECONDS
+	if not deposit.is_flooded:
+		_go_deposit()
+	return false
 
 
 ## The deposit is gone: unload what is carried, then move on to another or stop.

@@ -6,6 +6,8 @@ extends RefCounted
 
 ## Fewest sim ticks between two orders to idle members (anti-spam).
 const REORDER_TICKS: int = 30
+## A group this close to a dry crossing goes straight on.
+const CROSSING_REACHED: float = 12.0
 
 var port: AiPort
 var profile: CommanderProfile
@@ -151,10 +153,37 @@ func seen_enemies() -> Array[Node3D]:
 	return port.seen_enemies(centroid(), reach)
 
 
-## Orders every member to `point` as one group move.
+## Orders every member to `point` as one group move. While the tide makes the
+## shallows unsafe and the way crosses the deep channel, the group walks through the
+## map's dry crossing first (ADR 0014).
 func order_move(point: Vector3) -> void:
-	port.push(MoveCommand.new(MoveCommand.KIND_MOVE, port.faction, _as_nodes(members), point))
+	var nodes: Array[Node3D] = _as_nodes(members)
+	var via: Vector3 = _tide_waypoint(point)
+	if via != Vector3.INF:
+		port.push(MoveCommand.new(MoveCommand.KIND_MOVE, port.faction, nodes, via))
+		port.push(MoveCommand.new(MoveCommand.KIND_MOVE, port.faction, nodes, point, true))
+	else:
+		port.push(MoveCommand.new(MoveCommand.KIND_MOVE, port.faction, nodes, point))
 	last_order_tick = port.now()
+
+
+## The dry crossing to walk through on the way to `point`, or Vector3.INF: only while
+## the shallows would flood before the group is across (the next rise is less than
+## `tide_safe_seconds` away, or the sea is not at low water) and the straight way
+## crosses the deep channel.
+func _tide_waypoint(point: Vector3) -> Vector3:
+	if port.shallows_close_seconds() == INF:
+		return Vector3.INF
+	var safe: bool = (
+		port.tide_level() <= 0.0 and port.shallows_close_seconds() >= profile.tide_safe_seconds
+	)
+	if safe or members.is_empty():
+		return Vector3.INF
+	var from: Vector3 = centroid()
+	var via: Vector3 = port.dry_crossing(from, point)
+	if via == Vector3.INF or flat_distance(from, via) < CROSSING_REACHED:
+		return Vector3.INF
+	return via
 
 
 ## Orders every member to attack `target`.

@@ -160,6 +160,14 @@ static func is_stormy(view: CommanderView) -> bool:
 	return view.storm_intensity >= STORM_ACTIVE or view.storm_eta_seconds <= STORM_SOON_SECONDS
 
 
+## True while the shallows are dry and stay dry long enough to cross (always without
+## a sea).
+static func tide_safe(view: CommanderView, p_profile: CommanderProfile) -> bool:
+	if view.shallows_close_seconds == INF:
+		return true
+	return view.tide_level <= 0.0 and view.shallows_close_seconds >= p_profile.tide_safe_seconds
+
+
 ## A "hold" commander calls its wave home when a storm hits it in the open.
 func _mind_the_weather(view: CommanderView, actions: Array[AiAction]) -> void:
 	if not is_stormy(view):
@@ -316,6 +324,8 @@ func _attack(view: CommanderView, actions: Array[AiAction]) -> void:
 			return
 		# Press: go now, under strength, while the defenders see half as far.
 		size = mini(size, maxi(ceili(size * difficulty.early_wave_share), STORM_WAVE_MIN))
+	if profile.tide_tactic == "wait" and not tide_safe(view, profile):
+		return
 	var free: Array[Unit] = _free_army(view)
 	if free.size() < size:
 		return

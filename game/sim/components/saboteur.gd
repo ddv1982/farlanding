@@ -57,6 +57,8 @@ func step(_order: Order, dt: float) -> bool:
 		return true
 	if not _in_range():
 		_working = false
+		if unit.locomotion.is_waiting_for_tide():
+			return false  # the way is under water: hold until the sea falls
 		if not unit.locomotion.is_travelling():
 			_attempts += 1
 			if _attempts > MAX_ATTEMPTS:

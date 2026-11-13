@@ -6,6 +6,8 @@ extends Node3D
 
 ## Share of the deposit left changed, in [0, 1]. The visual shrinks with it.
 signal remaining_changed(fraction: float)
+## The sea covered the node (`flooded`) or left it. Presentation may tint it.
+signal flooded_changed(flooded: bool)
 
 const SAVE_VERSION: int = 1
 const GROUP: StringName = &"resource_nodes"
@@ -19,6 +21,9 @@ var remaining: int = 0
 var tap: Building = null
 ## False while the player cannot see this node now. Read by audio and UI.
 var is_visible_to_player: bool = true
+## True while the sea covers it: nobody mines it until the sea falls (ADR 0014). Not
+## saved: the world's FloodSystem sets it again from the sea level.
+var is_flooded: bool = false
 
 
 func _enter_tree() -> void:
@@ -45,6 +50,14 @@ func is_minable() -> bool:
 
 func is_depleted() -> bool:
 	return def != null and def.amount > 0 and remaining <= 0
+
+
+## Marks the node covered by the sea or dry again (the world's FloodSystem).
+func set_flooded(flooded: bool) -> void:
+	if flooded == is_flooded:
+		return
+	is_flooded = flooded
+	flooded_changed.emit(flooded)
 
 
 ## True for a vent without a Flux Tap on it.

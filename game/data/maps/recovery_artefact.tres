@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PropLayout" format=3]
+
+[ext_resource type="Script" path="res://core/defs/prop_layout.gd" id="1_layout"]
+[ext_resource type="Script" path="res://core/defs/prop_placement.gd" id="2_place"]
+[ext_resource type="Resource" path="res://data/props/antecedent_prop_artefact.tres" id="p0"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(-70, 0, -78)
+
+[resource]
+script = ExtResource("1_layout")
+placements = Array[ExtResource("2_place")]([SubResource("s0")])

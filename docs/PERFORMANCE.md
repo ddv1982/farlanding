@@ -73,3 +73,21 @@ about the cost the game had before them (within the run-to-run noise).
 - The commander's decision (6–8 ms every few seconds) could be spread over ticks.
 - Vision discs of moving units near occluders are recomputed per new cell; a coarser
   cache key (half-cell positions) would trade a little accuracy for fewer misses.
+
+## Phase 8a: the tide (2026-11-13)
+
+`bench_battle` plays on Kessel, which has no sea: the FloodSystem returns at once
+there and the battle figures above are unchanged. Measured on Thalassa Tidewater
+(Tidewater Landing, a full 45 s rise, 460 ticks, headless):
+
+| What | Cost |
+|---|---|
+| FloodSystem per tick (re-plans, wading, flooded deposits) | median 1 µs, p95 56 µs, max 1.2 ms (a check tick while units re-plan) |
+| Switching flood stage (the region takes that stage's cut mesh) | 3–4 ms, three times per rise or fall |
+| Preparing the other three stages' cutters at landing | part of the 1.6 s "bases placed, navmesh cut" |
+
+The first switch to a stage used to rebuild its cutter with every building and prop
+cut (~40): 490–710 ms in the middle of play. `NavmeshPathService.prepare_flood_stages()`
+now does that while the landing loads, so a switch only applies the cuts made since.
+Path searches may visit up to 65 536 polygons (the server's default of 4096 cut long
+detours short), which costs more only for long or unreachable targets, once per order.

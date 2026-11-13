@@ -35,3 +35,15 @@ static func hit_for(from: StringName, to: StringName) -> StringName:
 	if to == &"aftermath" and (from == &"combat" or from == &"combat_heavy"):
 		return HIT_AFTERMATH
 	return &""
+
+
+## `ids` with each one's version for a score first (`<id>_<score_id>`, e.g.
+## `mus_hit_combat_thalassa_low`): a score may re-voice the shared hits and
+## stings; one that does not falls through to the generic sound.
+static func voiced(ids: Array[StringName], score_id: StringName) -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id: StringName in ids:
+		if score_id != &"":
+			out.append(StringName("%s_%s" % [id, score_id]))
+		out.append(id)
+	return out

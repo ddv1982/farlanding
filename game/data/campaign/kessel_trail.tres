@@ -26,6 +26,7 @@
 [ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="e23"]
 [ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e24"]
 [ext_resource type="Resource" path="res://data/units/concord_lancer.tres" id="e25"]
+[ext_resource type="Resource" path="res://data/campaign/route/thalassa_recovery.tres" id="e26"]
 
 [sub_resource type="Resource" id="s0"]
 script = ExtResource("e18")
@@ -209,14 +210,27 @@ discovery = &"kessel_sealed_cache"
 description = "Sealed cache salvage"
 effects = Array[ExtResource("e22")]([SubResource("s25")])
 
+[sub_resource type="Resource" id="s27"]
+script = ExtResource("e22")
+kind = &"chart_site"
+target = &"thalassa_trail_vault"
+note = "the Thalassa vault's site starts charted"
+
+[sub_resource type="Resource" id="s28"]
+script = ExtResource("e21")
+id = &"carry_trail_ruin"
+discovery = &"kessel_trail_ruin"
+description = "Trail ruin bearing on file"
+effects = Array[ExtResource("e22")]([SubResource("s27")])
+
 [resource]
 script = ExtResource("e0")
 id = &"kessel_trail"
 title = "The Kessel Trail"
-nodes = Array[ExtResource("e19")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e4")])
+nodes = Array[ExtResource("e19")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e4"), ExtResource("e26")])
 start_node = &"kessel_proving"
 techs = Array[ExtResource("e20")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11"), ExtResource("e12"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16")])
 loadout_slots = Array[ExtResource("e17")]([SubResource("s7"), SubResource("s13"), SubResource("s20")])
-carryovers = Array[ExtResource("e21")]([SubResource("s22"), SubResource("s24"), SubResource("s26")])
+carryovers = Array[ExtResource("e21")]([SubResource("s22"), SubResource("s24"), SubResource("s26"), SubResource("s28")])
 locked_at_start = Array[StringName]([&"concord_survey_lab", &"concord_lancer", &"concord_sentry", &"concord_arc"])
 lost_landing_share = 0.0

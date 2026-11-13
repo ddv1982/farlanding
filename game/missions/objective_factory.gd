@@ -26,6 +26,10 @@ static func create(def: ObjectiveDef) -> Objective:
 			objective = SabotageObjective.new()
 		ObjectiveDef.TYPE_RIVAL_INTEL:
 			objective = RivalIntelObjective.new()
+		ObjectiveDef.TYPE_CARRY_TO:
+			objective = CarryToObjective.new()
+		ObjectiveDef.TYPE_KEEP_FROM_ENEMY:
+			objective = KeepFromEnemyObjective.new()
 		_:
 			push_error("ObjectiveFactory: unknown objective type '%s'" % def.type)
 			return null

@@ -30,9 +30,18 @@ extends Node
 ## property, a `speed` below MovementLoops.MIN_SPEED (absent: idle). When a
 ## unit's `is_dormant` turns from true to false where the player can see it,
 ## `unit_<set>_wake` plays there once.
+##
+## Carried things (Phase 8a): any Node3D in group &"artefacts" hums its own
+## `loop_hum_<set>` (its `def.sound_set`, else its own `sound_set` property,
+## else `artefact`) wherever it is, carried or lying down, while the player
+## can hear it: always if it has no `is_visible_to_player`, else while that is
+## true. The Recovery artefact hums `loop_hum_artefact`.
 
 const BUILDINGS_GROUP: StringName = &"buildings"
 const UNITS_GROUP: StringName = &"units"
+const ARTEFACTS_GROUP: StringName = &"artefacts"
+## The hum of a carried thing that names no sound set.
+const ARTEFACT_SET: StringName = &"artefact"
 const CONSTRUCT: StringName = &"loop_construct"
 const PRODUCE: StringName = &"loop_produce"
 const MINE: StringName = &"loop_mine"
@@ -128,6 +137,18 @@ static func hum_for(node: Node, is_building: bool, has_event: Callable) -> Strin
 	return HUM if is_building else &""
 
 
+## The hum of a carried thing (group &"artefacts"): `loop_hum_<set>` with its
+## `def.sound_set`, else its own `sound_set` property, else `artefact`.
+static func artefact_hum(node: Node) -> StringName:
+	var sound_set: StringName = MovementLoops.sound_set_of(node)
+	if sound_set == &"":
+		var own: Variant = node.get(&"sound_set")
+		sound_set = ARTEFACT_SET
+		if own is StringName and own != &"":
+			sound_set = own
+	return StringName("%s_%s" % [HUM_PREFIX, sound_set])
+
+
 ## True for any hum, generic or with an identity.
 static func is_hum(loop_id: StringName) -> bool:
 	return String(loop_id).begins_with(HUM_PREFIX)
@@ -171,28 +192,18 @@ func rescan() -> void:
 	var caps: Dictionary[StringName, int] = {}
 	var now: float = _now()
 	_forget_stale_work(now)
-	for group: StringName in [BUILDINGS_GROUP, UNITS_GROUP]:
+	for group: StringName in [BUILDINGS_GROUP, UNITS_GROUP, ARTEFACTS_GROUP]:
 		for node: Node in get_tree().get_nodes_in_group(group):
 			var entity: Node3D = node as Node3D
 			if entity == null or not entity.is_inside_tree():
 				continue
-			var is_building: bool = group == BUILDINGS_GROUP
-			var own: bool = AudioEventRouter.faction_of(entity) == player_faction
-			if not is_building:
-				_watch_wake(entity, own)
-			if not own and not flag(entity, &"is_visible_to_player", false):
-				continue
-			var key: int = entity.get_instance_id()
 			var loop_id: StringName = &""
-			if own:
-				var in_progress: int = _work.get(key, 0)
-				loop_id = loop_for(entity, is_building, _sites.has(key), in_progress > 0)
-			elif is_building:
-				loop_id = HUM
-			if loop_id == &"" and not is_building and is_idle(entity):
-				loop_id = HUM
-			if loop_id == HUM:
-				loop_id = hum_for(entity, is_building, _has_event)
+			if group == ARTEFACTS_GROUP:
+				if nodes.has(entity) or not flag(entity, &"is_visible_to_player", true):
+					continue
+				loop_id = artefact_hum(entity)
+			else:
+				loop_id = _loop_of(entity, group == BUILDINGS_GROUP)
 			if loop_id == &"":
 				continue
 			var event: SoundEvent = resolve_event.call(loop_id)
@@ -221,6 +232,27 @@ func rescan() -> void:
 		_chosen_owners.append(nodes[i])
 		_chosen_ids.append(ids[i])
 	_apply_choice()
+
+
+## The loop a building or unit carries now, or &"" for none (or unheard).
+func _loop_of(entity: Node3D, is_building: bool) -> StringName:
+	var own: bool = AudioEventRouter.faction_of(entity) == player_faction
+	if not is_building:
+		_watch_wake(entity, own)
+	if not own and not flag(entity, &"is_visible_to_player", false):
+		return &""
+	var key: int = entity.get_instance_id()
+	var loop_id: StringName = &""
+	if own:
+		var in_progress: int = _work.get(key, 0)
+		loop_id = loop_for(entity, is_building, _sites.has(key), in_progress > 0)
+	elif is_building:
+		loop_id = HUM
+	if loop_id == &"" and not is_building and is_idle(entity):
+		loop_id = HUM
+	if loop_id == HUM:
+		loop_id = hum_for(entity, is_building, _has_event)
+	return loop_id
 
 
 func _apply_choice() -> void:

@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://maps/landing_map.gd" id="1_map"]
+[ext_resource type="Script" path="res://core/mission_context.gd" id="2_context"]
+[ext_resource type="Script" path="res://sim/systems/sim_world.gd" id="3_world"]
+[ext_resource type="Script" path="res://presentation/rts_camera.gd" id="4_camera"]
+[ext_resource type="Script" path="res://presentation/selection/selection_controller.gd" id="5_selection"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="6_hud"]
+[ext_resource type="Resource" path="res://data/economy/kessel_rules.tres" id="7_rules"]
+[ext_resource type="Resource" path="res://data/combat/damage_table.tres" id="8_damage"]
+
+[node name="LandingMap" type="Node3D" node_paths=PackedStringArray("context", "world", "camera", "navigation_region", "hud", "selection_controller")]
+script = ExtResource("1_map")
+context = NodePath("MissionContext")
+world = NodePath("SimWorld")
+camera = NodePath("RtsCamera")
+navigation_region = NodePath("NavigationRegion3D")
+hud = NodePath("Hud")
+selection_controller = NodePath("SelectionController")
+economy_rules = ExtResource("7_rules")
+damage_table = ExtResource("8_damage")
+
+[node name="MissionContext" type="Node" parent="."]
+script = ExtResource("2_context")
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+
+[node name="SimWorld" type="Node3D" parent="."]
+script = ExtResource("3_world")
+
+[node name="RtsCamera" type="Node3D" parent="."]
+script = ExtResource("4_camera")
+
+[node name="Camera3D" type="Camera3D" parent="RtsCamera"]
+fov = 45.0
+far = 600.0
+
+[node name="SelectionController" type="Node" parent="." node_paths=PackedStringArray("camera", "world")]
+script = ExtResource("5_selection")
+camera = NodePath("../RtsCamera")
+world = NodePath("../SimWorld")
+
+[node name="Hud" parent="." node_paths=PackedStringArray("world", "selection_controller", "camera") instance=ExtResource("6_hud")]
+world = NodePath("../SimWorld")
+selection_controller = NodePath("../SelectionController")
+camera = NodePath("../RtsCamera")

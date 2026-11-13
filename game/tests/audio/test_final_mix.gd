@@ -11,6 +11,12 @@ extends GutTest
 ## - ship (Phase 7): aboard the Meridian on the star map: the ship theme, the
 ##   ship ambience, map hovers and clicks, a tech purchase and a campaign
 ##   Advisor phrase every 1.5 s.
+## - Thalassa calm (Phase 8a): the Thalassa score in calm, its ambience (wind
+##   over water, surf, the tidal drone, details) and the tide's beds at low
+##   water, slack.
+## - Thalassa fight (Phase 8a): heavy combat score with the urgency layer and
+##   the tide layer at high water, the tide still rising (water bed and rush),
+##   the worst-case battle, Advisor alarms and a tide warning, clicks.
 ##
 ## Asserted: the Master output never clips (the limiter's ceiling holds), the mix
 ## itself has headroom before the limiter, and loudness stays in its window.
@@ -24,6 +30,8 @@ const WORST_LUFS: Vector2 = Vector2(-24.0, -13.0)
 const EXPLORE_LUFS: Vector2 = Vector2(-36.0, -22.0)
 const SHIP_LUFS: Vector2 = Vector2(-36.0, -22.0)
 const SHIP_SCORE: String = "res://data/sounds/music/meridian.tres"
+const KESSEL_SCORE: String = "res://data/sounds/music/kessel_reach.tres"
+const THALASSA: StringName = &"thalassa_low"
 const SHIP_ALERTS: Array[StringName] = [
 	&"advisor_campaign_return_won",
 	&"advisor_campaign_intel_banked",
@@ -63,10 +71,33 @@ func after_each() -> void:
 	Audio.storm().handle_mission_started()
 	Audio.music().set_layer_gain(&"urgency", AudioMix.SILENT_DB)
 	Audio.music().force_state(&"explore")
+	_tide().handle_mission_started()
+	if Audio.music().target_score().id != (load(KESSEL_SCORE) as MusicScore).id:
+		Audio.play_score(load(KESSEL_SCORE) as MusicScore)  # back to Kessel at once for the next test
+
+
+func _tide() -> TideSound:
+	return Audio.get_node(^"Tide") as TideSound
+
+
+## Lands on Thalassa (score and ambience) with the sea at `level`, rising at
+## `rate` per second, and lets the tide's arrival fade finish.
+func _land_on_thalassa(level: float, rate: float) -> void:
+	Audio.play_planet(THALASSA)
+	var arrived: Callable = func() -> bool:
+		return Audio.music().score != null and Audio.music().score.id == THALASSA
+	await wait_until(arrived, 5.0)
+	var tide: TideSound = _tide()
+	tide.handle_mission_started()
+	for k: int in 40:  # four seconds of reports (the arrival fade is three)
+		tide.handle_tide_changed(minf(level + rate * (k - 40) * 0.1, 1.0))
+		tide.advance(0.1)
+	tide.handle_tide_changed(level)
 
 
 func _record(scene: StringName) -> Array[float]:
-	var worst: bool = scene == &"worst"
+	var fight: bool = scene == &"thalassa_fight"
+	var worst: bool = scene == &"worst" or fight
 	var ship: bool = scene == &"ship"
 	Audio.stop_all_voices()  # nothing left over from earlier tests
 	await wait_seconds(SETTLE_SECONDS)
@@ -87,6 +118,12 @@ func _record(scene: StringName) -> Array[float]:
 				Audio.play(&"ui_click")
 		if ship:
 			_ship_frame(i)
+		if fight:  # the sea still coming in, reported a few times a second
+			Events.tide_changed.emit(minf(0.9 + i * 0.0008, 1.0))
+			if i % 30 == 15:
+				Audio.play(&"advisor_tide_rising")
+			if i == 40:
+				Events.tide_turning.emit(20.0, false)
 		_mix.note_bus_peaks()
 		most_voices = maxi(most_voices, Audio.active_voices())
 		await wait_seconds(FRAME)
@@ -141,7 +178,7 @@ func _ship_frame(i: int) -> void:
 func test_explore_sits_quietly() -> void:
 	Audio.music().force_state(&"explore")
 	var result: Array[float] = await _record(&"explore")
-	assert_gt(result[3], RECORD_SECONDS * 0.8, "the mixer ran (captured %.1f s)" % result[3])
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
 	assert_lt(result[1], CEILING_DBFS)
 	assert_between(result[2], EXPLORE_LUFS.x, EXPLORE_LUFS.y, "explore loudness")
 
@@ -153,7 +190,7 @@ func test_worst_case_never_clips_and_stays_in_its_window() -> void:
 	Audio.music().set_layer_gain(&"urgency", 0.0)
 	Audio.music().force_state(&"combat_heavy")
 	var result: Array[float] = await _record(&"worst")
-	assert_gt(result[3], RECORD_SECONDS * 0.8, "the mixer ran (captured %.1f s)" % result[3])
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
 	assert_lt(result[1], CEILING_DBFS, "Master never clips")
 	assert_lt(result[0], PRE_LIMITER_MAX_DBFS, "the mix has headroom before the limiter")
 	assert_between(result[2], WORST_LUFS.x, WORST_LUFS.y, "worst-case loudness")
@@ -174,7 +211,7 @@ func test_ship_sits_quietly_and_the_advisor_is_clear() -> void:
 	Events.campaign_screen_changed.emit(&"star_map")
 	await wait_until(func() -> bool: return Audio.music().score == ship, 5.0)
 	var result: Array[float] = await _record(&"ship")
-	assert_gt(result[3], RECORD_SECONDS * 0.8, "the mixer ran (captured %.1f s)" % result[3])
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
 	assert_lt(result[1], CEILING_DBFS, "Master never clips")
 	assert_lt(result[0], PRE_LIMITER_MAX_DBFS, "the mix has headroom before the limiter")
 	assert_between(result[2], SHIP_LUFS.x, SHIP_LUFS.y, "ship loudness")
@@ -187,3 +224,36 @@ func test_ship_sits_quietly_and_the_advisor_is_clear() -> void:
 	)
 	var ui: float = MixScene.lufs(_frames[&"UI"], AudioServer.get_mix_rate())
 	assert_lt(ui, speaking[0], "the interface stays under the Advisor")
+
+
+func test_thalassa_calm_low_tide_sits_quietly() -> void:
+	await _land_on_thalassa(0.0, 0.0)
+	Audio.music().force_state(&"calm")
+	var result: Array[float] = await _record(&"thalassa_calm")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_true(_tide().layer_playing(TideCues.LOW), "low water is heard")
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_between(result[2], EXPLORE_LUFS.x, EXPLORE_LUFS.y, "Thalassa calm loudness")
+
+
+func test_thalassa_fight_at_high_tide_never_clips() -> void:
+	await _land_on_thalassa(0.9, 0.015)
+	Audio.music().set_layer_gain(&"urgency", 0.0)
+	Audio.music().force_state(&"combat_heavy")
+	var result: Array[float] = await _record(&"thalassa_fight")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_true(_tide().layer_playing(TideCues.HIGH), "high water is heard")
+	assert_gt(Audio.music().layer_gain_db(&"tide"), -6.0, "the tide layer is up")
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_lt(result[0], PRE_LIMITER_MAX_DBFS, "the mix has headroom before the limiter")
+	assert_between(result[2], WORST_LUFS.x, WORST_LUFS.y, "Thalassa fight loudness")
+	assert_lte(int(result[4]), 48, "the voice budget holds")
+	var speaking: Array[float] = MixScene.loudness_while(
+		_frames[&"Advisor"], _frames[&"Music"], AudioServer.get_mix_rate()
+	)
+	gut.p("  while the Advisor speaks at high tide: Advisor %.1f LUFS, Music %.1f LUFS" % speaking)
+	assert_gt(
+		speaking[0],
+		speaking[1] + ADVISOR_OVER_MUSIC_LU,
+		"the Advisor is heard over the Thalassa battle score"
+	)

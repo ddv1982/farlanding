@@ -15,6 +15,10 @@ const TYPE_SCAN_SITES: StringName = &"scan_sites"
 const TYPE_SABOTAGE: StringName = &"sabotage"
 ## Fails when the rival (`side`) banks `amount` Intel first (the Survey race).
 const TYPE_RIVAL_INTEL: StringName = &"rival_intel"
+## Done when the side brings a carriable prop (`defs`) into the area (Recovery).
+const TYPE_CARRY_TO: StringName = &"carry_to"
+## Fails when the side (the enemy) brings a carriable prop into the area (its base).
+const TYPE_KEEP_FROM_ENEMY: StringName = &"keep_from_enemy"
 ## Whose things an objective is about.
 const SIDE_PLAYER: StringName = &"player"
 const SIDE_ENEMY: StringName = &"enemy"

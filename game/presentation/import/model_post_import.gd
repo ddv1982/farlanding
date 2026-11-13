@@ -7,6 +7,7 @@ extends EditorScenePostImport
 const MATERIALS: Dictionary[String, String] = {
 	"fl_palette": "res://assets/materials/fl_palette.tres",
 	"fl_terrain": "res://assets/materials/fl_terrain_kessel.tres",
+	"fl_terrain_thalassa": "res://assets/materials/fl_terrain_thalassa.tres",
 }
 
 

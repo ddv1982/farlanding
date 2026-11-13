@@ -1,28 +1,26 @@
-class_name KesselProving
+class_name LandingMap
 extends Node3D
-## Kessel Reach proving ground: the map, not the mission. It builds the terrain data,
-## wires the mission services (world, combat, fog of war), places the Alloy deposits
-## and Flux vents, charts the discovery sites the orbital scan found (a chain's later
-## steps stay hidden until led to), posts the dormant Custodian Wardens and scatters
-## the map's natural cover (boulders, `prop_layout`). Then the
-## MissionDef in `mission` supplies the forces and rules through a Mission node
-## (missions/mission.gd): who lands where, the enemy, objectives, script. Without one
-## it plays the default mission, so the scene also runs on its own.
+## A landing map: the map, not the mission (ADR 0014). It reads its layout from
+## `map_def` (a MapDef): builds the terrain data (heights from the terrain collider, the
+## walk grid from the navmesh, one per flood stage on a tidal map), wires the mission
+## services (world, combat, vision, fog of war), places the resource nodes, charts the
+## discovery sites the orbital scan found (a chain's later steps stay hidden until led
+## to), posts the dormant Custodians and scatters the natural cover. Then the MissionDef
+## in `mission` supplies the forces and rules through a Mission node
+## (missions/mission.gd): who lands where, the enemy, objectives, script. Without one it
+## plays the map's default mission, so a map scene also runs on its own.
+##
+## A map scene inherits `landing_map.tscn` (services, camera, selection, HUD), adds the
+## map's visuals (terrain with its collider, light, VFX) and sets `map_def`.
 ##
 ## A saved landing (ADR 0013) is restored instead when `restore_state` is set: the
 ## map builds its terrain data and services as usual, then places nothing itself and
 ## restores everything from the save (resource nodes, sites, props, buildings, units,
-## the storm, the mission runner and its AI), the camera and the control groups.
-## `snapshot()` produces that dictionary for a running landing.
+## the planet's rule, the mission runner and its AI), the camera and the control
+## groups. `snapshot()` produces that dictionary for a running landing.
 
-## The terrain is 240 m square, centred on the origin.
-const TERRAIN_AREA: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
-const HEIGHT_SPACING: float = 1.0
-## Vision grid cell size, in metres.
-const VISION_CELL: float = 2.0
-## The usual landing site (the conquest Lander's place).
-const LANDING_ZONE: Vector3 = Vector3(-80.0, 0.0, 85.0)
-
+## The map's layout.
+@export var map_def: MapDef
 @export var context: MissionContext
 @export var world: SimWorld
 @export var camera: RtsCamera
@@ -34,30 +32,10 @@ const LANDING_ZONE: Vector3 = Vector3(-80.0, 0.0, 85.0)
 @export var damage_table: DamageTable
 ## Fog of war on (off shows the whole map, for testing).
 @export var fog_of_war: bool = true
-## Played when nothing set `mission` before the map entered the tree (a path, not a
-## reference: the mission refers to this scene).
-@export_file("*.tres") var default_mission_path: String = ""
 ## False: terrain, resources and sites only, no mission (benchmarks).
 @export var with_mission: bool = true
-## Buildings may only be placed inside this area (world X/Z).
-@export var build_bounds: Rect2 = Rect2(-104.0, -104.0, 208.0, 208.0)
-@export_group("Resources")
-@export var deposit: ResourceNodeDef
-@export var deposit_positions: PackedVector3Array = PackedVector3Array()
-@export var rich_deposit: ResourceNodeDef
-@export var rich_deposit_positions: PackedVector3Array = PackedVector3Array()
-@export var vent: ResourceNodeDef
-@export var vent_positions: PackedVector3Array = PackedVector3Array()
-@export_group("Discovery")
-## Discovery sites, one position per entry of `discovery_positions`.
-@export var discoveries: Array[DiscoveryDef] = []
-@export var discovery_positions: PackedVector3Array = PackedVector3Array()
-## Dormant Custodians, one position per entry of `custodian_positions`.
-@export var custodian_roster: Array[UnitDef] = []
-@export var custodian_positions: PackedVector3Array = PackedVector3Array()
-@export_group("Props")
-## Natural cover every mission on this map has (boulders); the mission adds its own.
-@export var prop_layout: PropLayout
+## False: the map's own cover (`map_def.prop_layout`) is left out (benchmarks).
+@export var with_props: bool = true
 @export_group("Enemy AI")
 ## Prints the commander's notable decisions to the output (play-testing).
 @export var log_enemy_ai: bool = false
@@ -78,26 +56,36 @@ var presentation: MissionPresentation
 
 
 func _ready() -> void:
+	assert(map_def != null, "%s has no MapDef" % name)
 	var started: int = Time.get_ticks_msec()
 	Events.mission_started.emit()
-	if mission == null and with_mission and default_mission_path != "":
-		mission = load(default_mission_path) as MissionDef
+	if mission == null and with_mission and map_def.default_mission_path != "":
+		mission = load(map_def.default_mission_path) as MissionDef
 	var player_faction: int = mission.player_faction if mission != null else 0
+	var area: Rect2 = map_def.terrain_area
 	heights = HeightField.from_physics(
-		get_world_3d().direct_space_state, TERRAIN_AREA, HEIGHT_SPACING
+		get_world_3d().direct_space_state, area, map_def.height_spacing
 	)
-	walk_grid = WalkGrid.from_navmesh(
-		navigation_region.navigation_mesh, TERRAIN_AREA, HEIGHT_SPACING
-	)
+	navigation_region.navigation_mesh = map_def.navmesh
+	walk_grid = WalkGrid.from_navmesh(map_def.navmesh, area, map_def.height_spacing)
 	var paths: NavmeshPathService = NavmeshPathService.new(
 		get_world_3d().navigation_map, walk_grid, navigation_region
 	)
+	if map_def.has_flood_stages():
+		paths.set_flood_stages(
+			map_def.stage_navmeshes(),
+			map_def.flood_levels,
+			map_def.flood_clips,
+			area,
+			map_def.height_spacing
+		)
 	world.setup(context, paths, heights, economy_rules, player_faction, damage_table)
-	world.build_bounds = build_bounds
+	world.build_bounds = map_def.build_bounds
+	world.dry_crossings = map_def.dry_crossings
 	if fog_of_war:
-		world.enable_vision(TERRAIN_AREA, VISION_CELL)
+		world.enable_vision(area, map_def.vision_cell)
 	camera.heights = heights
-	print("kessel_proving: terrain data built in %d ms" % (Time.get_ticks_msec() - started))
+	print("%s: terrain data built in %d ms" % [map_def.id, Time.get_ticks_msec() - started])
 	if restore_state.is_empty():
 		_place_landing(paths)
 	else:
@@ -120,6 +108,12 @@ func _ready() -> void:
 		runner.resume(mission_data)
 
 
+func _exit_tree() -> void:
+	var paths: NavmeshPathService = world.paths as NavmeshPathService if world != null else null
+	if paths != null:
+		paths.release()
+
+
 ## The landing as it is now, for a saved game: the sim clock, the world, the mission
 ## runner (objectives, script, AI), the camera's focus and the control groups.
 func snapshot() -> Dictionary:
@@ -138,26 +132,28 @@ func snapshot() -> Dictionary:
 ## A fresh landing: the map's resources, props and sites, the mission's forces.
 func _place_landing(paths: NavmeshPathService) -> void:
 	var started: int = Time.get_ticks_msec()
-	_spawn_nodes(deposit, deposit_positions)
-	_spawn_nodes(rich_deposit, rich_deposit_positions)
-	_spawn_nodes(vent, vent_positions)
-	_spawn_props()
+	_spawn_nodes(map_def.deposit, map_def.deposit_positions)
+	_spawn_nodes(map_def.rich_deposit, map_def.rich_deposit_positions)
+	_spawn_nodes(map_def.vent, map_def.vent_positions)
+	if with_props:
+		_spawn_props()
 	_make_runner()
 	if runner != null:
 		runner.spawn_structures()
 	_spawn_sites()
 	paths.apply_cuts()
+	paths.prepare_flood_stages()
 	print(
 		(
-			"kessel_proving: %d resource nodes and the bases placed, navmesh cut in %d ms"
-			% [world.resource_nodes.size(), Time.get_ticks_msec() - started]
+			"%s: %d resource nodes and the bases placed, navmesh cut in %d ms"
+			% [map_def.id, world.resource_nodes.size(), Time.get_ticks_msec() - started]
 		)
 	)
-	for i: int in mini(custodian_roster.size(), custodian_positions.size()):
-		var towards_centre: float = Mover.yaw_for(-custodian_positions[i])
-		world.spawn_unit(
-			custodian_roster[i], Factions.CUSTODIANS, custodian_positions[i], towards_centre
-		)
+	var roster: Array[UnitDef] = map_def.custodian_roster
+	var posts: PackedVector3Array = map_def.custodian_positions
+	for i: int in mini(roster.size(), posts.size()):
+		var towards_centre: float = Mover.yaw_for(-posts[i])
+		world.spawn_unit(roster[i], Factions.CUSTODIANS, posts[i], towards_centre)
 	_make_presentation()
 	if runner != null:
 		runner.spawn_units()
@@ -176,6 +172,7 @@ func _restore_landing(paths: NavmeshPathService) -> void:
 	var world_data: Dictionary = restore_state.get("world", {})
 	world.from_dict(world_data)
 	paths.apply_cuts()
+	paths.prepare_flood_stages()
 	_make_presentation()
 	presentation.show_restored_state()
 	var groups: Dictionary = restore_state.get("groups", {})
@@ -190,8 +187,13 @@ func _restore_landing(paths: NavmeshPathService) -> void:
 		_center_camera()
 	print(
 		(
-			"kessel_proving: landing restored (%d units, %d buildings) in %d ms"
-			% [world.units.size(), world.buildings.size(), Time.get_ticks_msec() - started]
+			"%s: landing restored (%d units, %d buildings) in %d ms"
+			% [
+				map_def.id,
+				world.units.size(),
+				world.buildings.size(),
+				Time.get_ticks_msec() - started
+			]
 		)
 	)
 
@@ -204,7 +206,7 @@ func _make_runner() -> void:
 	runner.log_enemy_ai = log_enemy_ai
 	runner.modifiers = modifiers
 	add_child(runner)
-	runner.setup(mission, context, world, TERRAIN_AREA)
+	runner.setup(mission, context, world, map_def.terrain_area)
 
 
 func _make_presentation() -> void:
@@ -216,7 +218,7 @@ func _make_presentation() -> void:
 
 func _center_camera() -> void:
 	if mission == null:
-		camera.center_on(LANDING_ZONE)
+		camera.center_on(map_def.landing_zone)
 		return
 	if mission.camera_start != Vector3.INF:
 		camera.center_on(mission.camera_start)
@@ -229,19 +231,20 @@ func _center_camera() -> void:
 
 
 func _spawn_sites() -> void:
-	for i: int in mini(discoveries.size(), discovery_positions.size()):
+	var discoveries: Array[DiscoveryDef] = map_def.discoveries
+	for i: int in mini(discoveries.size(), map_def.discovery_positions.size()):
 		var def: DiscoveryDef = discoveries[i]
 		if def != null:
 			var charted: bool = not Discovery.is_led_to(discoveries, def.id)
 			if modifiers != null and modifiers.charts(def.id):
 				charted = true
-			world.spawn_site(def, discovery_positions[i], charted)
+			world.spawn_site(def, map_def.discovery_positions[i], charted)
 
 
 func _spawn_props() -> void:
-	if prop_layout == null:
+	if map_def.prop_layout == null:
 		return
-	for placement: PropPlacement in prop_layout.placements:
+	for placement: PropPlacement in map_def.prop_layout.placements:
 		if placement != null and placement.def != null:
 			world.spawn_prop(placement.def, placement.position, placement.quarter_turns)
 

@@ -36,6 +36,7 @@ const CURSOR_FOR_ACTION: Dictionary[StringName, StringName] = {
 	SelectionRules.CLICK_ASSIST: CursorIcons.ASSIST,
 	SelectionRules.CLICK_RALLY: CursorIcons.RALLY,
 	SelectionRules.CLICK_SABOTAGE: CursorIcons.SABOTAGE,
+	SelectionRules.CLICK_CARRY: CursorIcons.ASSIST,
 }
 
 @export var camera: RtsCamera
@@ -177,13 +178,18 @@ func apply_click(button: MouseButton, target: Node3D, ground: Vector3, shift: bo
 			_issue_on_target(ScanCommand.new(player_faction, [], target, shift), target, shift)
 		SelectionRules.CLICK_SABOTAGE:
 			_issue_on_target(SabotageCommand.new(player_faction, [], target, shift), target, shift)
+		SelectionRules.CLICK_CARRY:
+			var carriers: Array[Node3D] = []
+			carriers.assign(SelectionRules.able(selection, Carrier.KIND))
+			_push(CarryCommand.new(player_faction, carriers, target, shift))
+			OrderMarker.spawn(world, target.position, MOVE_MARKER_COLOR)
 		SelectionRules.CLICK_RALLY:
 			_rally_at(ground)
 	return action
 
 
-## The unit, building, discovery site or resource node under a screen position (in
-## that order of priority), or null for ground.
+## The unit, building, discovery site, carriable prop or resource node under a
+## screen position (in that order of priority), or null for ground.
 func target_at(screen_position: Vector2) -> Node3D:
 	var unit: Unit = unit_at(screen_position)
 	if unit != null:
@@ -195,7 +201,27 @@ func target_at(screen_position: Vector2) -> Node3D:
 	var site: DiscoverySite = site_at(screen_position)
 	if site != null:
 		return site
+	var cargo: Prop = cargo_at(screen_position)
+	if cargo != null:
+		return cargo
 	return resource_node_at(screen_position)
+
+
+## A carriable prop nobody carries under a screen position (an artefact), or null.
+func cargo_at(screen_position: Vector2) -> Prop:
+	var origin: Vector3 = camera.camera.project_ray_origin(screen_position)
+	var direction: Vector3 = camera.camera.project_ray_normal(screen_position)
+	for prop: Prop in world.props:
+		if not prop.is_carriable() or prop.is_carried():
+			continue
+		var radius: float = prop.radius() + 0.75
+		var box: AABB = AABB(
+			prop.position - Vector3(radius, 0.5, radius),
+			Vector3(radius * 2.0, prop.height() + 1.0, radius * 2.0)
+		)
+		if box.intersects_ray(origin, direction) != null:
+			return prop
+	return null
 
 
 ## Charted discovery site under a screen position, or null.

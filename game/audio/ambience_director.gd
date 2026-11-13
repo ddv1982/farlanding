@@ -2,19 +2,23 @@ class_name AmbienceDirector
 extends Node
 ## The planet's ambience (Phase 6): layered beds that wander and positional
 ## details around the listener, shaped by where the camera is. Rules in
-## AmbienceCues; this node measures the context and plays.
+## AmbienceCues; the planet's beds and details are data (an AmbienceSet, from
+## PlanetAudio; Kessel Reach's when none is given). This node measures the
+## context and plays.
 ##
 ## Context, re-read every SCAN_INTERVAL from scene groups (duck-typed, all
 ## optional): the nearest Flux node (group `resource_nodes`, `resource()` ==
 ## &"flux"); the nearest Antecedent site (group `discovery_sites`,
 ## `discovery_type` == &"antecedent"); the nearest building of another faction
 ## (group `buildings`) that the player has seen (`is_visible_to_player` true
-## at least once this mission). The storm's cover comes from StormSound.
+## at least once this mission). The storm's cover comes from StormSound, the
+## water level from TideSound.
 ##
-## Beds loop on this node's own players (Ambience bus): the score's ambience
-## event (the base wind), `amb_kessel_air` and `amb_kessel_hush`. Details are
-## positional one-shots (`play_at`): free kinds on a ring around the listener,
-## vents at the Flux node, industry at the Combine building.
+## Beds loop on this node's own players (Ambience bus), one per bed of the set
+## (a hush bed only while it is heard). Details are positional one-shots
+## (`play_at`): ring kinds around the listener, vent kinds at the Flux node,
+## base kinds at the Combine building. Starting another planet's set stops the
+## old beds first: two planets never sound together.
 ##
 ## Ship mode (Phase 7, `start_ship`): between landings the planet beds fade
 ## out and the Meridian's beds fade in on their own players (hull hum and air
@@ -45,6 +49,7 @@ var player_faction: int = 0
 ## Re-read the scene every SCAN_INTERVAL (tests turn it off and set the context).
 var auto_scan: bool = true
 
+var _set: AmbienceSet
 var _players: Dictionary[StringName, AudioStreamPlayer] = {}
 var _wander_db: Dictionary[StringName, float] = {}
 var _wander_target: Dictionary[StringName, float] = {}
@@ -73,16 +78,6 @@ var _last_ship_detail: StringName = &""
 
 
 func _ready() -> void:
-	for bed: StringName in AmbienceCues.BEDS:
-		var player: AudioStreamPlayer = AudioStreamPlayer.new()
-		player.name = "Bed_%s" % bed
-		player.bus = AMBIENCE_BUS
-		player.volume_db = AudioMix.SILENT_DB
-		add_child(player)
-		_players[bed] = player
-		_wander_db[bed] = 0.0
-		_wander_target[bed] = 0.0
-		_next_wander[bed] = 0.0
 	for bed: StringName in CampaignCues.BEDS:
 		var ship_player: AudioStreamPlayer = AudioStreamPlayer.new()
 		ship_player.name = "Ship_%s" % bed
@@ -93,25 +88,30 @@ func _ready() -> void:
 		_ship_wander_db[bed] = 0.0
 		_ship_wander_target[bed] = 0.0
 		_ship_next_wander[bed] = 0.0
-	for key: StringName in [
-		AmbienceCues.VENT_NEAR, AmbienceCues.BASE_NEAR, AmbienceCues.SITE_NEAR, AmbienceCues.STORM
-	]:
+	for key: StringName in AmbienceCues.CONTEXT_KEYS:
 		_context[key] = 0.0
 		_context_target[key] = 0.0
 	Events.mission_started.connect(handle_mission_started)
 
 
-## Starts the beds. `wind` is the score's own ambience stream (may be null).
-## The ship's beds, if they play, fade out.
-func start(wind: AudioStream) -> void:
+## Starts a planet's beds (`amb`; Kessel Reach's when null), fading in. The
+## ship's beds, if they play, fade out; another planet's beds stop.
+func start(amb: AmbienceSet = null) -> void:
 	_running = true
 	_ship = false
 	_ship_screen = &""
 	_next_ship_detail = INF
 	_fade = 0.0
-	_start_bed(AmbienceCues.BED_WIND, wind)
-	_start_bed(AmbienceCues.BED_AIR, _stream_of(AmbienceCues.BED_AIR))
+	_use_set(amb if amb != null else AmbienceCues.kessel())
+	for bed: AmbienceBed in _beds():
+		if not bed.hush:
+			_start_bed(bed.event, _stream_of(bed.event))
 	_next_detail = _clock + AmbienceCues.detail_gap(_context, _rng.randf())
+
+
+## The planet set playing (or last played).
+func ambience_set() -> AmbienceSet:
+	return _set
 
 
 ## Ship mode: the planet fades out, the Meridian's beds fade in.
@@ -197,15 +197,23 @@ func set_storm_cover(amount: float) -> void:
 	_context_target[AmbienceCues.STORM] = clampf(amount, 0.0, 1.0)
 
 
+## The water level, 0 low .. 1 high (from TideSound).
+func set_tide(level: float) -> void:
+	_context_target[AmbienceCues.TIDE] = clampf(level, 0.0, 1.0)
+
+
 ## Picks and plays one detail for `roll`; returns its kind or &"".
 func play_detail(roll: float) -> StringName:
-	var weights: Dictionary[StringName, float] = AmbienceCues.detail_weights(_context)
+	var amb: AmbienceSet = _set if _set != null else AmbienceCues.kessel()
+	var weights: Dictionary[StringName, float] = AmbienceCues.detail_weights(_context, amb)
 	if not _base_at.is_finite():
-		weights[AmbienceCues.INDUSTRY] = 0.0  # nowhere to put it
+		for detail: AmbienceDetail in amb.details:
+			if detail.anchor == AmbienceDetail.BASE:
+				weights[detail.event] = 0.0  # nowhere to put it
 	var kind: StringName = AmbienceCues.pick(weights, roll, _last_detail)
 	if kind == &"":
 		return &""
-	var at: Vector3 = _detail_position(kind)
+	var at: Vector3 = _detail_position(amb.find_detail(kind))
 	if not at.is_finite():
 		return &""
 	_last_detail = kind
@@ -320,31 +328,70 @@ func _apply_ship_beds(delta: float) -> void:
 
 
 func _wander(delta: float) -> void:
-	for bed: StringName in AmbienceCues.BED_RANGE_DB:
-		if _clock >= _next_wander[bed]:
-			_next_wander[bed] = _clock + AmbienceCues.wander_gap(_rng.randf())
-			_wander_target[bed] = AmbienceCues.wander_target_db(bed, _rng.randf())
+	for bed: AmbienceBed in _beds():
+		if bed.hush or bed.wander_db == Vector2.ZERO:
+			continue
+		var key: StringName = bed.event
+		if _clock >= _next_wander[key]:
+			_next_wander[key] = _clock + AmbienceCues.wander_gap(_rng.randf())
+			_wander_target[key] = AmbienceCues.wander_target_db(key, _rng.randf(), _set)
 		var rate: float = 9.0 / AmbienceCues.WANDER_GLIDE
-		_wander_db[bed] = move_toward(_wander_db[bed], _wander_target[bed], rate * delta)
+		_wander_db[key] = move_toward(_wander_db[key], _wander_target[key], rate * delta)
 
 
 func _apply_beds() -> void:
 	var fade_db: float = AudioMix.linear_to_db_safe(_fade)
-	for bed: StringName in AmbienceCues.BEDS:
-		var player: AudioStreamPlayer = _players[bed]
-		var level: float = AmbienceCues.bed_db(bed, _wander_db[bed], _context)
+	for bed: AmbienceBed in _beds():
+		var player: AudioStreamPlayer = _players[bed.event]
+		var level: float = AmbienceCues.bed_db(bed.event, _wander_db[bed.event], _context, _set)
 		if level <= AudioMix.SILENT_DB or fade_db <= AudioMix.SILENT_DB:
-			if (bed == AmbienceCues.BED_HUSH or _ship) and player.playing:
+			if (bed.hush or _ship) and player.playing:
 				player.stop()
 			player.volume_db = AudioMix.SILENT_DB
 			continue
-		if bed == AmbienceCues.BED_HUSH and not player.playing:
-			_start_bed(bed, _stream_of(bed))
+		if bed.hush and not player.playing:
+			_start_bed(bed.event, _stream_of(bed.event))
 		player.volume_db = level + fade_db
 
 
+## Makes `amb` the playing set: its beds get players (silent until started),
+## beds of another set stop and go.
+func _use_set(amb: AmbienceSet) -> void:
+	if amb == _set and not _players.is_empty():
+		return
+	_set = amb
+	var keep: Array[StringName] = amb.bed_events() if amb != null else []
+	for key: StringName in _players.keys():
+		if key in keep:
+			continue
+		var old: AudioStreamPlayer = _players[key]
+		old.stop()
+		old.queue_free()
+		_players.erase(key)
+	for key: StringName in keep:
+		if _players.has(key):
+			continue
+		var player: AudioStreamPlayer = AudioStreamPlayer.new()
+		player.name = "Bed_%s" % key
+		player.bus = AMBIENCE_BUS
+		player.volume_db = AudioMix.SILENT_DB
+		add_child(player)
+		_players[key] = player
+		_wander_db[key] = 0.0
+		_wander_target[key] = 0.0
+		_next_wander[key] = 0.0
+
+
+func _beds() -> Array[AmbienceBed]:
+	if _set == null:
+		return []
+	return _set.beds
+
+
 func _start_bed(bed: StringName, stream: AudioStream) -> void:
-	_start_on(_players[bed], stream)
+	var player: AudioStreamPlayer = _players.get(bed, null)
+	if player != null and not player.playing:
+		_start_on(player, stream)
 
 
 func _start_on(player: AudioStreamPlayer, stream: AudioStream) -> void:
@@ -361,10 +408,11 @@ func _stream_of(event_id: StringName) -> AudioStream:
 	return event.streams[0]
 
 
-func _detail_position(kind: StringName) -> Vector3:
-	if kind == AmbienceCues.VENT and _vent_at.is_finite():
+func _detail_position(detail: AmbienceDetail) -> Vector3:
+	var anchor: StringName = detail.anchor if detail != null else AmbienceDetail.RING
+	if anchor == AmbienceDetail.VENT and _vent_at.is_finite():
 		return _vent_at
-	if kind == AmbienceCues.INDUSTRY:
+	if anchor == AmbienceDetail.BASE:
 		return _base_at
 	var angle: float = _rng.randf() * TAU
 	var distance: float = _rng.randf_range(AmbienceCues.DETAIL_RING.x, AmbienceCues.DETAIL_RING.y)

@@ -5,7 +5,8 @@
 [ext_resource type="Resource" path="res://data/missions/survey.tres" id="e2"]
 [ext_resource type="Resource" path="res://data/missions/infiltration.tres" id="e3"]
 [ext_resource type="Script" path="res://missions/mission_def.gd" id="e4"]
+[ext_resource type="Resource" path="res://data/missions/thalassa_recovery.tres" id="e5"]
 
 [resource]
 script = ExtResource("e0")
-missions = Array[ExtResource("e4")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3")])
+missions = Array[ExtResource("e4")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e5")])

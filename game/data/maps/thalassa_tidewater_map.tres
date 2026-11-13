@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="MapDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/map_def.gd" id="1_def"]
+[ext_resource type="NavigationMesh" path="res://maps/thalassa_tidewater/thalassa_navmesh_stage0.res" id="2_stage0"]
+[ext_resource type="NavigationMesh" path="res://maps/thalassa_tidewater/thalassa_navmesh_stage1.res" id="3_stage1"]
+[ext_resource type="NavigationMesh" path="res://maps/thalassa_tidewater/thalassa_navmesh_stage2.res" id="4_stage2"]
+[ext_resource type="NavigationMesh" path="res://maps/thalassa_tidewater/thalassa_navmesh_stage3.res" id="4b_stage3"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit.tres" id="5_deposit"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="6_rich"]
+[ext_resource type="Resource" path="res://data/resources/kessel_flux_vent.tres" id="7_vent"]
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="8_discovery_def"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="9_unit_def"]
+[ext_resource type="Resource" path="res://data/units/custodian_warden.tres" id="10_warden"]
+[ext_resource type="Resource" path="res://data/maps/thalassa_reefs.tres" id="11_reefs"]
+[ext_resource type="Resource" path="res://data/discoveries/thalassa_salt_flat.tres" id="d0"]
+[ext_resource type="Resource" path="res://data/discoveries/thalassa_kelp_bed.tres" id="d1"]
+[ext_resource type="Resource" path="res://data/discoveries/thalassa_reef_garden.tres" id="d2"]
+[ext_resource type="Resource" path="res://data/discoveries/thalassa_tide_gauge.tres" id="d3"]
+[ext_resource type="Resource" path="res://data/discoveries/thalassa_survey_stake.tres" id="d4"]
+[ext_resource type="Resource" path="res://data/discoveries/thalassa_trail_echo.tres" id="d5"]
+[ext_resource type="Resource" path="res://data/discoveries/thalassa_trail_vault.tres" id="d6"]
+[ext_resource type="Resource" path="res://data/discoveries/thalassa_drowned_cache.tres" id="d7"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"thalassa_tidewater"
+display_name = "Thalassa Tidewater"
+terrain_area = Rect2(-120, -120, 240, 240)
+landing_zone = Vector3(-80, 0, 86)
+build_bounds = Rect2(-104, -104, 208, 208)
+default_mission_path = "res://data/missions/thalassa_shallows.tres"
+navmesh = ExtResource("2_stage0")
+flood_navmeshes = Array[NavigationMesh]([ExtResource("3_stage1"), ExtResource("4_stage2"), ExtResource("4b_stage3")])
+flood_levels = PackedFloat32Array(-1.3, -0.95, -0.45, -0.15)
+flood_clips = PackedFloat32Array(-1.2, -0.7, -0.4, -0.1)
+dry_crossings = PackedVector3Array(12, 0, 0)
+deposit = ExtResource("5_deposit")
+deposit_positions = PackedVector3Array(-104, 0, 66, -56, 0, 100, -100, 0, 44, -40, 0, 92, -6, 0, 22, -54, 0, 20, 56, 0, 64, 104, 0, -100, 100, 0, -62, 56, 0, -104, 60, 0, -40, 30, 0, -24)
+rich_deposit = ExtResource("6_rich")
+rich_deposit_positions = PackedVector3Array(-30, 0, 62, -88, 0, 8, 36, 0, -58, 92, 0, -12)
+vent = ExtResource("7_vent")
+vent_positions = PackedVector3Array(-100, 0, 98, -60, 0, 98, 12, 0, 72, 102, 0, -72, 58, 0, -98, -24, 0, -68)
+discoveries = Array[ExtResource("8_discovery_def")]([ExtResource("d0"), ExtResource("d1"), ExtResource("d2"), ExtResource("d3"), ExtResource("d4"), ExtResource("d5"), ExtResource("d6"), ExtResource("d7")])
+discovery_positions = PackedVector3Array(-46, 0, 40, 40, 0, 56, -40, 0, -96, 84, 0, -34, 70, 0, -4, 28, 0, 78, -8, 0, -72, -24, 0, 68)
+custodian_roster = Array[ExtResource("9_unit_def")]([ExtResource("10_warden"), ExtResource("10_warden")])
+custodian_positions = PackedVector3Array(74, 0, 82, 84, 0, 86)
+prop_layout = ExtResource("11_reefs")

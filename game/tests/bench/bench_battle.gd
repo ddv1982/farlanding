@@ -30,7 +30,7 @@ const ENEMY_ROSTER: Array[String] = [
 	"res://data/units/combine_mauler.tres",
 ]
 
-var _map: KesselProving
+var _map: LandingMap
 var _frames: int = 0
 var _started_msec: int = -1
 var _seconds: float = 40.0
@@ -51,7 +51,7 @@ func _ready() -> void:
 	_map = (load("res://maps/kessel_proving/kessel_proving.tscn") as PackedScene).instantiate()
 	_map.mission = load(MISSION) as MissionDef
 	if args.has("--no-props"):
-		_map.prop_layout = null
+		_map.with_props = false
 	add_child(_map)
 	Events.sim_ticked.connect(_on_sim_ticked)
 

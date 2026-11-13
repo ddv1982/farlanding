@@ -12,6 +12,10 @@ uniform sampler2D detail_normal : hint_normal, filter_linear_mipmap, repeat_enab
 uniform float cliff_start : hint_range(0.0, 1.0) = 0.16;
 uniform float cliff_end : hint_range(0.0, 1.0) = 0.38;
 uniform float strata_scale = 1.1;
+// Ground below this height is wet (tidal maps move it with the sea; the default
+// keeps every other map dry).
+uniform float wet_level = -1000.0;
+uniform vec3 wet_tint : source_color = vec3(0.55, 0.62, 0.62);
 
 #include "fog.gdshaderinc"
 
@@ -42,8 +46,13 @@ void fragment() {
 	float slope = 1.0 - world_normal.y;
 	float cliff = smoothstep(cliff_start, cliff_end, slope + (fine - 0.5) * 0.08);
 
-	ALBEDO = fog_color(mix(ground, rock, cliff), fog_at(world_pos));
-	ROUGHNESS = mix(0.95, 0.85, cliff);
+	// Wet ground: darker, cooler and shinier, drying out over half a metre.
+	float wet = smoothstep(wet_level + 0.5, wet_level - 0.1, world_pos.y + (mid - 0.5) * 0.3);
+	vec3 surface = mix(ground, rock, cliff);
+	surface = mix(surface, surface * wet_tint, wet);
+
+	ALBEDO = fog_color(surface, fog_at(world_pos));
+	ROUGHNESS = mix(mix(0.95, 0.85, cliff), 0.35, wet * 0.8);
 	NORMAL_MAP = texture(detail_normal, world_pos.xz / 7.0).rgb;
 	NORMAL_MAP_DEPTH = mix(0.55, 0.15, cliff);
 }

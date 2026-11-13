@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="AmbienceSet" format=3]
+
+[ext_resource type="Script" path="res://audio/ambience_set.gd" id="1_set"]
+[ext_resource type="Script" path="res://audio/ambience_bed.gd" id="2_bed"]
+[ext_resource type="Script" path="res://audio/ambience_detail.gd" id="3_detail"]
+
+[sub_resource type="Resource" id="Bed_amb_kessel_wind"]
+script = ExtResource("2_bed")
+event = &"amb_kessel_wind"
+wander_db = Vector2(-5, 0)
+
+[sub_resource type="Resource" id="Bed_amb_kessel_air"]
+script = ExtResource("2_bed")
+event = &"amb_kessel_air"
+wander_db = Vector2(-9, -1)
+
+[sub_resource type="Resource" id="Bed_amb_kessel_hush"]
+script = ExtResource("2_bed")
+event = &"amb_kessel_hush"
+hush = true
+
+[sub_resource type="Resource" id="Detail_amb_rock_settle"]
+script = ExtResource("3_detail")
+event = &"amb_rock_settle"
+weight = 1
+
+[sub_resource type="Resource" id="Detail_amb_flux_vent"]
+script = ExtResource("3_detail")
+event = &"amb_flux_vent"
+weight = 0.08
+vent = 2.2
+anchor = &"vent"
+
+[sub_resource type="Resource" id="Detail_amb_dust_devil"]
+script = ExtResource("3_detail")
+event = &"amb_dust_devil"
+weight = 0.45
+storm_cover = 1
+
+[sub_resource type="Resource" id="Detail_amb_combine_industry"]
+script = ExtResource("3_detail")
+event = &"amb_combine_industry"
+weight = 0
+base = 2.6
+anchor = &"base"
+
+[resource]
+script = ExtResource("1_set")
+id = &"kessel_reach"
+beds = Array[ExtResource("2_bed")]([SubResource("Bed_amb_kessel_wind"), SubResource("Bed_amb_kessel_air"), SubResource("Bed_amb_kessel_hush")])
+details = Array[ExtResource("3_detail")]([SubResource("Detail_amb_rock_settle"), SubResource("Detail_amb_flux_vent"), SubResource("Detail_amb_dust_devil"), SubResource("Detail_amb_combine_industry")])
