@@ -102,8 +102,8 @@ func can_vent(tap: Building) -> StringName:
 	if not tap.is_operational() or tap.flux_extractor == null:
 		return NOT_A_TAP
 	var state: Dictionary = _state_of(tap.vent)
-	var burst_at: int = state["burst_at"]
-	if _surge_started and state["state"] == STATE_WARNING and burst_at >= _now:
+	var surging: bool = state.get("surge", false)
+	if surging and state["state"] == STATE_WARNING:
 		return SURGING
 	if vent_cooldown_left(tap.vent) > 0.0:
 		return COOLING
@@ -284,6 +284,7 @@ func _rate(vent: ResourceNode) -> float:
 
 func _erupt(vent: ResourceNode, state: Dictionary) -> void:
 	state["state"] = STATE_CALM
+	state["surge"] = false
 	state["pressure"] = 0.0
 	state["threshold"] = _draw_threshold()
 	state["quiet_until"] = _now + ticks(_eruption.quiet_seconds)
@@ -338,6 +339,8 @@ func _tick_surge() -> void:
 		var state: Dictionary = _state_of(vent)
 		var burst: int = _surge_at + order * step
 		order += 1
+		# Only a surge's own warnings are beyond venting; a later ordinary one is not.
+		state["surge"] = true
 		var current: int = state["burst_at"]
 		if state["state"] == STATE_WARNING and current <= burst:
 			continue
@@ -370,6 +373,7 @@ func _state_of(vent: ResourceNode) -> Dictionary:
 			"burst_at": -1,
 			"quiet_until": 0,
 			"vent_ready_at": 0,
+			"surge": false,
 		}
 	return _vents[vent.entity_id]
 
@@ -499,6 +503,7 @@ func from_dict(data: Dictionary) -> void:
 		var burst_at: int = entry.get("burst_at", -1)
 		var quiet_until: int = entry.get("quiet_until", 0)
 		var vent_ready_at: int = entry.get("vent_ready_at", 0)
+		var surging: bool = entry.get("surge", false)
 		var state: Dictionary = {
 			"pressure": pressure,
 			"threshold": threshold,
@@ -506,6 +511,7 @@ func from_dict(data: Dictionary) -> void:
 			"burst_at": burst_at,
 			"quiet_until": quiet_until,
 			"vent_ready_at": vent_ready_at,
+			"surge": surging,
 		}
 		_vents[int(str(key))] = state
 	_forecast_until.clear()

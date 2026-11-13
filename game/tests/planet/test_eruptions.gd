@@ -277,6 +277,12 @@ func test_the_surge_sets_off_every_caldera_vent_in_turn() -> void:
 	assert_eq(_bursts.size(), 2, "the next a step later")
 	_seconds(5.0)
 	assert_eq(_bursts.size(), 2, "the vent off the caldera is left alone")
+	var waited: int = 0
+	while eruptions.seconds_to_burst(tap.vent) == INF and waited < 400:
+		_seconds(0.5)
+		waited += 1
+	assert_lt(eruptions.seconds_to_burst(tap.vent), INF, "an ordinary warning follows later")
+	assert_ne(eruptions.can_vent(tap), EruptionSystem.SURGING, "which a Tap may still vent")
 
 
 func test_a_forecast_names_the_next_vent() -> void:

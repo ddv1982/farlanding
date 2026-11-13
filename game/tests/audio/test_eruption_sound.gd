@@ -267,8 +267,8 @@ func test_calling_off_stops_the_build_up() -> void:
 	var other: FakeVent = _vent(Vector3(30, 0, 0))
 	_sound.handle_eruption_warning(other, 20.0, 12.0)
 	_sound.focus = Vector3(28, 0, 0)
-	Events.ui_feedback.emit(&"vent_release")  # the player vented the one in view
-	assert_eq(_sound.warning_count(), 0, "a controlled vent calls off the one nearest the camera")
+	Events.ui_feedback.emit(&"vent_release")  # some other vent was vented
+	assert_eq(_sound.warning_count(), 1, "venting elsewhere leaves this warning sounding")
 
 
 func test_an_overdue_warning_is_dropped() -> void:

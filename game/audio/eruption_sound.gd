@@ -14,9 +14,7 @@ extends Node
 ##   deadline (no restart, no jump). A restored mission that re-emits the
 ##   warning with the seconds still left picks up at the same pitch.
 ## - A warning with negative or infinite `seconds` calls the eruption off (the
-##   build-up stops). Venting on purpose (`ui_feedback` &"vent_release") also
-##   calls off the warned vent nearest the camera within VENT_RELEASE_REACH,
-##   since that signal does not name the vent.
+##   build-up stops); the sim sends that for the vent a Tap vented on purpose.
 ## - eruption(vent, radius): the vent's build-up stops and a blast plays there
 ##   (a crack, a boom, a long low tail), louder for a larger radius; a blast the
 ##   player can see ducks the mix briefly (`duck`).
@@ -42,9 +40,6 @@ const WEATHER_BUS: StringName = &"Weather"
 const BUILDINGS_GROUP: StringName = &"buildings"
 const BASE_SCAN: float = 1.0
 const MAX_DISTANCE: float = 320.0
-const VENT_RELEASE: StringName = &"vent_release"
-## A controlled vent calls off the warned vent nearest the focus within this (m).
-const VENT_RELEASE_REACH: float = 80.0
 
 ## Looks up a SoundEvent: `func(id: StringName) -> SoundEvent`.
 var resolve_event: Callable = func(_id: StringName) -> SoundEvent: return null
@@ -92,7 +87,6 @@ func _ready() -> void:
 		_blast_weight.append(0.0)
 	Events.eruption_warning.connect(handle_eruption_warning)
 	Events.eruption.connect(handle_eruption)
-	Events.ui_feedback.connect(_on_ui_feedback)
 	Events.sim_ticked.connect(handle_sim_ticked)
 	Events.mission_started.connect(handle_mission_started)
 	_apply_music()
@@ -206,25 +200,6 @@ func handle_mission_started() -> void:
 	_apply_music()
 
 
-## Calls off the warned vent nearest `at` within `reach` metres (a controlled
-## vent). Returns true if one was called off.
-func call_off_nearest(at: Vector3, reach: float) -> bool:
-	var best: int = 0
-	var best_distance: float = reach
-	for id: int in _warnings:
-		var warning: Warning = _warnings[id]
-		var d: float = Vector2(warning.position.x - at.x, warning.position.z - at.z).length()
-		if d <= best_distance:
-			best_distance = d
-			best = id
-	if best == 0:
-		return false
-	_forget(best)
-	_assign_slots()
-	_apply_music()
-	return true
-
-
 ## Re-reads where the player's buildings are.
 func rescan_base() -> void:
 	_base.clear()
@@ -295,11 +270,6 @@ func seed_rng(value: int) -> void:
 
 
 # --- Internals ----------------------------------------------------------------
-
-
-func _on_ui_feedback(kind: StringName) -> void:
-	if kind == VENT_RELEASE:
-		call_off_nearest(focus, VENT_RELEASE_REACH)
 
 
 func _make_player(player_name: String) -> AudioStreamPlayer3D:
