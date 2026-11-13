@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" path="res://assets/models/terrain/kessel_proving_ground.glb" id="1"]
 [ext_resource type="Environment" path="res://assets/environments/kessel_env.tres" id="2"]
 [ext_resource type="Script" path="res://presentation/vfx/combat_vfx.gd" id="3"]
+[ext_resource type="Script" path="res://presentation/vfx/discovery_vfx.gd" id="4"]
 
 [node name="KesselVisuals" type="Node3D"]
 
@@ -22,3 +23,6 @@ directional_shadow_max_distance = 160.0
 
 [node name="CombatVfx" type="Node3D" parent="."]
 script = ExtResource("3")
+
+[node name="DiscoveryVfx" type="Node3D" parent="."]
+script = ExtResource("4")
