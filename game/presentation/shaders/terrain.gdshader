@@ -16,6 +16,10 @@ uniform float strata_scale = 1.1;
 // keeps every other map dry).
 uniform float wet_level = -1000.0;
 uniform vec3 wet_tint : source_color = vec3(0.55, 0.62, 0.62);
+// Ground below this height glows (lava maps: the banks of a lava river). The
+// default keeps every other map dark.
+uniform float heat_level = -1000.0;
+uniform vec3 heat_color : source_color = vec3(1.0, 0.32, 0.05);
 
 #include "fog.gdshaderinc"
 
@@ -53,6 +57,11 @@ void fragment() {
 
 	ALBEDO = fog_color(surface, fog_at(world_pos));
 	ROUGHNESS = mix(mix(0.95, 0.85, cliff), 0.35, wet * 0.8);
+	// Heat: strongest at the lava's surface, gone a metre and a half above it,
+	// broken into cracks by the fine noise.
+	float heat = smoothstep(heat_level + 1.5, heat_level, world_pos.y);
+	heat *= heat * (0.35 + 0.65 * smoothstep(0.45, 0.7, fine));
+	EMISSION = heat_color * heat * 2.5 * fog_at(world_pos).r;
 	NORMAL_MAP = texture(detail_normal, world_pos.xz / 7.0).rgb;
 	NORMAL_MAP_DEPTH = mix(0.55, 0.15, cliff);
 }
