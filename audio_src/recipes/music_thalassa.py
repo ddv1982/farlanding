@@ -139,9 +139,9 @@ def tide_voice(m: int, beats: float, vel: float, rng: np.random.Generator, beat_
     return dsp.mix(0.9 * g, 0.6 * fl) * vel
 
 
-def pluck(f: float, rng: np.random.Generator, decay: float = 0.7) -> np.ndarray:
+def pluck(f: float, rng: np.random.Generator, decay: float = 0.7, tail: float = 1.6) -> np.ndarray:
     """A water pluck: a dark, soft chime with a little downward drip in pitch."""
-    x = chime(f, 0.05, rng, brightness=0.35, decay=decay, attack=0.008, tail=1.6)
+    x = chime(f, 0.05, rng, brightness=0.35, decay=decay, attack=0.008, tail=tail)
     return dsp.lowpass(x, 3600.0)
 
 
@@ -220,11 +220,16 @@ def pulse(rng: np.random.Generator) -> np.ndarray:
     for bar in range(BARS):
         bass, voicing = _chord(bar)
         tones = sorted(m + 12 for m in voicing)
+        breath = bar % BLOCK_BARS == BLOCK_BARS - 1
         for k, (at, v) in enumerate(PLUCK_STEPS):
-            if bar % BLOCK_BARS == BLOCK_BARS - 1 and k == 2:
+            if breath and k == 2:
                 continue  # breathe at the end of each block
             m = tones[(bar + 2 * k) % len(tones)]
-            note = _soft(pluck(H(m), rng)) * v * float(rng.uniform(0.9, 1.0))
+            # The pluck before a breath rings on through the rest, so the block (and the loop,
+            # which ends on one) fades into the next downbeat rather than dropping to silence.
+            ring = breath and k == 1
+            x = pluck(H(m), rng, 1.4, 3.0) if ring else pluck(H(m), rng)
+            note = _soft(x) * v * float(rng.uniform(0.9, 1.0))
             dsp.place(buf, dsp.pan(note, -0.35 if k % 2 else 0.35), dsp.samples((bar * BAR_BEATS + at) * BEAT))
         heart = soft_sine(H(bass + 12), 0.3, attack=0.02, release=0.5, harmonics=(1.0, 0.1))
         dsp.place(buf, dsp.stereo(heart * 0.4), dsp.samples(bar * BAR))

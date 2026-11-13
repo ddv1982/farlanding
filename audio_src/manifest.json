@@ -4236,10 +4236,10 @@
    "channels": 2,
    "loop": true,
    "seconds": 68.5714,
-   "peak_dbtp": -19.19,
+   "peak_dbtp": -18.68,
    "lufs": -29.0,
    "target_lufs": -29.0,
-   "sha256": "4644dd0970b180c14b01c08ed0dc1c1ae2374e891405d8dca39ef99d1bb17a0a",
+   "sha256": "e8b159636573b25078f167c47c95b18b72c6b69b9629440092b9014490bcb659",
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {
