@@ -92,6 +92,8 @@ func _on_warning(vent: Node3D, seconds: float, radius: float) -> void:
 	if not is_instance_valid(vent):
 		return
 	_drop_warning(vent.get_instance_id())
+	if seconds < 0.0:
+		return  # the eruption was called off
 	_warnings[vent.get_instance_id()] = warn(vent.global_position, radius, seconds)
 
 

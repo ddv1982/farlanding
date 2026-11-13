@@ -148,6 +148,8 @@ func spawn_building(def: BuildingDef, faction: int, at: Vector3, complete: bool)
 	if vent != null:
 		vent.tap = building
 		building.vent = vent
+		if building.flux_extractor != null:
+			building.flux_extractor.set_rate_scale(vent.def.flux_rate_scale)
 	add_child(building)
 	buildings.append(building)
 	building.tree_exiting.connect(_on_building_exiting.bind(building))
@@ -442,8 +444,10 @@ func _tick_building(building: Building, dt: float) -> void:
 		if finished != null:
 			_on_unit_produced(building, finished)
 	if building.flux_extractor != null:
-		var flux: int = building.flux_extractor.tick(dt * rate)
-		if flux > 0:
+		var flux: int = building.flux_extractor.tick(dt * rate, dt)
+		if flux > 0 and building.def.flux_banked_as == &"alloy":
+			economy.add(building.faction, flux, 0)
+		elif flux > 0:
 			economy.add(building.faction, 0, flux)
 
 

@@ -120,6 +120,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## The minimap paints its terrain in the map's own colours.
+func set_map_colors(low: Color, high: Color) -> void:
+	if _minimap != null:
+		_minimap.set_ground_colors(low, high)
+
+
 ## Shows the alert meter of the enemy `faction` under the objectives.
 func show_alert_meter(faction: int) -> void:
 	_objectives.show_alert_meter(faction)

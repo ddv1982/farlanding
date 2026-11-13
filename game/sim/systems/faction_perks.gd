@@ -19,8 +19,20 @@ const SCAN_RATE: StringName = &"scan_rate"
 ## Field option stats (keyed "<option id>/<stat>").
 const INTEL_COST: StringName = &"intel_cost"
 const COOLDOWN: StringName = &"cooldown"
+## Damage an eruption deals to the faction's buildings (ADR 0015).
+const ERUPTION_DAMAGE: StringName = &"eruption_damage"
+## Cooldown of controlled venting on the faction's Flux Taps (keyed by the Tap's id).
+const VENT_COOLDOWN: StringName = &"vent_cooldown"
 const STATS: Array[StringName] = [
-	MAX_HEALTH, VISION_RANGE, CARRY_CAPACITY, MINE_TIME, SCAN_RATE, INTEL_COST, COOLDOWN
+	MAX_HEALTH,
+	VISION_RANGE,
+	CARRY_CAPACITY,
+	MINE_TIME,
+	SCAN_RATE,
+	INTEL_COST,
+	COOLDOWN,
+	ERUPTION_DAMAGE,
+	VENT_COOLDOWN,
 ]
 
 static var _none: FactionPerks = null

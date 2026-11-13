@@ -12,6 +12,8 @@ const TRIGGER_CONSTRUCTION_COMPLETED: StringName = &"construction_completed"
 const TRIGGER_STORM_INCOMING: StringName = &"storm_incoming"
 ## The tide is about to turn (Thalassa: `Events.tide_turning`).
 const TRIGGER_TIDE_TURNING: StringName = &"tide_turning"
+## A vent announced an eruption (Emberfall: `Events.eruption_warning`).
+const TRIGGER_ERUPTION_WARNING: StringName = &"eruption_warning"
 ## The enemy keeps an alert meter (a stealth mission began).
 const TRIGGER_ALERT_METER: StringName = &"alert_meter"
 ## Capabilities `subject` may name (otherwise it is a def id).

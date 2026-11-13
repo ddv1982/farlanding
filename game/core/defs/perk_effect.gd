@@ -35,7 +35,8 @@ const KINDS: Array[StringName] = [
 ## Entity type, field option or discovery id, depending on `kind`.
 @export var target: StringName = &""
 ## Scale: a FactionPerks stat (&"vision_range", &"max_health", &"carry_capacity",
-## &"mine_time", &"scan_rate", &"intel_cost", &"cooldown").
+## &"mine_time", &"scan_rate", &"intel_cost", &"cooldown", &"eruption_damage",
+## &"vent_cooldown").
 @export var stat: StringName = &""
 @export var factor: float = 1.0
 ## Units.

@@ -98,6 +98,16 @@ extends Resource
 @export_enum("causeway", "wait") var tide_tactic: String = "causeway"
 ## The shallows count as safe while they stay dry at least this long.
 @export_range(0.0, 600.0, 5.0, "suffix:s") var tide_safe_seconds: float = 70.0
+@export_group("Vents")
+## Emberfall (ADR 0015). The building the commander puts on Flux vents (the Combine
+## Siphon), or null for none; it keeps `extractors_wanted` of them on known vents near
+## home that are not about to burst.
+@export var extractor: BuildingDef
+@export_range(0, 10, 1) var extractors_wanted: int = 0
+## Its Taps vent on purpose from this pressure on (0 = never).
+@export_range(0.0, 1.0, 0.05) var vent_at_pressure: float = 0.7
+## Its units leave a vent's radius when it bursts within this many seconds.
+@export_range(0.0, 120.0, 1.0, "suffix:s") var vent_flee_seconds: float = 20.0
 @export_group("Recovery")
 ## Sends a squad to take carriable props (artefacts) home (a Recovery mission's rival).
 @export var retrieves_cargo: bool = false

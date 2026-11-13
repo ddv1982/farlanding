@@ -39,8 +39,10 @@ BRIDGES = [(-58.0, 31.0, 8.0), (52.0, -40.0, 8.0), (32.0, 60.0, 8.0)]
 # The caldera: a walkable plateau (centre x, y, radius x, y, height) and its ramps
 # (start outside, end on top, half width).
 CALDERA = (0.0, 0.0, 24.0, 20.0, 3.4)
-RAMPS = [((-34.0, -14.0), (-16.0, -6.0), 10.0), ((6.0, -34.0), (2.0, -14.0), 10.0),
-         ((36.0, 8.0), (18.0, 4.0), 10.0)]
+# Each ramp tops out at the plateau's edge, not inside it: ending further in left
+# a lip the edge of the plateau stood above.
+RAMPS = [((-34.0, -14.0), (-22.0, -8.5), 10.0), ((6.0, -34.0), (3.5, -21.0), 10.0),
+         ((42.0, -3.0), (27.0, 0.0), 10.0)]
 # Ash shelves, a little higher: centre x, y, radius x, y, height. The first two are
 # the bases (Concord south-west, Combine north-east).
 SHELVES = [(-80.0, -85.0, 26.0, 20.0, 1.6), (80.0, 80.0, 26.0, 20.0, 1.6),

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TechDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e0"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e1"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+kind = &"scale"
+target = &"concord_flux_tap"
+stat = &"vent_cooldown"
+factor = 0.5
+
+[resource]
+script = ExtResource("e0")
+id = &"pressure_valves"
+title = "Pressure Valves"
+description = "A Flux Tap can vent its vent again in half the time."
+branch = &"industry"
+intel_cost = 70
+requires = Array[StringName]([&"heat_shielding"])
+requires_discovery = &""
+grid = Vector2i(1, 5)
+effects = Array[ExtResource("e1")]([SubResource("s0")])

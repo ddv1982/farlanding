@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/kessel_site_formation.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"emberfall_seismic_fissure"
+display_name = "Seismic fissure"
+discovery_type = &"geological"
+scene = ExtResource("2")
+intel_reward = 45
+scan_time = 9.0
+radius = 5.0
+leads_to = &""
+codex_title = "Seismic fissure"
+codex_text = "A crack that hums with the caldera's pulse. Read for a few minutes, it tells which vent is filling fastest: the gauge names the next to erupt, and the vent's own gauge says NEXT."
+payoff = &"forecast"
+payoff_seconds = 420.0
+color = Color(0.95, 0.5, 0.25, 1)

@@ -10,6 +10,9 @@ extends Resource
 
 @export var id: StringName = &""
 @export var display_name: String = ""
+## The minimap's ground colours: low ground and high ground (hill-shaded between).
+@export var minimap_low: Color = Color(0.42, 0.33, 0.25)
+@export var minimap_high: Color = Color(0.78, 0.66, 0.52)
 ## The terrain's extent (world X/Z); heights, the walk grid and vision cover it.
 @export var terrain_area: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
 ## Height field sample spacing, in metres.
@@ -43,6 +46,9 @@ extends Resource
 @export var rich_deposit_positions: PackedVector3Array = PackedVector3Array()
 @export var vent: ResourceNodeDef
 @export var vent_positions: PackedVector3Array = PackedVector3Array()
+## Rich vents (Emberfall's erupting ones), a second kind of vent.
+@export var rich_vent: ResourceNodeDef
+@export var rich_vent_positions: PackedVector3Array = PackedVector3Array()
 @export_group("Discovery")
 ## Discovery sites, one position per entry of `discovery_positions`.
 @export var discoveries: Array[DiscoveryDef] = []

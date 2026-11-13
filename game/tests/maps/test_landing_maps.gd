@@ -1,5 +1,5 @@
 extends GutTest
-## The landing-map base and its maps (ADR 0014). Kessel plays through the general
+## The landing-map base and its maps (ADR 0014, ADR 0015). Kessel plays through the general
 ## LandingMap exactly as before; Thalassa Tidewater's real navmeshes hold at low and at
 ## high water: both bases, every deposit, every discovery site and every crossing are
 ## checked from the Concord landing, for ground units and hovering units.
@@ -21,6 +21,19 @@ const PANS: PackedVector3Array = [
 	Vector3(-30, 0, 62), Vector3(36, 0, -58), Vector3(-88, 0, 8), Vector3(92, 0, -12)
 ]
 const CONCORD_BASE: Vector3 = Vector3(-80, 0, 72)
+const EMBERFALL_MAP: String = "res://data/maps/emberfall_caldera_map.tres"
+const EMBER_CONCORD: Vector3 = Vector3(-80, 0, 72)
+const EMBER_COMBINE: Vector3 = Vector3(82, 0, -70)
+## The terrain recipe's rock bridges and the caldera's ramps (Godot x, z).
+const EMBER_BRIDGES: PackedVector3Array = [
+	Vector3(-58, 0, -31), Vector3(52, 0, 40), Vector3(32, 0, -60)
+]
+## The ramps' feet (south-west, south, east); each leads up onto the plateau.
+const EMBER_RAMPS: PackedVector3Array = [Vector3(-34, 0, 14), Vector3(6, 0, 34), Vector3(42, 0, 3)]
+## The middle of the caldera plateau (3.4 m up).
+const EMBER_CALDERA: Vector3 = Vector3(0, 3.4, 0)
+## Ground this low is lava (the terrain recipe's LAVA_LEVEL).
+const EMBER_LAVA: float = -0.9
 const COMBINE_BASE: Vector3 = Vector3(80, 0, -68)
 
 var _f: SaveFixture
@@ -114,6 +127,88 @@ func test_thalassa_holds_at_low_and_at_high_water() -> void:
 	_expect_channel_closed(world, paths, hover, "high water")
 
 
+func test_emberfall_holds_its_bases_bridges_ramps_and_lava() -> void:
+	var map: LandingMap = await _land(&"emberfall_conquest")
+	var world: SimWorld = map.world
+	var paths: PathService = world.paths
+	assert_eq(map.map_def.resource_path, EMBERFALL_MAP)
+	assert_eq(map.map_def.navmesh.resource_path, BakeEmberfallNavmesh.OUTPUT, "the bake's output")
+	assert_false(map.map_def.has_flood_stages(), "one stage, no sea")
+	assert_false(world.conditions.has_sea())
+	assert_eq(paths.for_hover(), paths, "hovering units share the ground's paths: no lava")
+	assert_true(world.planet is EruptionSystem, "Emberfall's eruptions")
+	assert_eq(world.resource_nodes.size(), 23, "12 deposits, 4 rich, 2 vents, 5 rich vents")
+	var erupting: int = 0
+	for node: ResourceNode in world.resource_nodes:
+		erupting += 1 if node.erupts() else 0
+	assert_eq(erupting, 5, "three on the caldera, two by the bridges")
+	assert_eq((world.planet as EruptionSystem).vents().size(), 5)
+	assert_eq(world.props.size(), 10, "ten basalt boulders")
+	assert_eq(world.units_of(Factions.CUSTODIANS).size(), 2, "two dormant Wardens")
+	assert_eq(SaveFixture.count_of(world, 1, &"combine_rigger"), 1)
+	var siphons: int = 0
+	for building: Building in world.buildings_of(1):
+		if building.def.id == &"combine_flux_siphon":
+			siphons += 1
+			assert_not_null(building.vent, "a Siphon stands on a vent")
+	assert_eq(siphons, 2, "one at home, one on the caldera")
+	var from: Vector3 = paths.closest_point(EMBER_CONCORD)
+	_expect_from(paths, from, EMBER_COMBINE, 4.0, "the Combine base")
+	for node: ResourceNode in world.resource_nodes:
+		_expect_from(paths, from, node.position, node.def.radius + 5.0, node.name)
+	for site: DiscoverySite in world.discovery.sites:
+		_expect_from(paths, from, site.position, 7.0, site.def.id)
+	for point: Vector3 in EMBER_BRIDGES:
+		_expect_from(paths, from, point, 2.0, "the bridge at %s" % point)
+	var caldera: Vector3 = paths.closest_point(EMBER_CALDERA)
+	assert_gt(caldera.y, 3.0, "the plateau is walkable")
+	for foot: Vector3 in EMBER_RAMPS:
+		_expect_from(paths, from, foot, 2.0, "the ramp at %s" % foot)
+		# Up the ramp, not round by another: no longer than half again the straight way.
+		var up: PackedVector3Array = paths.find_path(paths.closest_point(foot), caldera)
+		assert_false(up.is_empty(), "up the ramp at %s" % foot)
+		if not up.is_empty():
+			assert_lt(_flat(up[up.size() - 1], caldera), 2.0, "onto the plateau from %s" % foot)
+			assert_lt(_length(up), _flat(foot, caldera) * 1.5, "the ramp at %s is open" % foot)
+	for building: Building in world.buildings_of(1):
+		_expect_from(paths, from, building.position, 12.0, building.name)
+	# Every free erupting vent takes a Flux Tap; with Taps on all of them (the Combine
+	# already has one) every ramp still leads up.
+	var tap_def: BuildingDef = load("res://data/buildings/concord_flux_tap.tres")
+	for node: ResourceNode in world.resource_nodes:
+		if not node.erupts() or not node.is_free_vent():
+			continue
+		var placement: PlacementRules = world.placement_rules()
+		assert_eq(placement.check(tap_def, node.position), PlacementRules.OK, "%s" % node.name)
+		world.spawn_building(tap_def, 0, node.position, true)
+	(paths as NavmeshPathService).apply_cuts()
+	for i: int in 10:
+		await get_tree().physics_frame
+	for foot: Vector3 in EMBER_RAMPS:
+		var tapped_up: PackedVector3Array = paths.find_path(paths.closest_point(foot), caldera)
+		assert_false(tapped_up.is_empty(), "up the ramp at %s past the Taps" % foot)
+		if not tapped_up.is_empty():
+			assert_lt(_length(tapped_up), _flat(foot, caldera) * 1.5, "%s stays open" % foot)
+	var lava: int = 0
+	for x: int in range(-116, 117, 4):
+		for z: int in range(-116, 117, 4):
+			var point: Vector3 = Vector3(x, 0, z)
+			if world.heights.sample(point.x, point.z) > EMBER_LAVA:
+				continue
+			lava += 1
+			assert_false(paths.is_walkable(point), "nobody walks or hovers on lava at %s" % point)
+	assert_gt(lava, 60, "the lava was sampled")
+
+
+func _expect_from(
+	paths: PathService, from: Vector3, target: Vector3, within: float, what: String
+) -> void:
+	var path: PackedVector3Array = paths.find_path(from, paths.closest_point(target))
+	assert_false(path.is_empty(), "a path to %s" % what)
+	if not path.is_empty():
+		assert_lt(_flat(path[path.size() - 1], target), within, "%s is reached" % what)
+
+
 func _land(id: StringName) -> LandingMap:
 	var map: LandingMap = await _f.land(SaveFixture.mission(id))
 	_maps.append(map)
@@ -205,6 +300,13 @@ func _expect_channel_closed(
 			assert_false(paths.is_walkable(point), "ground units off the channel %s" % point)
 			assert_false(hover.is_walkable(point), "hover units off the channel %s" % point)
 	assert_gt(deep, 50, "the channel was sampled at %s" % when)
+
+
+static func _length(path: PackedVector3Array) -> float:
+	var length: float = 0.0
+	for i: int in range(1, path.size()):
+		length += _flat(path[i - 1], path[i])
+	return length
 
 
 static func _flat(a: Vector3, b: Vector3) -> float:

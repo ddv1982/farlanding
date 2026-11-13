@@ -45,6 +45,8 @@ var _objectives: Array[Objective] = []
 var _terrain: TextureRect = null
 var _overlay: Control = null
 var _dragging: bool = false
+var _ground_low: Color = Color(0.42, 0.33, 0.25)
+var _ground_high: Color = Color(0.78, 0.66, 0.52)
 
 
 func setup(
@@ -110,6 +112,14 @@ func _gui_input(event: InputEvent) -> void:
 	if motion != null and _dragging:
 		_look_at(motion.position)
 		accept_event()
+
+
+## Paints the terrain in this map's own colours (low ground, high ground).
+func set_ground_colors(low: Color, high: Color) -> void:
+	_ground_low = low
+	_ground_high = high
+	if _terrain != null:
+		_terrain.texture = ImageTexture.create_from_image(_terrain_image())
 
 
 ## World point (on the ground) under a position in this control.
@@ -259,8 +269,8 @@ func _color_for(owner_faction: int) -> Color:
 func _terrain_image() -> Image:
 	var image: Image = Image.create_empty(TERRAIN_PIXELS, TERRAIN_PIXELS, false, Image.FORMAT_RGB8)
 	var step: Vector2 = area.size / TERRAIN_PIXELS
-	var low: Color = Color(0.42, 0.33, 0.25)
-	var high: Color = Color(0.78, 0.66, 0.52)
+	var low: Color = _ground_low
+	var high: Color = _ground_high
 	for y: int in TERRAIN_PIXELS:
 		for x: int in TERRAIN_PIXELS:
 			var point: Vector3 = Vector3(

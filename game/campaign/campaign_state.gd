@@ -203,7 +203,22 @@ static func from_dict(data: Dictionary, p_def: CampaignDef) -> CampaignState:
 		state.loadout[StringName(str(key))] = StringName(str(loadout_data[key]))
 	var current: String = data.get("current_node", "")
 	state.current_node = StringName(current)
+	state._open_new_leads()
 	return state
+
+
+## A save made before a node gained new `leads_to` (a later content update, e.g.
+## Emberfall after Thalassa) opens them now, as winning the node would have.
+func _open_new_leads() -> void:
+	if def == null:
+		return
+	for node_id: StringName in won.duplicate():
+		var route_node: RouteNodeDef = def.node(node_id)
+		if route_node == null:
+			continue
+		for next: StringName in route_node.leads_to:
+			if not won.has(next) and not closed.has(next) and not opened.has(next):
+				opened.append(next)
 
 
 func _requirements_met(route_node: RouteNodeDef) -> bool:

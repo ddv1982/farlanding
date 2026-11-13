@@ -67,6 +67,12 @@ func dry_crossing(_from: Vector3, _to: Vector3) -> Vector3:
 	return Vector3.INF
 
 
+## Vents about to erupt or close to it (public, like the weather): x, z, radius and
+## seconds until the burst (INF when not building). Empty without eruptions.
+func vent_dangers() -> Array[Vector4]:
+	return []
+
+
 ## Carriable props (artefacts) this faction knows of: lying anywhere (charted from
 ## orbit), carried by its own units, or carried by an enemy it sees now.
 func known_cargo() -> Array[Prop]:

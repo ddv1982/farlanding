@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ResourceNodeDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/resource_node_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/resources/kessel_flux_vent.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/kessel_resource_flux_vent.png" id="3"]
+
+[resource]
+script = ExtResource("1")
+resource = &"flux"
+amount = 0
+radius = 2.6
+height = 1.0
+blocks_movement = false
+flux_rate_scale = 2.5
+erupts = true
+id = &"emberfall_flux_vent_rich"
+display_name = "Rich Flux vent"
+description = "A Flux Tap on it draws two and a half times as fast, but tapping builds its pressure and it erupts. Vent it early from the Tap."
+faction = -1
+scene = ExtResource("2")
+icon = ExtResource("3")

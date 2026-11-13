@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/antecedent_site_cache.tscn" id="2"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="n_node"]
+
+[resource]
+script = ExtResource("1")
+id = &"emberfall_slag_cache"
+display_name = "Slag cache"
+discovery_type = &"antecedent"
+scene = ExtResource("2")
+intel_reward = 70
+scan_time = 10.0
+radius = 1.5
+leads_to = &""
+codex_title = "Slag cache"
+codex_text = "An Antecedent store sealed in glassy slag. Cracked open, it spills worked alloy across the plain."
+payoff = &"deposit"
+payoff_node = ExtResource("n_node")
+payoff_offset = Vector3(0, 0, 9)
+color = Color(0.75, 0.6, 1.0, 1)

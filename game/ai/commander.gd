@@ -56,6 +56,8 @@ var scout: ScoutBehaviour = null
 var survey: SurveyBehaviour = null
 ## The squad taking an artefact home (profile `retrieves_cargo`), or null.
 var retrieval: RetrieveGroup = null
+## Venting, fleeing and siphons on an erupting planet (ADR 0015).
+var vents: VentKeeper = null
 ## Where the base is, and where new army units wait.
 var home: Vector3 = Vector3.ZERO
 var staging: Vector3 = Vector3.ZERO
@@ -95,6 +97,7 @@ func setup(
 	difficulty = profile.difficulty(difficulty_id)
 	_map_area = map_area
 	port = WorldAiPort.new(context, world, faction)
+	vents = VentKeeper.new(port, world, profile)
 	knowledge = AiKnowledge.new(faction, CommanderDifficulty.ticks(profile.memory_seconds))
 	knowledge.setup_sectors(map_area, profile.sector_size, world.paths.is_terrain_walkable)
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -151,6 +154,10 @@ func _decide(tick: int) -> void:
 	_staff_retrieval(tick)
 	perceive(tick)
 	_view = build_view(tick)
+	var put_to_work: Unit = vents.decide(home, _view.idle_builders)
+	if put_to_work != null:
+		_last_ordered[put_to_work.entity_id] = tick
+		_view.idle_builders.erase(put_to_work)
 	var actions: Array[AiAction] = brain.decide(_view)
 	for action: AiAction in actions:
 		_apply(action, tick)

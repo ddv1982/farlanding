@@ -28,8 +28,9 @@ all of it, and the briefing lists what it brings. The campaign autosaves after e
 landing and purchase; **Continue** picks it up. **Single missions** plays any landing
 on its own.
 
-Landings are on Kessel Reach (Conquest, Survey or Infiltration) and Thalassa Low
-(Tidewater Landing, a Conquest, and Low-Water Recovery). Dust storms sweep Kessel's
+Landings are on Kessel Reach (Conquest, Survey or Infiltration), Thalassa Low
+(Tidewater Landing, a Conquest, and Low-Water Recovery) and Emberfall (Caldera
+Conquest and Caldera Holdout). Dust storms sweep Kessel's
 basin every few minutes: everyone sees half as far, ground units slow down and long
 guns lose reach (the gauge under the top-right buttons counts the next one down). On
 Thalassa the tide rises and falls on the same gauge: high water closes the fords and
@@ -37,8 +38,14 @@ floods the tidal pans (ground units caught in them wade slowly and take damage,
 haulers stop mining there, nothing can be built on ground that floods); the causeway
 always stays dry and hover units cross flooded shallows. In a Recovery, command a unit
 onto the Antecedent artefact to pick it up and bring it back to the Lander; its
-carrier is slow and cannot fight, and drops it if killed. Field notes explain each new
-thing the first time you meet it.
+carrier is slow and cannot fight, and drops it if killed. On Emberfall the rich Flux
+vents fill with pressure while a Flux Tap draws on them and erupt when full (a ring on
+the ground counts down; buildings near it are hit hard, units less, the Tap is knocked
+out for a while); select the Tap and press **VENT** to release the pressure early at a
+small cost, then wait out its cooldown. The gauge shows the vent closest to bursting.
+Lava is never crossable: use the bridges and the caldera's ramps. In a Holdout, keep
+the Lander standing until the extraction ship lands while growing waves come for it.
+Field notes explain each new thing the first time you meet it.
 
 | Input | Does |
 |---|---|

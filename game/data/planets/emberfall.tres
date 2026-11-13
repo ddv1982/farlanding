@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="PlanetDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/planet_def.gd" id="1_planet"]
+[ext_resource type="Script" path="res://core/defs/eruption_rule.gd" id="2_rule"]
+[ext_resource type="Script" path="res://sim/systems/planet/eruption_system.gd" id="3_system"]
+
+[sub_resource type="Resource" id="rule"]
+script = ExtResource("2_rule")
+id = &"emberfall_eruptions"
+summary = "Rich Flux vents build pressure while they are tapped and erupt when full, wrecking what stands near them. Vent them early from the Flux Tap."
+system = ExtResource("3_system")
+random_seed = 31
+
+[resource]
+script = ExtResource("1_planet")
+id = &"emberfall"
+display_name = "Emberfall"
+summary = "Black basalt cut by rivers of lava around a low caldera. The richest Flux vents sit on the caldera and erupt; three rock bridges cross the lava."
+rule = SubResource("rule")
