@@ -25,6 +25,9 @@ extends RefCounted
 ##   makes an older, unheard alert moot without being moot itself (REPLACES):
 ##   the extraction arriving drops a waiting "inbound", eruption damage a
 ##   waiting warning.
+## - Verdance (Phase 8c): enemy aircraft sighted, units found under the canopy,
+##   one of ours shot down. Aircraft sighted outranks a contact under the
+##   crowns (it can reach the base); a loss is news, not a warning.
 ##
 ## Use: `push(kind, now, position)` when an alert arrives (set `focus` first);
 ## every frame, `pop_ready(now)` and, if it returns a kind, play it and call
@@ -69,6 +72,9 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"wave_incoming": 15.0,
 	&"extraction_inbound": 20.0,
 	&"extraction_arrived": 10.0,
+	&"air_contact": 25.0,
+	&"canopy_contact": 20.0,
+	&"air_lost": 12.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -109,6 +115,9 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"eruption_damage": 106,
 	&"wave_incoming": 98,
 	&"extraction_inbound": 94,
+	&"air_contact": 103,
+	&"canopy_contact": 101,
+	&"air_lost": 90,
 }
 ## Kind -> the family whose throttle it shares (kinds not listed are their own).
 const FAMILY: Dictionary[StringName, StringName] = {

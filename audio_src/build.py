@@ -92,6 +92,10 @@ EVENT_DEFAULTS = {
     # priority as the planet's details.
     "shipdetail": dict(bus="Ambience", priority=10, max_instances=2, cooldown=1.0, positional=False,
                        max_distance=0.0),
+    # Phase 8c. Canopy rustles: the player's units going under a crown or out
+    # (CanopySound, which also rate-limits them into one gesture per group).
+    "canopy": dict(bus="Units", priority=42, max_instances=2, cooldown=0.15, positional=True,
+                   max_distance=70.0),
 }
 EVENT_OVERRIDES = {
     "ui_hover": dict(priority=20, max_instances=1, cooldown=0.06),
@@ -212,6 +216,20 @@ EVENT_OVERRIDES = {
     "mus_holdout_arrived": dict(cooldown=5.0),
     "ui_vent_release": dict(cooldown=0.12, max_instances=1),
     "ui_vent_denied": dict(cooldown=0.2, max_instances=1),
+    # Phase 8c, Verdance. Calls are rare and never overlap; wing flurries and
+    # creaks are heard from further than drips.
+    "amb_canopy_call": dict(max_instances=1, cooldown=5.0, max_distance=180.0),
+    "amb_wing_flurry": dict(max_instances=1, cooldown=3.0, max_distance=120.0),
+    "amb_branch_creak": dict(max_distance=120.0),
+    "amb_leaf_drip": dict(max_distance=60.0),
+    # Air units (Phase 8c). Engines are heard further than ground chassis: the
+    # sky carries. Concord weapons stay in tune, the Hornet's may wander.
+    "move_talon": dict(max_instances=2, max_distance=75.0, priority=34),
+    "move_hornet": dict(max_instances=2, max_distance=75.0, priority=34),
+    "weapon_talon_fire": dict(priority=44, max_instances=3, cooldown=0.08, max_distance=85.0),
+    "weapon_hornet_fire": dict(priority=40, max_instances=3, cooldown=0.06, max_distance=80.0, pitch_variation=1.0),
+    "death_talon": dict(priority=72, max_instances=2, cooldown=0.15, max_distance=150.0),
+    "death_hornet": dict(priority=72, max_instances=2, cooldown=0.15, max_distance=150.0, pitch_variation=0.6),
 }
 
 

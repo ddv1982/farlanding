@@ -34,6 +34,9 @@
 ## build-ups, blasts, the score's pressure layer) and the HoldoutSound (child
 ## "Holdout": the survival timer's holdout layer, one-minute cue, approaching
 ## engine and arrival). Both are reached by name; the public surface is full.
+## Phase 8c adds Verdance: the CanopySound (child "Canopy": the player's units
+## rustling under the crowns, and the ambience's high band closing while the
+## camera looks under one, applied here with the storm's muffle).
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -108,6 +111,9 @@ var _planet_ambience: AmbienceSet
 var _tide: TideSound
 var _eruption: EruptionSound
 var _holdout: HoldoutSound
+var _canopy: CanopySound
+## Canopy shade over the camera's focus (0 open .. 1 under a crown).
+var _shade: float = 0.0
 
 
 func _ready() -> void:
@@ -231,6 +237,11 @@ func _ready() -> void:
 	_holdout.set_music_gain = func(gain_db: float) -> void:
 		_music.set_layer_gain(HOLDOUT_LAYER, gain_db)
 	add_child(_holdout)
+	_canopy = CanopySound.new()
+	_canopy.name = &"Canopy"
+	_canopy.play_at = func(event_id: StringName, at: Vector3) -> bool: return play_at(event_id, at)
+	_canopy.set_shade = _set_canopy_shade
+	add_child(_canopy)
 	_campaign = CampaignSoundRouter.new()
 	_campaign.name = &"CampaignRouter"
 	_campaign.play_first = play_first
@@ -285,6 +296,7 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 	_storm.focus = focus
 	_ambience.focus = focus
 	_eruption.focus = focus
+	_canopy.focus = focus
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 
@@ -350,6 +362,7 @@ func _show_screen(screen: StringName) -> void:
 	_tide.handle_mission_started()  # and so does the sea
 	_eruption.handle_mission_started()  # and the vents
 	_holdout.handle_mission_started()
+	_canopy.handle_mission_started()
 	if _ship_score != null:
 		_music.switch_score(_ship_score, state)
 	_ambience.start_ship(screen)
@@ -414,20 +427,40 @@ func set_muffle(amount: float) -> void:
 	if is_equal_approx(clamped, _muffle):
 		return
 	_muffle = clamped
-	var cutoff: float = StormCues.muffle_cutoff_hz(_muffle)
-	for bus: StringName in AudioMix.MUFFLED_BUSES:
-		var index: int = AudioServer.get_bus_index(bus)
-		var effect: int = _effect_index(index, AudioMix.MUFFLE_EFFECT)
-		if effect < 0:
-			continue
-		var filter: AudioEffectLowPassFilter = AudioServer.get_bus_effect(index, effect)
-		filter.cutoff_hz = cutoff
-		AudioServer.set_bus_effect_enabled(index, effect, _muffle > 0.001)
+	_apply_muffle_filters()
 	_apply_volumes()
 
 
 func muffle() -> float:
 	return _muffle
+
+
+## The muffle low-pass on each muffled bus: the storm's on all of them, and on
+## the Ambience bus also the canopy's shade (whichever closes it further).
+func _apply_muffle_filters() -> void:
+	var storm_cutoff: float = StormCues.muffle_cutoff_hz(_muffle)
+	for bus: StringName in AudioMix.MUFFLED_BUSES:
+		var index: int = AudioServer.get_bus_index(bus)
+		var effect: int = _effect_index(index, AudioMix.MUFFLE_EFFECT)
+		if effect < 0:
+			continue
+		var cutoff: float = storm_cutoff
+		var active: bool = _muffle > 0.001
+		if bus == AmbienceDirector.AMBIENCE_BUS and _shade > 0.001:
+			cutoff = minf(cutoff, CanopyCues.shade_cutoff_hz(_shade))
+			active = true
+		var filter: AudioEffectLowPassFilter = AudioServer.get_bus_effect(index, effect)
+		filter.cutoff_hz = cutoff
+		AudioServer.set_bus_effect_enabled(index, effect, active)
+
+
+## The canopy's shade over the camera's focus (CanopySound), 0..1.
+func _set_canopy_shade(amount: float) -> void:
+	var clamped: float = clampf(amount, 0.0, 1.0)
+	if is_equal_approx(clamped, _shade):
+		return
+	_shade = clamped
+	_apply_muffle_filters()
 
 
 ## The storm (for the mix test and tests): its node.

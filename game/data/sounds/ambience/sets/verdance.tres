@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="AmbienceSet" format=3]
+
+[ext_resource type="Script" path="res://audio/ambience_set.gd" id="1_set"]
+[ext_resource type="Script" path="res://audio/ambience_bed.gd" id="2_bed"]
+[ext_resource type="Script" path="res://audio/ambience_detail.gd" id="3_detail"]
+
+[sub_resource type="Resource" id="Bed_amb_verdance_leaves"]
+script = ExtResource("2_bed")
+event = &"amb_verdance_leaves"
+wander_db = Vector2(-5, 0)
+
+[sub_resource type="Resource" id="Bed_amb_verdance_chorus"]
+script = ExtResource("2_bed")
+event = &"amb_verdance_chorus"
+wander_db = Vector2(-8, -1)
+
+[sub_resource type="Resource" id="Bed_amb_verdance_stream"]
+script = ExtResource("2_bed")
+event = &"amb_verdance_stream"
+wander_db = Vector2(-9, -3)
+
+[sub_resource type="Resource" id="Bed_amb_kessel_hush"]
+script = ExtResource("2_bed")
+event = &"amb_kessel_hush"
+hush = true
+
+[sub_resource type="Resource" id="Detail_amb_branch_creak"]
+script = ExtResource("3_detail")
+event = &"amb_branch_creak"
+weight = 0.5
+
+[sub_resource type="Resource" id="Detail_amb_canopy_call"]
+script = ExtResource("3_detail")
+event = &"amb_canopy_call"
+weight = 0.45
+
+[sub_resource type="Resource" id="Detail_amb_leaf_drip"]
+script = ExtResource("3_detail")
+event = &"amb_leaf_drip"
+weight = 0.4
+
+[sub_resource type="Resource" id="Detail_amb_wing_flurry"]
+script = ExtResource("3_detail")
+event = &"amb_wing_flurry"
+weight = 0.25
+
+[sub_resource type="Resource" id="Detail_amb_flux_vent"]
+script = ExtResource("3_detail")
+event = &"amb_flux_vent"
+weight = 0
+vent = 1.4
+anchor = &"vent"
+
+[sub_resource type="Resource" id="Detail_amb_combine_industry"]
+script = ExtResource("3_detail")
+event = &"amb_combine_industry"
+weight = 0
+base = 2.6
+anchor = &"base"
+
+[resource]
+script = ExtResource("1_set")
+id = &"verdance"
+beds = Array[ExtResource("2_bed")]([SubResource("Bed_amb_verdance_leaves"), SubResource("Bed_amb_verdance_chorus"), SubResource("Bed_amb_verdance_stream"), SubResource("Bed_amb_kessel_hush")])
+details = Array[ExtResource("3_detail")]([SubResource("Detail_amb_branch_creak"), SubResource("Detail_amb_canopy_call"), SubResource("Detail_amb_leaf_drip"), SubResource("Detail_amb_wing_flurry"), SubResource("Detail_amb_flux_vent"), SubResource("Detail_amb_combine_industry")])

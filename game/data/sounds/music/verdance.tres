@@ -1,0 +1,122 @@
+[gd_resource type="Resource" script_class="MusicScore" format=3]
+
+[ext_resource type="Script" path="res://audio/music_score.gd" id="1_score"]
+[ext_resource type="Script" path="res://audio/music_clip.gd" id="2_clip"]
+[ext_resource type="Script" path="res://audio/music_state.gd" id="3_state"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_explore_pad.ogg" id="4_pad"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_explore_pulse.ogg" id="5_pulse"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_explore_melody.ogg" id="6_melody"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_tension_drive.ogg" id="7_drive"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_combat_drums.ogg" id="8_drums"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_combat_brass.ogg" id="9_brass"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_explore_trail.ogg" id="10_trail"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_stealth_hush.ogg" id="11_hush"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_stealth_watch.ogg" id="12_watch"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_explore_melody_b.ogg" id="13_melody_b"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_explore_melody_c.ogg" id="14_melody_c"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_explore_pulse_b.ogg" id="15_pulse_b"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_combat_drums_b.ogg" id="16_drums_b"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_urgency.ogg" id="17_urgency"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/verdance/mus_verdance_heavy.ogg" id="18_heavy"]
+
+[sub_resource type="Resource" id="Resource_explore_clip"]
+script = ExtResource("2_clip")
+name = &"explore"
+layers = Array[AudioStream]([ExtResource("4_pad"), ExtResource("5_pulse"), ExtResource("6_melody"), ExtResource("7_drive"), ExtResource("8_drums"), ExtResource("9_brass"), ExtResource("10_trail"), ExtResource("11_hush"), ExtResource("12_watch"), ExtResource("13_melody_b"), ExtResource("14_melody_c"), ExtResource("15_pulse_b"), ExtResource("16_drums_b"), ExtResource("17_urgency"), ExtResource("18_heavy")])
+layer_names = PackedStringArray("pad", "pulse", "melody", "drive", "drums", "brass", "trail", "hush", "watch", "melody_b", "melody_c", "pulse_b", "drums_b", "urgency", "heavy")
+layer_groups = PackedStringArray("", "pulse", "melody", "", "drums", "", "", "", "", "melody", "melody", "pulse", "drums", "", "")
+loop_beats = 80
+
+[sub_resource type="Resource" id="Resource_explore"]
+script = ExtResource("3_state")
+name = &"explore"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(0, 0, 0, -80, -80, -80, 0, -80, -80, 0, 0, 0, -80, -4, -80)
+intensity = 0
+
+[sub_resource type="Resource" id="Resource_calm"]
+script = ExtResource("3_state")
+name = &"calm"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(0, -80, -6, -80, -80, -80, -3, -80, -80, -6, -6, -80, -80, -6, -80)
+intensity = 0
+
+[sub_resource type="Resource" id="Resource_tension"]
+script = ExtResource("3_state")
+name = &"tension"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-2, -6, -80, 0, -80, -80, -8, -80, -80, -80, -80, -6, -80, 0, -80)
+intensity = 1
+
+[sub_resource type="Resource" id="Resource_combat"]
+script = ExtResource("3_state")
+name = &"combat"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-4, -80, -80, -3, 0, 0, -80, -80, -80, -80, -80, -80, 0, -4, -80)
+intensity = 2
+
+[sub_resource type="Resource" id="Resource_combat_heavy"]
+script = ExtResource("3_state")
+name = &"combat_heavy"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-7, -80, -80, -5, -2, -3, -80, -80, -80, -80, -80, -80, -2, -6, -2)
+intensity = 3
+fade_seconds = 1.5
+
+[sub_resource type="Resource" id="Resource_aftermath"]
+script = ExtResource("3_state")
+name = &"aftermath"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(0, -80, -5, -14, -80, -80, -4, -80, -80, -5, -5, -80, -80, -8, -80)
+intensity = 1
+
+[sub_resource type="Resource" id="Resource_victory"]
+script = ExtResource("3_state")
+name = &"victory"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-6, -80, -10, -80, -80, -80, -6, -80, -80, -10, -10, -80, -80, -80, -80)
+intensity = 4
+
+[sub_resource type="Resource" id="Resource_defeat"]
+script = ExtResource("3_state")
+name = &"defeat"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-10, -80, -80, -20, -80, -80, -80, -80, -80, -80, -80, -80, -80, -80, -80)
+intensity = 4
+
+[sub_resource type="Resource" id="Resource_stealth_unaware"]
+script = ExtResource("3_state")
+name = &"stealth_unaware"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-9, -80, -80, -80, -80, -80, -10, 0, -80, -80, -80, -80, -80, -80, -80)
+intensity = 0
+fade_seconds = 4.0
+
+[sub_resource type="Resource" id="Resource_stealth_suspicious"]
+script = ExtResource("3_state")
+name = &"stealth_suspicious"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-8, -80, -80, -14, -80, -80, -80, -4, 0, -80, -80, -80, -80, -6, -80)
+intensity = 1
+fade_seconds = 1.5
+
+[sub_resource type="Resource" id="Resource_stealth_alerted"]
+script = ExtResource("3_state")
+name = &"stealth_alerted"
+clip = &"explore"
+layer_volumes_db = PackedFloat32Array(-5, -80, -80, 0, -2, -9, -80, -80, 0, -80, -80, -80, -2, -5, -80)
+intensity = 2
+fade_seconds = 0.5
+
+[resource]
+script = ExtResource("1_score")
+id = &"verdance"
+clips = Array[ExtResource("2_clip")]([SubResource("Resource_explore_clip")])
+states = Array[ExtResource("3_state")]([SubResource("Resource_explore"), SubResource("Resource_calm"), SubResource("Resource_tension"), SubResource("Resource_combat"), SubResource("Resource_combat_heavy"), SubResource("Resource_aftermath"), SubResource("Resource_victory"), SubResource("Resource_defeat"), SubResource("Resource_stealth_unaware"), SubResource("Resource_stealth_suspicious"), SubResource("Resource_stealth_alerted")])
+default_state = &"explore"
+transition_beats = 4.0
+min_hold = 8.0
+layer_fade = 3.0
+bpm = 70.0
+quantize_beats = 1.0
+ambience = &"amb_verdance_leaves"

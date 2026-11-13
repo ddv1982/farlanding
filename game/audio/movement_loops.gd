@@ -11,6 +11,9 @@ extends Node
 ## and rise in level and pitch with speed (relative to `UnitDef.move_speed`).
 ## A unit whose `is_visible_to_player` is false (fog of war) is not heard; one
 ## whose `is_cloaked` is true (a Wisp) is heard CLOAKED_DB quieter.
+## A loop whose SoundEvent has `loops_at_rest` (aircraft, Phase 8c) is a
+## candidate at any speed: at rest it sounds from REST_LEVEL and REST_PITCH,
+## rising to full level and pitch with speed like the others.
 
 const UNITS_GROUP: StringName = &"units"
 const MAX_LOOPS: int = 6
@@ -21,6 +24,9 @@ const DEFAULT_MOVE_SPEED: float = 5.0
 ## Weight of the newest measurement when speed is measured from positions.
 const SPEED_SMOOTHING: float = 0.5
 const CLOAKED_DB: float = -9.0
+## Level (linear) and pitch of a `loops_at_rest` loop at rest (hovering).
+const REST_LEVEL: float = 0.7
+const REST_PITCH: float = 0.94
 
 ## Ground point the listener is centred on.
 var focus: Vector3 = Vector3.ZERO
@@ -77,13 +83,13 @@ func _rescan() -> void:
 	_measure_speeds()
 	for node: Node in get_tree().get_nodes_in_group(UNITS_GROUP):
 		var unit: Node3D = node as Node3D
-		if unit == null or not unit.is_inside_tree() or current_speed(unit) < MIN_SPEED:
-			continue
-		if CombatCues.is_hidden(unit):
+		if unit == null or not unit.is_inside_tree() or CombatCues.is_hidden(unit):
 			continue
 		var event_id: StringName = StringName("move_%s" % sound_set_of(unit))
 		var event: SoundEvent = resolve_event.call(event_id)
 		if event == null or event.streams.is_empty():
+			continue
+		if current_speed(unit) < MIN_SPEED and not event.loops_at_rest:
 			continue
 		nodes.append(unit)
 		positions.append(unit.global_position)
@@ -143,16 +149,19 @@ func _update_player(i: int, delta: float) -> void:
 		return
 	var ratio: float = 0.0
 	var base_db: float = 0.0
+	var at_rest: bool = false
 	if alive:
 		player.global_position = unit.global_position
 		ratio = clampf(current_speed(unit) / _top_speed(unit), 0.0, 1.0)
 		var event: SoundEvent = resolve_event.call(StringName("move_%s" % sound_set_of(unit)))
 		if event != null:
 			base_db = event.volume_db
+			at_rest = event.loops_at_rest
 		if StealthCues.flag(unit, &"is_cloaked", false):
 			base_db += CLOAKED_DB
-	player.volume_db = base_db + AudioMix.linear_to_db_safe(_levels[i] * lerpf(0.4, 1.0, ratio))
-	player.pitch_scale = lerpf(0.9, 1.08, ratio)
+	var level: float = lerpf(REST_LEVEL if at_rest else 0.4, 1.0, ratio)
+	player.volume_db = base_db + AudioMix.linear_to_db_safe(_levels[i] * level)
+	player.pitch_scale = lerpf(REST_PITCH if at_rest else 0.9, 1.08, ratio)
 
 
 ## Ground speed of a unit in m/s: its `speed` property if it has one,

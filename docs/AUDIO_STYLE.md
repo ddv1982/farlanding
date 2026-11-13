@@ -27,6 +27,7 @@ loudness targets and the naming, and says how to add a sound.
   | `wisp` | middle-high, D5–E6 | a breath: grace into a swelled note, a ghost echo an octave up | the raised fourth (D–G#) and fourths, breathy reed + faint glass |
   | `lancer` | middle, A3–E5 | short-short-LONG spear strokes, each scooping up into pitch | fifths and octaves, bright reed + chime tine + marimba knock |
   | `arc` | low-middle, A2–D4 (+ two-octave chime) | lobbed glides that arch a third over the target note, then land | fifths, reed + sine, wooden knock and thump on landing |
+  | `talon` (Phase 8c, aircraft) | high, A5–E6 | a quick pair of strokes, a breath gliding behind them | fifths and fourths, airy marimba + glass, a breathy reed glide that lifts (select) or sinks (move) |
 
 - **Buildings are machines, not musicians.** Selecting a building plays its *machine identity*
   (`building_<set>_select`, −22 LUFS, quieter than a unit reply), the sound its machinery
@@ -528,6 +529,104 @@ loudness targets and the naming, and says how to add a sound.
     `ui_vent_denied` (a stuck valve: two dull clunks and a choked buzz on D+G#; −28, 0.27 s;
     `ui_invalid` as fallback).
 
+- **Verdance is hushed, alive and watchful** (Phase 8c). Kessel is dry and dusty, Thalassa wet and
+  wide, Emberfall low and hot; Verdance should be recognisable within seconds by what is overhead:
+  leaves always moving in the crowns, a chorus of small invented creatures, a shallow stream
+  somewhere, and a score of wood and breath that sways in six.
+
+  - **Key and grid.** B Dorian (B C# D E F# G# A): the *same seven pitches* as the Concord's D
+    Lydian, so replies, the Advisor and the Trail motif never clash, but centred on B minor with
+    the bright Dorian sixth G#. 70 BPM (dotted quarters) in **6/8**, 40 bars, 80 beats, 68.57 s
+    (3 024 000 samples); the score's `bpm` is 70 and its beat the dotted quarter, `loop_beats` 80.
+    Chords, eight bars each: Bm(add9), E(add9) (the Dorian IV: G# in a major chord), Dmaj7(#11),
+    A(add9)/C#, F#m7(add11), which leans back into Bm at the loop.
+  - **Timbres.** Wood and breath; no glass, no taiko, no forge. A soft-malleted *marimba* (the
+    Concord's own wood), *log drums* (slit drums: two tongues a little over an octave apart, a dull
+    knock), a breathy wooden *flute* (near-sine, a vibrato that grows in, a tuned breath and a
+    chiff), a low *reed*, *hand percussion* (palm drums, seed shakers, finger taps). Medium, soft
+    rooms (2.5–3.5 s): a space under leaves.
+  - **The canopy call**: F# up a fourth to B (a call), then A, G#, F# falling (an answer from
+    somewhere else); short-long, short-short-long: two voices in the trees, not quite sure of each
+    other. The Trail motif rings on the Antecedent bell in the `trail` layer and hangs on G#.
+  - **The score** (`res://data/sounds/music/verdance.tres`, layers in `music/verdance/`): the
+    same states, intensities and layer roles as the other planets (15 layers: Kessel's without
+    the storm; no planet-rule layer, since the canopy is heard in the ambience and the rustles):
+    `pad` (reed-and-breath chords, flute air on the top notes), `pulse` (marimba in the 6/8 sway
+    on eighths 1, 3, 4, 6 over a log drum), `melody` (the call and its answers on the flute,
+    marimba marking each onset), `drive` (muted log-drum eighths on the bass, G# on the last
+    eighth), `drums` (log drums and palm drums in six, seed shaker), `brass` (reed stabs, the call
+    as a horn signal), `trail`, `hush` (breath on chord tones, a far marimba drop), `watch` (a low
+    log-drum lub-dub, finger taps, a G# shadow), variants `melody_b` (high flute, ending on G#),
+    `melody_c` (the call augmented on the low reed), `pulse_b` (plucked wood in quarters, three
+    against the bar's two), `drums_b` (half time, one deep log drum, rolling palm drums),
+    `urgency` (marimba sixteenths of B against the D–G# tritone, a reed siren F# → B) and
+    `heavy` (low reeds in dotted halves, doubled drums, a growl). State levels are Emberfall's
+    without its two planet layers.
+  - **Re-voiced hits and stings** (`<id>_verdance`): `mus_hit_combat_verdance` (leaves rushing in,
+    two log drums, a low reed B; −24), `mus_hit_aftermath_verdance` (the flute sighs C# → B,
+    leaves settling, a marimba ring; −25), `mus_sting_victory_verdance` (the call answered upward
+    to the high D over D major: B minor opening into its relative major, the Concord's key; −22),
+    `mus_sting_defeat_verdance` (the call falling to the low B as a breath thins and the filter
+    closes; −22).
+  - **Ambience** (the `verdance` AmbienceSet). Beds: `amb_verdance_leaves` (43 s, −31: a soft
+    broadband hush in the crowns, leaf flutter that thickens in slow gusts high up; wanders
+    −5..0 dB), `amb_verdance_chorus` (37 s, −33: three kinds of invented insects as pulsed high
+    sines in overlapping trill groups, a slow far piping in key, little runs of wooden "tok"s;
+    −8..−1), `amb_verdance_stream` (29 s, −32: a shallow stream, a running wash and many small
+    bubbling chirps over stones; −9..−3) and the Antecedent hush. No creature is an imitation of a
+    real recording: every voice is a pulsed or gliding sine through a formant. Details:
+
+    | Detail | Sound | Weight |
+    |---|---|---|
+    | `amb_branch_creak` (3) | a big branch flexing: stick-slip friction through wood resonances, a few leaves after (−26, to 120 m) | 0.5 |
+    | `amb_canopy_call` (3) | a call and an answer: one invented creature trills a two- or three-note phrase, another, further off and duller, answers lower (−27, to 180 m, one at a time, never twice in 5 s) | 0.45 |
+    | `amb_leaf_drip` (3) | water running off leaves: plips and leaf ticks (−28, to 60 m) | 0.4 |
+    | `amb_wing_flurry` (2) | something takes off: a burst of wingbeats moving away, a shaken branch (−26, to 120 m, never twice in 3 s) | 0.25 |
+    | `amb_flux_vent` | as on Kessel, only near Flux | 1.4 × near vent |
+    | `amb_combine_industry` | as on Kessel, at a seen base | 2.6 × near base |
+
+  - **The canopy** (`CanopySound` / `CanopyCues`, the planet rule). The sim emits
+    `canopy_cover_changed(unit, covered)` for every faction's ground units. Only the player's own
+    units within 55 m of the camera's focus are heard (another faction's rustle would give away an
+    ambush the player cannot see): `canopy_rustle_in` going under a crown (3 variations, −27,
+    0.6–0.75 s: a soft swell of leaves closing over the unit, a twig, darker at the end) and
+    `canopy_rustle_out` coming out (3 variations, −30, 0.4–0.5 s: lighter, brighter, opening),
+    positional at the unit on the Units bus. **One gesture per group**: further reports in the
+    same direction fold into the rustle while they keep coming less than 0.5 s apart, for at most
+    2.5 s (a squad of twenty filing under a crown is one rustle); in and out never start within
+    0.2 s of each other. **Shade**: while the camera's focus is under a crown, the Ambience bus's
+    low-pass (the storm's `StormMuffle`, shared) closes from 20 kHz to 6 kHz, gliding at 0.8 per
+    second (about 1.3 s): the leaves overhead. It never touches the SFX bus; with a storm too, the
+    lower cutoff wins. Under a crown is asked of the first node in group `canopy` with
+    `is_under_canopy(point) -> bool` (the sim's CanopySystem has that method; it only needs
+    `add_to_group(&"canopy")`); without one, the focus counts as shaded when a covered unit the
+    player may know about (its own, or one not `is_visible_to_player == false`) is within 8 m.
+    `mission_started` and going aboard reset it.
+  - **The first air units.** Sound sets `talon` (`concord_talon`, a twin ducted-fan gunship) and
+    `hornet` (`combine_hornet`, a crude single-rotor gunship): the unit defs' `sound_set` must be
+    these. Their engines are movement loops that never stop: a SoundEvent with
+    **`loops_at_rest`** keeps its `move_<set>` loop on the unit at any speed (MovementLoops), from
+    70 % level and pitch 0.94 hovering up to full level and 1.08 at top speed; ground chassis are
+    unchanged.
+
+    | Event | Talon (Concord: clean, in key) | Hornet (Combine: crude, off key) |
+    |---|---|---|
+    | `move_<set>` | `move_ducted`: two turbine whines a few hertz apart on D6 and A5, the fans' blade-pass hum, a smooth air rush, D2 under it (4 s loop, −24, to 75 m) | `move_rotor`: a slapping blade beat 9 times a second, an angry saturated two-stroke, loose panels rattling, a whine never in tune (3 s loop, −24, to 75 m) |
+    | `weapon_<set>_fire` | the chin autocannon: two quick FM bolts a fifth apart (D6/A5, E6/B5, F#6/C#6), a clean puff (−25, 0.22 s) | the dart gun (every half second): a ragged pneumatic crack, a ring-modulated metal twang as the dart leaves, the loader rattling, decimated (−26, 0.27 s) |
+    | `unit_<set>_select/move/attack` | airy marimba strokes (A5–E6) with a breathy reed glide lifting a fourth or fifth behind them (falling for move, level for attack) | a buzzy ring-modulated two-tone over a rotor chop (311/466 Hz and kin: between the Concord's notes) |
+    | `death_<set>` | a crack, the fans spinning down and wobbling as it falls (1.1 s, a whistle of air rising), then the ground: a thump, a blast, debris (−21, 2.6 s) | the rotor slap staggering and slowing, an engine scream falling, then a hard crash, a fireball and debris (−21, 3 s) |
+
+    The weapons' data names (`talon_autocannon`, `hornet_dartgun`) have no alias: they fall back
+    to `weapon_talon_fire` / `weapon_hornet_fire` by the owner rule (CombatCues), as any name
+    beginning with `talon_` / `hornet_` would. Shots land as ordinary impacts (`impact_size` 0).
+  - **Advisor** (Meridian dyads, through the Advisor queue):
+
+    | Kind | Phrase | Priority / throttle |
+    |---|---|---|
+    | `air_contact` | enemy aircraft: three dyads sweeping up fast, then a high G#+D hovering with a 13 Hz rotor beat (−19) | 103 / 25 s |
+    | `canopy_contact` | contact under the canopy: a muffled B+F# (heard through leaves), then the D+G# tritone uncovered, twice, the second leaning up (−19) | 101 / 20 s |
+    | `air_lost` | one of ours down: a high D+A falling a fifth as it fades, a dull F#+C# where it lands (−20) | 90 / 12 s |
+
 ## Loudness targets
 
 Integrated loudness per ITU-R BS.1770 (gated; files shorter than 400 ms are one block). Every
@@ -595,6 +694,16 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `weather` eruptions (Phase 8b) | WAV mono | build low / high −24 (loops 4 / 3 s), knocks −24, blast −18 | EruptionSound's positional players, Weather bus |
 | `advisor` Phase 8b | WAV mono | extraction arrived, surge, eruption warning, damage −19; wave, extraction inbound −20 | flat, Advisor bus |
 | `ui` Phase 8b | WAV mono | vent release −26, vent denied −28 | 0.36 / 0.27 s |
+| `music` Verdance layers (Phase 8c) | Ogg stereo, loop | as Kessel: pad −25, pulse/pulse_b −29, melodies −27, drive −28, drums −26, brass −27, trail −29, hush −31, watch −29, urgency −29, heavy −27 | 70 BPM in 6/8, 68.57 s (3 024 000 samples) |
+| `sting` Verdance (Phase 8c) | Ogg stereo | hits −24 / −25, victory and defeat −22 | `<id>_verdance` |
+| `ambience` Verdance beds | Ogg stereo, loop | leaves −31, chorus −33, stream −32 | 43 / 37 / 29 s |
+| `ambdetail` Verdance | WAV mono | creak −26, call −27, drip −28, wing flurry −26 | positional, priority 10 |
+| `canopy` (Phase 8c) | WAV mono | rustle in −27, out −30 | CanopySound, positional, Units bus, priority 42 |
+| `movement` aircraft | WAV mono, loop | −24 (`move_ducted` 4 s, `move_rotor` 3 s) | `loops_at_rest`, to 75 m |
+| `weapon` aircraft | WAV mono | talon −25, hornet −26 | positional, Weapons bus |
+| `unit` aircraft | WAV mono | −21 | flat, Barks bus |
+| `explosion` aircraft deaths | WAV mono | −21 | positional, Explosions bus |
+| `advisor` Phase 8c | WAV mono | air contact, canopy contact −19; air lost −20 | flat, Advisor bus |
 
 Also checked on every build: DC offset ≤ 0.002, energy below 25 Hz ≤ 3 %, duration within the
 recipe's bounds, and for loops the seam (no step, kink or level jump bigger than the loop's own
@@ -653,6 +762,8 @@ settings: master 1.0, music 0.8, effects 1.0):
 | Thalassa calm (Phase 8a): the Thalassa score in `calm`, its ambience, the tide at low water, slack | −26.9 LUFS | −16.5 dBFS |
 | Thalassa fight (Phase 8a): `combat_heavy` + urgency + tide layers at high water with the sea still rising (water bed and rush), the worst-case battle, an Advisor or stealth alarm every 1.5 s plus `advisor_tide_rising` every 1.5 s, a tide warning, clicks | −17.3 LUFS | −3.9 dBFS (limiter never engaged) |
 | Emberfall calm (Phase 8b): the Emberfall score in `calm`, its ambience | −29.0 LUFS | −15.5 dBFS |
+| Verdance calm (Phase 8c): the Verdance score in `calm`, its ambience, the camera under a crown (the Ambience high band shaded) | −29.9 LUFS | −19.7 dBFS |
+| Verdance air war (Phase 8c): `combat_heavy` + urgency layers, four aircraft engines overhead (two Talons, two Hornets), a Talon autocannon shot every 50 ms and a Hornet dart every 100 ms on top of the worst-case battle, an aircraft coming down every second, canopy rustles, an Advisor or stealth alarm every 1.5 s plus `advisor_air_contact` every 1.5 s, clicks | −17.1 LUFS | −4.4 dBFS (limiter never engaged) |
 | Emberfall Holdout fight (Phase 8b): `combat_heavy` + urgency + pressure + holdout layers, the extraction engine in its last seconds, a vent 23 m away building up then erupting (blast and duck) by a player building, the worst-case battle, an Advisor or stealth alarm every 1.5 s plus `advisor_eruption_warning` every 1.5 s, clicks | −18.1 LUFS | −3.9 dBFS (limiter never engaged) |
 
 Worst-case loudness per category (each bus before its fader, LUFS): Music −25.3, Weather −25.8,
@@ -684,6 +795,12 @@ UI −36.4, Ambience −39.4 LUFS; while the Advisor speaks the score sits at �
 speaks): the score's low band at −34.7 dB RMS against the Advisor's −23.0 dB RMS. Both Emberfall
 scenes assert what the others do, and the fight also asserts that low band under the Advisor.
 
+Verdance air war (per bus before its fader): Music −32.7, Weapons −24.9, Explosions −23.1 (an
+aircraft falling every second), Advisor −21.2, Stealth −22.9, UI −36.4, Ambience −39.7 LUFS, 35
+voices at most; while the Advisor speaks the score sits at −34.6 against its −21.1 (13.5 LU clear).
+Both Verdance scenes assert what the others do (no clipping, headroom, the loudness windows, the
+voice budget, the Advisor 3 LU over the music); calm also asserts the camera is shaded.
+
 The first measurement found one problem, fixed: heavy combat with the storm and urgency layers
 stacked integrated to −21.7 LUFS of music, louder than the weapons (−25) and level with the
 Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capped at −3 dB
@@ -713,6 +830,10 @@ Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capp
 - Phase 8b: `mus_emberfall_<layer>`, `amb_emberfall_<bed>`, details `amb_<what>_<n>`,
   `eruption_<build_low|build_high|knock|blast>[_<n>]` (group `weather`), `mus_holdout_<cue>`
   (group `sting`), `ui_vent_<release|denied>`, `advisor_<kind>`
+- Phase 8c: `mus_verdance_<layer>`, `amb_verdance_<bed>`, details `amb_<what>_<n>`,
+  `canopy_rustle_<in|out>_<n>` (group `canopy`), aircraft by sound set like any unit
+  (`move_<chassis>` files `move_ducted` / `move_rotor` serving `move_talon` / `move_hornet`,
+  `weapon_<set>_fire_<n>`, `unit_<set>_<kind>_<n>`, `death_<set>`), `advisor_<kind>`
 
 The event router looks events up by these names: a unit's `def.sound_set` picks
 `unit_<set>_select`; a selection of buildings only (group `buildings`) picks
@@ -913,6 +1034,26 @@ Emberfall and Holdout routing (Phase 8b):
 | `advisor_alert(&"extraction_arrived")` or that objective's `objective_completed` | `mus_holdout_arrived` once; engine out, layer out |
 | `objective_failed` for it | engine and layer stop |
 | `mission_started` | eruptions and the holdout reset |
+
+Verdance and air routing (Phase 8c):
+
+| Signal or data | Sound |
+|---|---|
+| `canopy_cover_changed(unit, covered)` for a player unit within 55 m of the focus | `canopy_rustle_in` / `canopy_rustle_out` at the unit, one per gesture (CanopySound) |
+| any `canopy_cover_changed` | remembered for the shade fallback (no sound for other factions) |
+| the focus under a crown (group `canopy` → `is_under_canopy(focus)`, else a covered, known unit within 8 m) | the Ambience bus's high band closes to 6 kHz |
+| a unit whose `def.sound_set` is `talon` / `hornet` | `move_talon` / `move_hornet` on it while it exists and is not hidden (`loops_at_rest`) |
+| `weapon_fired` with a weapon `sound_set` of `talon*` / `hornet*` | `weapon_talon_fire` / `weapon_hornet_fire` |
+| `entity_died` for such a unit | `death_talon` / `death_hornet` |
+| selection or orders of such units | `unit_<set>_<select|move|attack>` (naming rule) |
+| `advisor_alert(&"air_contact" / &"canopy_contact" / &"air_lost")` | `advisor_<kind>` through the Advisor queue (table above) |
+| `mission_started` | the planet is read from the map (`play_planet(&"verdance")`); the canopy resets |
+
+What gameplay needs to provide for all of this (as of this phase): the planet id `verdance` on
+Verdance's PlanetDef, `sound_set` `talon` on `concord_talon` and `hornet` on `combine_hornet`,
+weapon sound sets starting with `talon_`/`hornet_` (they do: `talon_autocannon`,
+`hornet_dartgun`), the three `advisor_alert` kinds above, and the CanopySystem in group `canopy`
+for the shade (optional: the fallback works without it, less exactly).
 
 ## Adding a sound
 
