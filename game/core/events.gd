@@ -129,6 +129,13 @@ signal storm_incoming(seconds: float)
 ## builds and as it dies down, a few times a second at most.
 signal storm_changed(intensity: float)
 
+## The tide is about to turn: in `seconds` it starts to rise (`rising`) or fall.
+signal tide_turning(seconds: float, rising: bool)
+
+## The sea level changed: 0 = low water, 1 = high water. Emitted as it moves, a
+## few times a second at most.
+signal tide_changed(level: float)
+
 ## The campaign shows another screen: &"title", &"star_map", &"meridian",
 ## &"tech_web", &"loadout", or &"" when a landing (briefing, mission, debrief)
 ## takes over.
