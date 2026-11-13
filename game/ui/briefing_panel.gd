@@ -14,15 +14,21 @@ var _type: Label
 var _title: Label
 var _text: Label
 var _objectives: VBoxContainer
+var _back: ColorRect
+var _vignette: TextureRect
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var back := ColorRect.new()
-	back.color = MissionSelect.BACKGROUND
-	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(back)
-	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_back = ColorRect.new()
+	_back.color = MissionSelect.BACKGROUND
+	_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_back)
+	_back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_vignette = HudStyle.make_vignette()
+	_vignette.visible = false
+	add_child(_vignette)
+	_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var centre := CenterContainer.new()
 	add_child(centre)
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -92,3 +98,10 @@ func _on_back() -> void:
 	Events.ui_feedback.emit(&"click")
 	Events.ui_feedback.emit(&"briefing_close")
 	back_pressed.emit()
+
+
+## Lets the menu backdrop show through (or not).
+func set_see_through(enabled: bool) -> void:
+	if _back != null:
+		_back.visible = not enabled
+		_vignette.visible = enabled

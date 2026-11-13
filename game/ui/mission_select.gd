@@ -1,10 +1,13 @@
 class_name MissionSelect
 extends Control
 ## The first screen: the expedition's name and one card per mission of the catalog
-## (type, title, one-line summary). Choosing one emits `mission_chosen`.
+## (type, title, one-line summary), and the settings. Choosing one emits
+## `mission_chosen`. With the menu backdrop behind it the background lets it through.
 
 ## The player picked `mission`.
 signal mission_chosen(mission: MissionDef)
+## The player asked for the settings.
+signal settings_pressed
 
 const BACKGROUND := Color(0.035, 0.045, 0.06)
 const TYPE_NAMES: Dictionary[StringName, String] = {
@@ -14,15 +17,21 @@ const TYPE_NAMES: Dictionary[StringName, String] = {
 }
 
 var _cards: VBoxContainer
+var _back: ColorRect
+var _vignette: TextureRect
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var back := ColorRect.new()
-	back.color = BACKGROUND
-	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(back)
-	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_back = ColorRect.new()
+	_back.color = BACKGROUND
+	_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_back)
+	_back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_vignette = HudStyle.make_vignette()
+	_vignette.visible = false
+	add_child(_vignette)
+	_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var centre := CenterContainer.new()
 	add_child(centre)
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -40,6 +49,20 @@ func _ready() -> void:
 	_cards = VBoxContainer.new()
 	_cards.add_theme_constant_override(&"separation", 10)
 	column.add_child(_cards)
+	var footer := HBoxContainer.new()
+	footer.alignment = BoxContainer.ALIGNMENT_END
+	var settings: Button = HudStyle.make_small_button("SETTINGS")
+	settings.custom_minimum_size = Vector2(140, 34)
+	settings.pressed.connect(func() -> void: settings_pressed.emit())
+	footer.add_child(settings)
+	column.add_child(footer)
+
+
+## Lets the menu backdrop show through (or not).
+func set_see_through(enabled: bool) -> void:
+	if _back != null:
+		_back.visible = not enabled
+		_vignette.visible = enabled
 
 
 ## Shows one card per mission in `catalog`.

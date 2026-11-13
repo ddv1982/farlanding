@@ -37,6 +37,43 @@ static func panel_style() -> StyleBoxFlat:
 	return style
 
 
+## The same panel without see-through: for screens that open over other panels.
+static func solid_panel_style() -> StyleBoxFlat:
+	var style: StyleBoxFlat = panel_style()
+	style.bg_color = Color(PANEL_COLOR, 1.0)
+	style.set_content_margin_all(16)
+	style.shadow_color = Color(0, 0, 0, 0.5)
+	style.shadow_size = 18
+	return style
+
+
+## A full-screen darkening that is light in the middle and heavy at the edges, so
+## a 3D scene behind a menu stays visible without fighting the text.
+static func make_vignette() -> TextureRect:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	gradient.colors = PackedColorArray(
+		[
+			Color(0.02, 0.03, 0.045, 0.5),
+			Color(0.02, 0.03, 0.045, 0.62),
+			Color(0.01, 0.015, 0.025, 0.94)
+		]
+	)
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.45)
+	texture.fill_to = Vector2(1.0, 1.0)
+	texture.width = 256
+	texture.height = 256
+	var rect := TextureRect.new()
+	rect.texture = texture
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rect
+
+
 static func make_label(font_size: int, color: Color, text: String = "") -> Label:
 	var label := Label.new()
 	label.text = text
