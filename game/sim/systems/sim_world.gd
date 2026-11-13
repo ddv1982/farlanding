@@ -147,6 +147,8 @@ func spawn_resource_node(def: ResourceNodeDef, at: Vector3) -> ResourceNode:
 	node.tree_exiting.connect(_on_node_exiting.bind(node))
 	if def.blocks_movement:
 		_blocks[node.entity_id] = paths.block_area(node.blocked_area())
+		# A node that appears mid-mission (a supply drop, an uncovered deposit).
+		evacuate(node.blocked_area())
 	if vision != null:
 		node.visible = false
 		vision.refresh_node(node)
@@ -378,7 +380,7 @@ func _release_unit(building: Building, def: UnitDef) -> Unit:
 	return unit
 
 
-## Units standing inside `area` (a new building) walk out of it first, then carry
+## Units standing inside `area` (a new building or node) walk out of it first, then carry
 ## on with whatever they were doing. Builders too: they build from the edge.
 func evacuate(area: Rect2) -> void:
 	var grown: Rect2 = area.grow(1.0)

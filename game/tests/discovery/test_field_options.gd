@@ -94,6 +94,16 @@ func test_supply_drop_lands_resources() -> void:
 	assert_eq(dropped.def, _f.rich)
 
 
+func test_supply_drop_moves_units_out_from_under_the_cache() -> void:
+	_f.world.economy.add_intel(0, 100)
+	var under: Unit = _f.spawn(_f.combat.scout, 0, Vector3(60, 0, 60))
+	_use(_f.supply_drop, Vector3(60, 0, 60))
+	var cache: ResourceNode = _f.world.resource_nodes.back()
+	_f.tick(40)
+	var at: Vector3 = under.sim_position()
+	assert_false(cache.blocked_area().has_point(Vector2(at.x, at.z)), "it walked clear")
+
+
 func test_supply_drop_needs_open_ground() -> void:
 	_f.world.economy.add_intel(0, 100)
 	var command: FieldOptionCommand = _use(_f.supply_drop, _lab.position)
