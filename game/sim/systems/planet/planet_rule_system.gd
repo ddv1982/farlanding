@@ -48,6 +48,12 @@ func schedule_climax(_at_tick: int) -> void:
 	pass
 
 
+## `faction` learns what the rule will do next, for `seconds` (a geological
+## discovery's forecast payoff). Rules without a forecast ignore it.
+func forecast(_faction: int, _seconds: float) -> void:
+	pass
+
+
 ## Short name for the HUD indicator ("DUST STORM"), or "" to hide it.
 func indicator_title() -> String:
 	return ""

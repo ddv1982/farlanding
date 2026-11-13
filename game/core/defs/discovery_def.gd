@@ -23,6 +23,9 @@ const PAYOFF_UNLOCK_OPTION: StringName = &"unlock_option"
 ## For `payoff_seconds`, the faction sees a disc of `payoff_radius` around every
 ## building and unit of its enemies (Custodians excepted).
 const PAYOFF_REVEAL_ENEMY: StringName = &"reveal_enemy"
+## For `payoff_seconds`, the planet's rule tells the faction what it does next
+## (Emberfall: which vent erupts next, ADR 0015).
+const PAYOFF_FORECAST: StringName = &"forecast"
 
 @export var id: StringName = &""
 @export var display_name: String = ""

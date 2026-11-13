@@ -135,6 +135,13 @@ signal cargo_picked_up(carrier: Node3D, cargo: Node3D)
 ## `carrier` put `cargo` down (or died carrying it).
 signal cargo_dropped(carrier: Node3D, cargo: Node3D)
 
+## A Flux vent is about to erupt: in `seconds` it bursts over `radius` metres.
+## Negative `seconds`: an announced eruption was called off (vented in time).
+signal eruption_warning(vent: Node3D, seconds: float, radius: float)
+
+## The vent erupts now, burning everything within `radius` metres.
+signal eruption(vent: Node3D, radius: float)
+
 ## The tide is about to turn: in `seconds` it starts to rise (`rising`) or fall.
 signal tide_turning(seconds: float, rising: bool)
 

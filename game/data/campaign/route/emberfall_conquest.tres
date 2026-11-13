@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/emberfall.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/emberfall_conquest.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"emberfall_conquest"
+title = "Caldera Conquest"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.62, 0.13)
+leads_to = Array[StringName]([&"emberfall_holdout"])
+excludes = Array[StringName]([])
+scan_summary = "A volcanic world where the trail runs on: lava rivers around a caldera of rich, erupting Flux vents. The Combine holds the far ash shelf and siphons the caldera."
+intel_notes = "A conquest landing. The trail continues in a furnace by the western bridge; a seismic fissure reads the vents."
+placeholder = false

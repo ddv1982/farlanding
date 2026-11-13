@@ -9,10 +9,12 @@ const TYPE_SURVEY: StringName = &"survey"
 const TYPE_INFILTRATION: StringName = &"infiltration"
 ## Reach an artefact and get it back to the Lander (PLAN 2.6).
 const TYPE_RECOVERY: StringName = &"recovery"
+## Keep a site alive until extraction (PLAN 2.6, ADR 0015).
+const TYPE_HOLDOUT: StringName = &"holdout"
 
 @export var id: StringName = &""
 @export var title: String = ""
-## &"conquest", &"survey", &"infiltration", &"recovery" (later: &"holdout").
+## &"conquest", &"survey", &"infiltration", &"recovery", &"holdout".
 @export var mission_type: StringName = TYPE_CONQUEST
 ## One line for the mission list.
 @export var summary: String = ""

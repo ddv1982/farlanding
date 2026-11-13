@@ -404,6 +404,130 @@ loudness targets and the naming, and says how to add a sound.
     any Node3D in group `artefacts` with `loop_hum_<def.sound_set or sound_set, else artefact>`,
     carried or lying down, while `is_visible_to_player` is true or absent.
 
+- **Emberfall is hot, heavy and close** (Phase 8b). Kessel is dry and warm, Thalassa wet, wide and
+  cold; Emberfall should be recognisable within seconds by its weight: a low rumble always under
+  everything, lava moving, a hot narrow wind, rock ticking as it cools, and a slow score in four
+  with a sub on the root (a low end neither other planet has).
+
+  - **Key and grid.** C# Phrygian (C# D E F# G# A B): the *same seven pitches* as the Concord's
+    D Lydian, so replies, the Advisor and the Trail motif never clash, but centred on C# with the
+    flat second D leaning on it. 56 BPM in **4/4**, 16 bars, 64 beats, 68.57 s (3 024 000
+    samples). Chords, four bars each: C#m(add11), Amaj9, Bsus4(add9), Dmaj7(#11); the D block
+    sinks back onto C# at the loop (the Phrygian cadence: the Concord's own chord falling into
+    the planet's). A sub sine on the root (C#1, A1, B1, D1) sits under the pad.
+  - **Timbres.** No glass, no marimba, no taiko: a low saturated *forge horn* (two bright reeds
+    a few cents apart), *anvils* (short inharmonic metal), *basalt drums* (deep thuds with a
+    pitch fall, a sub never below 40 Hz, stone grit), *bowed metal* (inharmonic partials
+    swelling slowly: heat haze) and dark metal *tines*. Short, close rooms (1.5–3 s).
+  - **The pressure motif**: C# up a semitone to D and back, then down a fourth to G#; short,
+    short, long, very long: a vent drawing breath and letting it go. The Trail motif rings on the
+    Antecedent bell in the `trail` layer and hangs on G# (the planet's fifth).
+  - **The score** (`res://data/sounds/music/emberfall.tres`, layers in `music/emberfall/`): the
+    same states, intensities and layer roles as Kessel and Thalassa (17 layers: Thalassa's with
+    `tide` replaced by `pressure`, plus `holdout`). `pad` (dark chords, bowed metal, the sub,
+    a heat shimmer), `pulse` (tines in 3+3+2 eighths over a root thud), `melody` (the motif on
+    horn and bowed metal), `drive` (muted horn eighths, the flat second on the last eighth),
+    `drums` (basalt drums, anvil backbeat, grit shaker), `brass` (horn stabs, the motif as a
+    call), `trail`, `hush`, `watch` (D as its shadow), variants `melody_b` (bowed metal and
+    anvil, ending on G#), `melody_c` (the motif augmented on the low horn), `pulse_b` (an anvil
+    simmer in sixteenths), `drums_b` (half time, one huge drum, rolling toms), `urgency` (C#
+    sixteenths against the D–G# tritone, a horn siren G# → C#), `heavy`, and two gain-driven
+    layers:
+    - **`pressure`**: a throbbing sub in eighths, magma bubbles, a hiss band climbing and
+      breaking every two bars, a beating whine on G#. Its gain follows the most pressing warned
+      vent within its radius + 25 m of one of the player's buildings (`EruptionCues.music_gain_db`
+      of that vent's progress: silent below 0.1, then −14 → −2 dB at 0.9, in 0.5 dB steps). It
+      sits at the state's level like `tide` did (−5/−6 under combat, −6 in defeat).
+    - **`holdout`**: a steady march, tines in eighths, frame hits on 2 and 4, a horn calling
+      root → fifth at each block (the Concord's D → A in the D block). Silent until a Holdout's
+      survival timer has two minutes left (−6 dB), full from one minute. State levels: explore,
+      tension, aftermath 0; calm −3; combat −3; heavy −5; stealth −6/−4/−3; endings silent.
+  - **Re-voiced hits and stings** (`<id>_emberfall`): `mus_hit_combat_emberfall` (a vent drawing
+    in, a basalt drum, an anvil, a low horn C#; −24), `mus_hit_aftermath_emberfall` (the horn
+    sighs D → C#, a cooling hiss, an anvil ring; −25), `mus_sting_victory_emberfall` (the motif
+    answered upward into the Concord's Dmaj7: the planet's C# lifts a semitone home; −22),
+    `mus_sting_defeat_emberfall` (the motif sinking to the low C# as a rumble rises and the
+    filter closes; −22).
+  - **Ambience** (the `emberfall` AmbienceSet). Beds: `amb_emberfall_rumble` (41 s, −31: deep
+    rumble with slow surges and a C#1/C#2 throb; wanders −4..0 dB), `amb_emberfall_lava`
+    (35 s, −33: a thick slow churn, crust crackle, slow bubbles and plops; −7..−1),
+    `amb_emberfall_wind` (46 s, −31: hot, dry, narrower than Thalassa's, gritty, a fast heat
+    flutter in the gusts; −6..0) and the Antecedent hush. Details (one every 6–14 s):
+
+    | Detail | Sound | Weight |
+    |---|---|---|
+    | `amb_rock_crack` (3) | rock splitting as it cools, flakes falling (−25) | 0.6 |
+    | `amb_ember_tick` (3) | tiny hot ticks and a fizz (−28, heard to 70 m) | 0.45 |
+    | `amb_gas_hiss` (3) | a hiss of gas from a crack, a soft pop (−26), at the nearest Flux vent | 0.1 + 1.4 × near vent |
+    | `amb_distant_collapse` (2) | far off, a slab gives way: a low give, rumble, tumbling debris (−26, to 220 m, never twice in 8 s) | 0.15 |
+    | `amb_flux_vent` | as on Kessel, only near Flux | 1.0 × near vent |
+    | `amb_combine_industry` | as on Kessel, at a seen base | 2.6 × near base |
+
+  - **Eruptions** (`EruptionSound` / `EruptionCues`, the planet rule, on the **Weather** bus,
+    on the node's own positional players). `eruption_warning(vent, seconds, radius)` starts a
+    build-up at the vent that is a **clock**: everything is a function of the seconds left, never
+    of the warning's length, so the same moment always sounds the same:
+    - two loops, `eruption_build_low` (4 s, −24: a deep beating growl, slow gloops, grinding rock)
+      and `eruption_build_high` (3 s, −24: a pressurised hiss, rattling stones, a whistle on G#),
+      crossfade with equal power over the last 30 s, and their pitch rises from 0.65 to 1.7 in
+      equal steps per second (1.4 octaves);
+    - the level rises from −18 dB (60 s or more left) to −12 (30 s) to 0 (the eruption);
+    - `eruption_knock` (4 variations, −24: a rock knock with a burp of gas) comes every
+      0.15 × seconds left (0.12–2.5 s): **one every 1.5 s means ten seconds left**, a rattle means
+      one or two.
+
+    The clock is the simulation's (`sim_ticked`): it runs at most one tick past the last tick
+    heard, so a paused game holds the build-up and a faster game speed hurries it.
+    A new warning fades in over 1.5 s; a repeated one for the same vent only moves its deadline;
+    a restored mission that re-emits the seconds left picks up at the same pitch, fading in. A
+    warning with negative or infinite seconds calls it off; so does `ui_feedback`
+    `vent_release` (for the warned vent nearest the camera within 80 m: that signal does not
+    name the vent); a warning 2 s past its deadline with no eruption is dropped.
+    `eruption(vent, radius)` stops the vent's build-up and plays `eruption_blast` (3 variations,
+    6.5 s, −18: a crack, a deep saturated boom, a roar of gas, a long low tail with rocks coming
+    down) at the vent, −3 dB at a 6 m radius to +2 dB at 26 m; a blast the player can see ducks
+    the mix (BusDucker: Music −8, Ambience −6, SFX −5 dB, held 0.9 s; not twice within 1.5 s).
+    The Weather bus itself is not ducked. **Voice limit**: at most two build-ups and two blasts at
+    once, ranked by radius ÷ distance (nearest and largest win); a warning that loses its slot is
+    still followed and returns when a slot frees, a new blast replaces the weakest ringing one only
+    if it weighs more. A vent whose `is_visible_to_player` is false is −8 dB and dull (its players'
+    distance filter at 900 Hz instead of 5 kHz), never silent. `mission_started` and going aboard
+    reset everything.
+  - **Holdout** (`HoldoutSound` / `HoldoutCues`): a survival timer is a known, active objective
+    with `countdown_tick` ≥ 0 and `countdown_fails` false (SurviveObjective). The
+    MissionSoundRouter's deadline mechanism ignores such timers on purpose (`is_deadline` is
+    false for them), so no storm minute or countdown of doom plays; instead:
+
+    | Seconds left | Heard |
+    |---|---|
+    | ≤ 120 | the score's `holdout` layer at −6 dB |
+    | ≤ 60 | `mus_holdout_minute` (−24, 5.8 s: a far engine swelling in and passing, a horn C# → G# → high C#, two tines); the layer at full |
+    | ≤ 10 | `mus_holdout_engine` (4 s loop, −26: the dropship hovering on C# and G#, rotor beats, a turbine whine) on the HoldoutSound's own player (Music bus), its level −14 → 0 dB and pitch 0.94 → 1.0 as the seconds run out |
+    | `advisor_alert` `extraction_arrived`, or the objective completing (first of the two, once) | `mus_holdout_arrived` (−22, 5 s: the engine's C# and G# glide up a semitone into the Concord's D and A, a chime chord D F# A D, a horn D → A); the engine fades over 0.8 s; the layer goes |
+    | the objective failing | the engine stops, the layer goes, no resolution |
+
+    A restored Holdout enters the right stage at once (with ten seconds or fewer left: straight to
+    the engine, no minute cue). `extraction_arrived` without a Holdout running (an Infiltration's
+    extraction) plays nothing here.
+  - **Advisor** (Meridian dyads, through the Advisor queue):
+
+    | Kind | Phrase | Priority / throttle |
+    |---|---|---|
+    | `extraction_arrived` | D+A, F#+C#, A+E quick, landing on a high D+A with its octave: go (−19) | 117 / 10 s |
+    | `surge_incoming` | the caldera's surge: four dyads climbing by step over a swelling D–G# pedal (−19) | 111 / 20 s |
+    | `eruption_warning` | C#+G# pressing up to D+A, twice, faster, the last bending up a step over a low growl (−19) | 109 / 12 s |
+    | `eruption_damage` | the D+G# tritone struck, then sagging a tone (−19) | 106 / 20 s |
+    | `wave_incoming` | F#+C# short, then G#+D long: a step into the warning tritone (−20) | 98 / 15 s |
+    | `extraction_inbound` | A+E, then D+A held, leaning upward: hold on (−20) | 94 / 20 s |
+
+    Some news makes an older unheard alert moot without being moot itself (`REPLACES`):
+    `extraction_arrived` drops a waiting `extraction_inbound`, `eruption_damage` a waiting
+    `eruption_warning`.
+  - **Interface**: `ui_feedback` `vent_release` → `ui_vent_release` (a valve clack, a short sharp
+    hiss falling away, a thud under it; −26, 0.36 s: satisfying), `vent_denied` →
+    `ui_vent_denied` (a stuck valve: two dull clunks and a choked buzz on D+G#; −28, 0.27 s;
+    `ui_invalid` as fallback).
+
 ## Loudness targets
 
 Integrated loudness per ITU-R BS.1770 (gated; files shorter than 400 ms are one block). Every
@@ -463,6 +587,14 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `advisor` Phase 8a | WAV mono | tide rising −19, falling −20, units in water −19, artefact taken −19, secured −20 | flat, Advisor bus |
 | `ui` Phase 8a | WAV mono | artefact pickup −27, drop −28 | 0.39 / 0.40 s |
 | `baseloop` artefact | WAV mono, loop | −31 | 6 s, positional |
+| `music` Emberfall layers (Phase 8b) | Ogg stereo, loop | as Kessel: pad −25, pulse/pulse_b −29, melodies −27, drive −28, drums −26, brass −27, trail −29, hush −31, watch −29, urgency −29, heavy −27, pressure −29, holdout −28 | 56 BPM in 4/4, 68.57 s (3 024 000 samples) |
+| `sting` Emberfall (Phase 8b) | Ogg stereo | hits −24 / −25, victory and defeat −22 | `<id>_emberfall` |
+| `sting` Holdout | Ogg stereo | minute −24, engine −26 (4 s loop), arrived −22 | flat / HoldoutSound's player, Music bus |
+| `ambience` Emberfall beds | Ogg stereo, loop | rumble −31, lava −33, wind −31 | 41 / 35 / 46 s |
+| `ambdetail` Emberfall | WAV mono | rock cracks −25, gas hiss −26, collapse −26, ember ticks −28 | positional, priority 10 |
+| `weather` eruptions (Phase 8b) | WAV mono | build low / high −24 (loops 4 / 3 s), knocks −24, blast −18 | EruptionSound's positional players, Weather bus |
+| `advisor` Phase 8b | WAV mono | extraction arrived, surge, eruption warning, damage −19; wave, extraction inbound −20 | flat, Advisor bus |
+| `ui` Phase 8b | WAV mono | vent release −26, vent denied −28 | 0.36 / 0.27 s |
 
 Also checked on every build: DC offset ≤ 0.002, energy below 25 Hz ≤ 3 %, duration within the
 recipe's bounds, and for loops the seam (no step, kink or level jump bigger than the loop's own
@@ -520,6 +652,8 @@ settings: master 1.0, music 0.8, effects 1.0):
 | worst case: `combat_heavy` + urgency + storm layers, a full storm (beds, gusts, debris, muffle), 6 weapon and 6 impact starts per 50 ms frame within 35 m plus blasts, an Advisor or stealth alarm every 1.5 s, interface clicks | −19.4 LUFS | −5.7 dBFS (limiter never engaged) |
 | Thalassa calm (Phase 8a): the Thalassa score in `calm`, its ambience, the tide at low water, slack | −26.9 LUFS | −16.5 dBFS |
 | Thalassa fight (Phase 8a): `combat_heavy` + urgency + tide layers at high water with the sea still rising (water bed and rush), the worst-case battle, an Advisor or stealth alarm every 1.5 s plus `advisor_tide_rising` every 1.5 s, a tide warning, clicks | −17.3 LUFS | −3.9 dBFS (limiter never engaged) |
+| Emberfall calm (Phase 8b): the Emberfall score in `calm`, its ambience | −29.0 LUFS | −15.5 dBFS |
+| Emberfall Holdout fight (Phase 8b): `combat_heavy` + urgency + pressure + holdout layers, the extraction engine in its last seconds, a vent 23 m away building up then erupting (blast and duck) by a player building, the worst-case battle, an Advisor or stealth alarm every 1.5 s plus `advisor_eruption_warning` every 1.5 s, clicks | −18.1 LUFS | −3.9 dBFS (limiter never engaged) |
 
 Worst-case loudness per category (each bus before its fader, LUFS): Music −25.3, Weather −25.8,
 Weapons −24.7, Explosions −25.7, Advisor −21.4, Stealth −22.8, UI −36.4, Ambience −64.7
@@ -542,6 +676,13 @@ because the scene has the Advisor speaking twice as often (the sidechain holds i
 Thalassa states themselves sum to Kessel's loudness within 0.2 LU. Both Thalassa scenes assert
 what the Kessel ones do (no clipping, headroom, the same loudness windows, the voice budget, the
 Advisor 3 LU over the music).
+
+Emberfall fight (per bus before its fader): Music −27.1 (the score plus the extraction engine),
+Weather −30.0 (build-up and blast), Weapons −25.2, Explosions −25.7, Advisor −21.0, Stealth −22.9,
+UI −36.4, Ambience −39.4 LUFS; while the Advisor speaks the score sits at −32.7 against its −20.5
+(12.2 LU clear). The low end checked on its own (unweighted, below 150 Hz, only while the Advisor
+speaks): the score's low band at −34.7 dB RMS against the Advisor's −23.0 dB RMS. Both Emberfall
+scenes assert what the others do, and the fight also asserts that low band under the Advisor.
 
 The first measurement found one problem, fixed: heavy combat with the storm and urgency layers
 stacked integrated to −21.7 LUFS of music, louder than the weapons (−25) and level with the
@@ -569,6 +710,9 @@ Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capp
   `tide_turn_<rising|falling>`, score variants `<hit or sting>_<score id>`; planets as data in
   `game/data/sounds/planets/<planet id>.tres` (PlanetAudio: score + AmbienceSet) and
   `game/data/sounds/ambience/sets/<planet id>.tres` (AmbienceSet: beds and details)
+- Phase 8b: `mus_emberfall_<layer>`, `amb_emberfall_<bed>`, details `amb_<what>_<n>`,
+  `eruption_<build_low|build_high|knock|blast>[_<n>]` (group `weather`), `mus_holdout_<cue>`
+  (group `sting`), `ui_vent_<release|denied>`, `advisor_<kind>`
 
 The event router looks events up by these names: a unit's `def.sound_set` picks
 `unit_<set>_select`; a selection of buildings only (group `buildings`) picks
@@ -754,6 +898,21 @@ Thalassa routing (Phase 8a):
 | `ui_feedback(&"artefact_pickup" / &"artefact_drop")` | `ui_<kind>` (naming rule) |
 | a Node3D in group `artefacts` | `loop_hum_artefact` on it (BaseLoops) |
 | `mission_started` | the planet is read from the map (`play_planet`); the tide resets |
+
+Emberfall and Holdout routing (Phase 8b):
+
+| Signal | Sound |
+|---|---|
+| `eruption_warning(vent, seconds, radius)` | the vent's build-up (two loops and knocks, EruptionSound, Weather); the score's `pressure` layer if the vent is near one of the player's buildings |
+| `eruption_warning(vent, < 0 or INF, _)` | calls that vent's eruption off (build-up stops) |
+| `eruption(vent, radius)` | build-up stops, `eruption_blast` at the vent; a seen blast ducks the mix |
+| `ui_feedback(&"vent_release")` | `ui_vent_release`; the warned vent nearest the camera (80 m) is called off |
+| `ui_feedback(&"vent_denied")` | `ui_vent_denied` (fallback `ui_invalid`) |
+| `advisor_alert(&"eruption_warning" / &"eruption_damage" / &"surge_incoming" / &"wave_incoming" / &"extraction_inbound" / &"extraction_arrived")` | `advisor_<kind>` through the Advisor queue (table above) |
+| `objective_added` / `_updated` with a survival countdown, then `sim_ticked` | the `holdout` layer (≤ 120 s), `mus_holdout_minute` (≤ 60 s), `mus_holdout_engine` (≤ 10 s) |
+| `advisor_alert(&"extraction_arrived")` or that objective's `objective_completed` | `mus_holdout_arrived` once; engine out, layer out |
+| `objective_failed` for it | engine and layer stop |
+| `mission_started` | eruptions and the holdout reset |
 
 ## Adding a sound
 

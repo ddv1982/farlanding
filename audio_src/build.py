@@ -196,6 +196,22 @@ EVENT_OVERRIDES = {
     "ui_artefact_pickup": dict(cooldown=0.3, max_instances=1),
     "ui_artefact_drop": dict(cooldown=0.3, max_instances=1),
     "loop_hum_artefact": dict(max_instances=1, max_distance=50.0, priority=40),
+    # Phase 8b, Emberfall. Eruption sounds play on the EruptionSound's own
+    # positional players (Weather bus); these settings document them and serve
+    # anything that plays them through the pool.
+    "eruption_build_low": dict(positional=True, max_distance=220.0, priority=60, max_instances=2, cooldown=0.0),
+    "eruption_build_high": dict(positional=True, max_distance=220.0, priority=60, max_instances=2, cooldown=0.0),
+    "eruption_knock": dict(positional=True, max_distance=180.0, priority=55, max_instances=2, cooldown=0.08,
+                           pitch_variation=0.6),
+    "eruption_blast": dict(positional=True, max_distance=320.0, priority=85, max_instances=2, cooldown=0.3),
+    "amb_distant_collapse": dict(max_instances=1, cooldown=8.0, max_distance=220.0),
+    "amb_gas_hiss": dict(max_distance=120.0),
+    "amb_ember_tick": dict(max_distance=70.0),
+    "mus_holdout_minute": dict(cooldown=10.0),
+    "mus_holdout_engine": dict(cooldown=0.0),
+    "mus_holdout_arrived": dict(cooldown=5.0),
+    "ui_vent_release": dict(cooldown=0.12, max_instances=1),
+    "ui_vent_denied": dict(cooldown=0.2, max_instances=1),
 }
 
 

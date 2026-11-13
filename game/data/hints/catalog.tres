@@ -89,6 +89,21 @@ text = "{command} the artefact with units selected: the nearest picks it up, the
 mission_types = Array[StringName]([&"recovery"])
 delay_seconds = 8.0
 
+[sub_resource type="Resource" id="h11"]
+script = ExtResource("1_hint")
+id = &"eruption"
+title = "Vents erupting"
+text = "A vent is about to erupt (the ring on the ground, the gauge top right). Everything near it is hit hard: move your units clear. A Flux Tap on it is knocked out for a while; select the Tap and press VENT before the pressure peaks to release it on purpose, at a small cost."
+trigger = &"eruption_warning"
+
+[sub_resource type="Resource" id="h12"]
+script = ExtResource("1_hint")
+id = &"holdout"
+title = "Hold until extraction"
+text = "Keep the Lander standing until the extraction ship arrives (the timer in the objectives). The Combine comes in waves that grow; build defences on the plateau and keep your army near the Lander. When the caldera surges, every vent on it erupts in turn: stay clear of the rings."
+mission_types = Array[StringName]([&"holdout"])
+delay_seconds = 6.0
+
 [resource]
 script = ExtResource("2_catalog")
-hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10")])
+hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10"), SubResource("h11"), SubResource("h12")])

@@ -30,6 +30,10 @@
 ## mission starts), the TideSound (Thalassa's tide: water beds, rush and pull,
 ## the turning warnings, the score's tide layer) and score-specific transition
 ## hits and ending stings (`<hit>_<score id>` before the generic one).
+## Phase 8b adds Emberfall: the EruptionSound (child "Eruption": vent
+## build-ups, blasts, the score's pressure layer) and the HoldoutSound (child
+## "Holdout": the survival timer's holdout layer, one-minute cue, approaching
+## engine and arrival). Both are reached by name; the public surface is full.
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -50,6 +54,10 @@ const STORM_LAYER: StringName = &"storm"
 const URGENCY_LAYER: StringName = &"urgency"
 ## The music layer of the tide (Thalassa), following the water level.
 const TIDE_LAYER: StringName = &"tide"
+## Emberfall's layer that rises as a vent near the base fills.
+const PRESSURE_LAYER: StringName = &"pressure"
+## The score layer of a Holdout's last minutes.
+const HOLDOUT_LAYER: StringName = &"holdout"
 ## How long the urgency layer stays after an under-attack alert (s).
 const URGENCY_HOLD: float = 24.0
 ## The objective type whose failure means the rival won the Intel race.
@@ -98,6 +106,8 @@ var _ship_score: MusicScore
 var _planet_score: MusicScore
 var _planet_ambience: AmbienceSet
 var _tide: TideSound
+var _eruption: EruptionSound
+var _holdout: HoldoutSound
 
 
 func _ready() -> void:
@@ -142,6 +152,8 @@ func _ready() -> void:
 	_music.set_layer_gain(STORM_LAYER, AudioMix.SILENT_DB)
 	_music.set_layer_gain(URGENCY_LAYER, AudioMix.SILENT_DB)
 	_music.set_layer_gain(TIDE_LAYER, AudioMix.SILENT_DB)
+	_music.set_layer_gain(PRESSURE_LAYER, AudioMix.SILENT_DB)
+	_music.set_layer_gain(HOLDOUT_LAYER, AudioMix.SILENT_DB)
 	_router.on_alert_played = _on_alert_played
 	_pulses = SignalPulses.new()
 	_pulses.name = &"SignalPulses"
@@ -205,6 +217,20 @@ func _ready() -> void:
 	_tide.set_music_gain = func(gain_db: float) -> void: _music.set_layer_gain(TIDE_LAYER, gain_db)
 	_tide.set_ambience_tide = _ambience.set_tide
 	add_child(_tide)
+	_eruption = EruptionSound.new()
+	_eruption.name = &"Eruption"
+	_eruption.resolve_event = get_event
+	_eruption.duck = duck_for
+	_eruption.set_music_gain = func(gain_db: float) -> void:
+		_music.set_layer_gain(PRESSURE_LAYER, gain_db)
+	add_child(_eruption)
+	_holdout = HoldoutSound.new()
+	_holdout.name = &"Holdout"
+	_holdout.play_first = play_first
+	_holdout.resolve_event = get_event
+	_holdout.set_music_gain = func(gain_db: float) -> void:
+		_music.set_layer_gain(HOLDOUT_LAYER, gain_db)
+	add_child(_holdout)
 	_campaign = CampaignSoundRouter.new()
 	_campaign.name = &"CampaignRouter"
 	_campaign.play_first = play_first
@@ -258,6 +284,7 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 	_tones.focus = focus
 	_storm.focus = focus
 	_ambience.focus = focus
+	_eruption.focus = focus
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 
@@ -321,6 +348,8 @@ func _show_screen(screen: StringName) -> void:
 	_stop_world_voices()
 	_storm.handle_mission_started()  # a storm left behind on the planet ends
 	_tide.handle_mission_started()  # and so does the sea
+	_eruption.handle_mission_started()  # and the vents
+	_holdout.handle_mission_started()
 	if _ship_score != null:
 		_music.switch_score(_ship_score, state)
 	_ambience.start_ship(screen)

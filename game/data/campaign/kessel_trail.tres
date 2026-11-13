@@ -27,6 +27,11 @@
 [ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e24"]
 [ext_resource type="Resource" path="res://data/units/concord_lancer.tres" id="e25"]
 [ext_resource type="Resource" path="res://data/campaign/route/thalassa_recovery.tres" id="e26"]
+[ext_resource type="Resource" path="res://data/campaign/route/emberfall_conquest.tres" id="e27"]
+[ext_resource type="Resource" path="res://data/campaign/route/emberfall_holdout.tres" id="e28"]
+[ext_resource type="Resource" path="res://data/campaign/techs/heat_shielding.tres" id="e29"]
+[ext_resource type="Resource" path="res://data/campaign/techs/pressure_valves.tres" id="e30"]
+[ext_resource type="Resource" path="res://data/campaign/techs/braced_taps.tres" id="e31"]
 
 [sub_resource type="Resource" id="s0"]
 script = ExtResource("e18")
@@ -223,14 +228,27 @@ discovery = &"kessel_trail_ruin"
 description = "Trail ruin bearing on file"
 effects = Array[ExtResource("e22")]([SubResource("s27")])
 
+[sub_resource type="Resource" id="s29"]
+script = ExtResource("e22")
+kind = &"chart_site"
+target = &"emberfall_trail_furnace"
+note = "the Emberfall furnace's site starts charted"
+
+[sub_resource type="Resource" id="s30"]
+script = ExtResource("e21")
+id = &"carry_trail_vault"
+discovery = &"thalassa_trail_vault"
+description = "Shoal vault bearing on file"
+effects = Array[ExtResource("e22")]([SubResource("s29")])
+
 [resource]
 script = ExtResource("e0")
 id = &"kessel_trail"
 title = "The Kessel Trail"
-nodes = Array[ExtResource("e19")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e4"), ExtResource("e26")])
+nodes = Array[ExtResource("e19")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e4"), ExtResource("e26"), ExtResource("e27"), ExtResource("e28")])
 start_node = &"kessel_proving"
-techs = Array[ExtResource("e20")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11"), ExtResource("e12"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16")])
+techs = Array[ExtResource("e20")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11"), ExtResource("e12"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e29"), ExtResource("e30"), ExtResource("e31")])
 loadout_slots = Array[ExtResource("e17")]([SubResource("s7"), SubResource("s13"), SubResource("s20")])
-carryovers = Array[ExtResource("e21")]([SubResource("s22"), SubResource("s24"), SubResource("s26"), SubResource("s28")])
+carryovers = Array[ExtResource("e21")]([SubResource("s22"), SubResource("s24"), SubResource("s26"), SubResource("s28"), SubResource("s30")])
 locked_at_start = Array[StringName]([&"concord_survey_lab", &"concord_lancer", &"concord_sentry", &"concord_arc"])
 lost_landing_share = 0.0

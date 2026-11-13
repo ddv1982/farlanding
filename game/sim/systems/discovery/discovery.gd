@@ -145,6 +145,9 @@ func _apply_payoff(site: DiscoverySite, faction: int) -> void:
 				Events.advisor_alert.emit(&"field_option_ready")
 		DiscoveryDef.PAYOFF_REVEAL_ENEMY:
 			_reveal_enemies(faction, def)
+		DiscoveryDef.PAYOFF_FORECAST:
+			if world.planet != null:
+				world.planet.forecast(faction, def.payoff_seconds)
 
 
 ## The faction sees around every enemy unit and building (not Custodians) for a while.

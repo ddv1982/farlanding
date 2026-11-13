@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://core/defs/entity_def.gd" id="4_entity"]
 [ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="5_forge"]
 [ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="6_spire"]
+[ext_resource type="Resource" path="res://data/buildings/combine_flux_siphon.tres" id="6b_siphon"]
 
 [resource]
 script = ExtResource("1_def")
@@ -21,7 +22,7 @@ sight_angle = 140.0
 hovers = true
 acceleration = 12.0
 armour_type = &"light"
-builds = Array[ExtResource("4_entity")]([ExtResource("5_forge"), ExtResource("6_spire")])
+builds = Array[ExtResource("4_entity")]([ExtResource("5_forge"), ExtResource("6_spire"), ExtResource("6b_siphon")])
 build_rate = 1.0
 work_range = 5.0
 id = &"combine_rigger"

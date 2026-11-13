@@ -46,6 +46,9 @@ extends EntityDef
 ## Flux added every `flux_interval` seconds of work.
 @export_range(0, 1000, 1) var flux_amount: int = 0
 @export_range(0.1, 120.0, 0.1, "suffix:s") var flux_interval: float = 4.0
+## What the tapped Flux is banked as: &"flux", or &"alloy" (the Combine's Siphon burns
+## vent Flux into Alloy, the only resource it spends).
+@export var flux_banked_as: StringName = &"flux"
 @export_group("Survey")
 ## Field options this building offers once operational (FieldOptionDefs).
 @export var field_options: Array[FieldOptionDef] = []

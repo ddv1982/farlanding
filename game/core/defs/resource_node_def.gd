@@ -12,3 +12,7 @@ extends EntityDef
 @export_range(0.1, 20.0, 0.1, "suffix:m") var height: float = 2.0
 ## Units path around it (deposits); vents are walkable until a tap is built on them.
 @export var blocks_movement: bool = true
+## Vents: a Flux Tap on this vent yields this many times faster (Emberfall's rich vents).
+@export_range(0.1, 10.0, 0.05) var flux_rate_scale: float = 1.0
+## Vents: the planet's eruption rule builds pressure in it and it erupts (ADR 0015).
+@export var erupts: bool = false

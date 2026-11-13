@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://sim/entities/building.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://assets/models/concord/concord_building_flux_tap.glb" id="2_model"]
+
+[node name="CombineFluxSiphon" instance=ExtResource("1_base")]
+
+[node name="Visual" parent="." index="0"]
+model_scene = ExtResource("2_model")
+footprint_radius = 3.8

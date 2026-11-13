@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/emberfall.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/emberfall_holdout.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"emberfall_holdout"
+title = "Caldera Holdout"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.86, 0.14)
+leads_to = Array[StringName]([])
+excludes = Array[StringName]([])
+scan_summary = "The furnace points under the caldera: an Antecedent core lies beneath the plateau. Set the Lander down on it and hold until the extraction ship lands."
+intel_notes = "A holdout landing: survive twelve minutes of growing Combine waves and the caldera's surge."
+placeholder = false

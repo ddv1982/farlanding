@@ -20,6 +20,11 @@ extends RefCounted
 ## - Thalassa (Phase 8a): the tide turning (rising outranks falling: the water
 ##   closes fords), units caught in water, and the Recovery artefact taken or
 ##   secured; a turn the player never heard cancels against the opposite one.
+## - Emberfall and Holdout (Phase 8b): eruptions (a warning, damage, the
+##   caldera's surge), enemy waves, extraction inbound and arrived. Some news
+##   makes an older, unheard alert moot without being moot itself (REPLACES):
+##   the extraction arriving drops a waiting "inbound", eruption damage a
+##   waiting warning.
 ##
 ## Use: `push(kind, now, position)` when an alert arrives (set `focus` first);
 ## every frame, `pop_ready(now)` and, if it returns a kind, play it and call
@@ -58,6 +63,12 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"units_in_water": 25.0,
 	&"artefact_taken": 10.0,
 	&"artefact_secured": 8.0,
+	&"eruption_warning": 12.0,
+	&"eruption_damage": 20.0,
+	&"surge_incoming": 20.0,
+	&"wave_incoming": 15.0,
+	&"extraction_inbound": 20.0,
+	&"extraction_arrived": 10.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -92,6 +103,12 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"units_in_water": 104,
 	&"artefact_secured": 95,
 	&"tide_falling": 86,
+	&"extraction_arrived": 117,
+	&"surge_incoming": 111,
+	&"eruption_warning": 109,
+	&"eruption_damage": 106,
+	&"wave_incoming": 98,
+	&"extraction_inbound": 94,
 }
 ## Kind -> the family whose throttle it shares (kinds not listed are their own).
 const FAMILY: Dictionary[StringName, StringName] = {
@@ -105,6 +122,12 @@ const SUPERSEDES: Dictionary[StringName, StringName] = {
 	&"low_power": &"power_restored",
 	&"tide_falling": &"tide_rising",
 	&"tide_rising": &"tide_falling",
+}
+## Kind -> the queued kind it replaces: the old one is dropped, the new one is
+## still heard (unlike SUPERSEDES, where both go).
+const REPLACES: Dictionary[StringName, StringName] = {
+	&"extraction_arrived": &"extraction_inbound",
+	&"eruption_damage": &"eruption_warning",
 }
 ## Silence after a phrase before the next may start.
 const GAP: float = 0.35
@@ -165,6 +188,9 @@ func push(kind: StringName, now: float, position: Vector3 = Vector3.INF) -> bool
 		_remove_kind(stale)
 		_last_accepted.erase(stale)
 		return false
+	var replaced: StringName = REPLACES.get(kind, &"")
+	if replaced != &"" and _kinds.has(replaced):
+		_remove_kind(replaced)
 	if _kinds.size() >= MAX_QUEUED:
 		var weakest: int = _weakest()
 		if priority_of(_kinds[weakest]) >= priority_of(kind):

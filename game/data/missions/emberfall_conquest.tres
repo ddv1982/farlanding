@@ -1,0 +1,99 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Resource" path="res://data/planets/emberfall.tres" id="planet"]
+[ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
+[ext_resource type="Script" path="res://missions/objective_def.gd" id="e1"]
+[ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="e3"]
+[ext_resource type="Resource" path="res://data/units/custodian_warden.tres" id="e4"]
+[ext_resource type="PackedScene" path="res://maps/emberfall_caldera/emberfall_caldera.tscn" id="e5"]
+[ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="e6"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="e7"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e8"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="e9"]
+[ext_resource type="Resource" path="res://data/buildings/combine_hub.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="e11"]
+[ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="e12"]
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="e13"]
+[ext_resource type="Resource" path="res://data/units/combine_scrapper.tres" id="e14"]
+[ext_resource type="Resource" path="res://data/units/combine_rigger.tres" id="e15"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e16"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="e17"]
+[ext_resource type="Resource" path="res://data/ai/combine_caldera.tres" id="e18"]
+[ext_resource type="Resource" path="res://data/buildings/combine_flux_siphon.tres" id="e19"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+id = &"destroy_base"
+title = "Destroy the Combine base"
+kind = &"primary"
+type = &"destroy_all"
+side = &"enemy"
+
+[sub_resource type="Resource" id="s1"]
+script = ExtResource("e1")
+id = &"keep_lander"
+title = "Keep the Lander standing"
+kind = &"primary"
+type = &"keep_alive"
+side = &"player"
+passive = true
+defs = Array[ExtResource("e3")]([ExtResource("e2")])
+
+[sub_resource type="Resource" id="s2"]
+script = ExtResource("e1")
+id = &"follow_trail"
+title = "Follow the Antecedent trail"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"emberfall_trail_furnace"])
+area_center = Vector3(-30, 0, -60)
+area_radius = 8
+
+[sub_resource type="Resource" id="s3"]
+script = ExtResource("e1")
+id = &"silence_warden"
+title = "Silence a Custodian Warden"
+kind = &"hidden"
+type = &"destroy_count"
+side = &"custodian"
+defs = Array[ExtResource("e3")]([ExtResource("e4")])
+amount = 1
+
+[sub_resource type="Resource" id="s4"]
+script = ExtResource("e1")
+id = &"read_fissure"
+title = "Read the seismic fissure"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"emberfall_seismic_fissure"])
+area_center = Vector3(-30, 0, 40)
+area_radius = 6
+
+[resource]
+script = ExtResource("e0")
+id = &"emberfall_conquest"
+title = "Caldera Conquest"
+mission_type = &"conquest"
+summary = "Emberfall's caldera holds the richest Flux on the trail, and it erupts. The Combine holds the far shelf and already siphons the caldera."
+briefing = "Emberfall, the next world along the trail: black basalt, rivers of lava, and a caldera in the middle whose Flux vents are the richest we have seen. The Combine holds the far ash shelf and already has a Siphon on the caldera.
+
+Rich vents fill with pressure while a Flux Tap draws on them and erupt when full, hitting everything nearby hard and knocking the Tap out; select the Tap and press VENT before it peaks to release the pressure on purpose, at a small cost. The gauge top right shows the vent closest to bursting, and a seismic fissure west of the caldera can tell you which one goes next.
+
+Lava is never crossable: three rock bridges and the caldera's ramps are the only ways across. Build up on your shelf, take the caldera's Flux if you dare, and take their base apart. The trail continues here, in a furnace north of the western bridge."
+map_scene = ExtResource("e5")
+planet = ExtResource("planet")
+player_hq = ExtResource("e2")
+player_start = Vector3(-80, 0, 84)
+player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8")])
+start_alloy = 450
+hostile_faction = 1
+hostile_hq = ExtResource("e10")
+hostile_hq_position = Vector3(82, 0, -84)
+hostile_buildings = Array[ExtResource("e13")]([ExtResource("e11"), ExtResource("e12"), ExtResource("e19"), ExtResource("e19")])
+hostile_building_positions = PackedVector3Array(62, 0, -82, 74, 0, -62, 100, 0, -100, 12, 0, -12)
+hostile_roster = Array[ExtResource("e9")]([ExtResource("e14"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e16"), ExtResource("e16"), ExtResource("e17")])
+hostile_start = Vector3(92, 0, -66)
+commander_profile = ExtResource("e18")
+enemy_difficulty = "normal"
+objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s4"), SubResource("s3")])

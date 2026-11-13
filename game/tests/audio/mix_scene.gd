@@ -49,6 +49,9 @@ const BUSES: Array[StringName] = [
 	&"Discovery",
 ]
 
+## The low band checked under the Advisor (Hz).
+const LOW_BAND_HZ: float = 150.0
+
 var pre: AudioEffectCapture
 var post: AudioEffectCapture
 ## Bus -> capture at the end of its effect chain (before its fader), for
@@ -212,6 +215,30 @@ static func loudness_while(
 	return [_to_lufs(sum_a / count), _to_lufs(sum_b / count)]
 
 
+## Unweighted level (dB RMS) of `b` below LOW_BAND_HZ and of `a` (full band),
+## over only the 400 ms blocks where `a` is sounding: "does the score's low end
+## sit under the Advisor while it speaks". Returns [b low, a].
+static func low_band_while(
+	a: PackedVector2Array, b: PackedVector2Array, rate: float
+) -> Array[float]:
+	var ea: PackedFloat64Array = _plain_energies(a, rate, PackedFloat64Array())
+	var eb: PackedFloat64Array = _plain_energies(b, rate, _biquad_lowpass(rate, LOW_BAND_HZ))
+	var loudest: float = 0.0
+	for e: float in ea:
+		loudest = maxf(loudest, e)
+	var sum_a: float = 0.0
+	var sum_b: float = 0.0
+	var count: int = 0
+	for i: int in mini(ea.size(), eb.size()):
+		if loudest > 0.0 and ea[i] >= loudest * 0.1:
+			sum_a += ea[i]
+			sum_b += eb[i]
+			count += 1
+	if count == 0:
+		return [-200.0, -200.0]
+	return [_to_db(sum_b / count), _to_db(sum_a / count)]
+
+
 ## K-weighted mean-square energy of 400 ms blocks (no overlap).
 static func block_energies(frames: PackedVector2Array, rate: float) -> PackedFloat64Array:
 	var shelf: PackedFloat64Array = _biquad_shelf(rate)
@@ -227,6 +254,27 @@ static func block_energies(frames: PackedVector2Array, rate: float) -> PackedFlo
 			var z: float = _run(hp, s2, _run(shelf, s1, x))
 			out[i / block] += z * z / block
 	return out
+
+
+## Mean-square energy of 400 ms blocks, through `filter` (a biquad; empty: none).
+static func _plain_energies(
+	frames: PackedVector2Array, rate: float, filter: PackedFloat64Array
+) -> PackedFloat64Array:
+	var block: int = int(0.4 * rate)
+	var out: PackedFloat64Array = []
+	out.resize(frames.size() / block)
+	for channel: int in 2:
+		var state: PackedFloat64Array = [0.0, 0.0, 0.0, 0.0]
+		for i: int in out.size() * block:
+			var x: float = frames[i].x if channel == 0 else frames[i].y
+			if not filter.is_empty():
+				x = _run(filter, state, x)
+			out[i / block] += x * x / (2.0 * block)
+	return out
+
+
+static func _to_db(energy: float) -> float:
+	return 10.0 * log(energy) / log(10.0) if energy > 0.0 else -200.0
 
 
 static func _to_lufs(energy: float) -> float:
@@ -262,6 +310,16 @@ static func _biquad_shelf(rate: float) -> PackedFloat64Array:
 	var a1: float = 2.0 * ((a - 1.0) - (a + 1.0) * cw)
 	var a2: float = (a + 1.0) - (a - 1.0) * cw - sa
 	return [b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0]
+
+
+## RBJ low-pass at `fc` (Q 0.7071), for the low-band check.
+static func _biquad_lowpass(rate: float, fc: float) -> PackedFloat64Array:
+	var w: float = TAU * fc / rate
+	var alpha: float = sin(w) / (2.0 * 0.7071)
+	var cw: float = cos(w)
+	var b1: float = 1.0 - cw
+	var a0: float = 1.0 + alpha
+	return [b1 / 2.0 / a0, b1 / a0, b1 / 2.0 / a0, -2.0 * cw / a0, (1.0 - alpha) / a0]
 
 
 ## K-weighting stage 2: high-pass at 38.14 Hz (Q 0.5003).

@@ -99,6 +99,8 @@ func _ready() -> void:
 		fog.name = &"FogOfWar"
 		add_child(fog)
 		fog.setup(world.vision, player_faction)
+	if hud != null:
+		hud.set_map_colors(map_def.minimap_low, map_def.minimap_high)
 	if hud != null and mission != null and mission.enemy_alert_meter:
 		hud.show_alert_meter(mission.hostile_faction)
 	if runner != null and restore_state.is_empty():
@@ -135,6 +137,7 @@ func _place_landing(paths: NavmeshPathService) -> void:
 	_spawn_nodes(map_def.deposit, map_def.deposit_positions)
 	_spawn_nodes(map_def.rich_deposit, map_def.rich_deposit_positions)
 	_spawn_nodes(map_def.vent, map_def.vent_positions)
+	_spawn_nodes(map_def.rich_vent, map_def.rich_vent_positions)
 	if with_props:
 		_spawn_props()
 	_make_runner()

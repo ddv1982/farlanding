@@ -97,6 +97,13 @@ func dry_crossing(from: Vector3, to: Vector3) -> Vector3:
 	return best
 
 
+func vent_dangers() -> Array[Vector4]:
+	var eruptions: EruptionSystem = world.planet as EruptionSystem
+	if eruptions == null:
+		return []
+	return eruptions.dangers()
+
+
 func known_cargo() -> Array[Prop]:
 	var found: Array[Prop] = []
 	for prop: Prop in world.props:

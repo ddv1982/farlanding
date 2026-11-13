@@ -1,0 +1,91 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Resource" path="res://data/planets/emberfall.tres" id="planet"]
+[ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
+[ext_resource type="Script" path="res://missions/objective_def.gd" id="e1"]
+[ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="e3"]
+[ext_resource type="Resource" path="res://data/units/custodian_warden.tres" id="e4"]
+[ext_resource type="PackedScene" path="res://maps/emberfall_caldera/emberfall_caldera.tscn" id="e5"]
+[ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="e6"]
+[ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="e7"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e8"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="e9"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e16"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="e17"]
+[ext_resource type="Resource" path="res://data/units/combine_mauler.tres" id="e18"]
+[ext_resource type="Script" path="res://missions/scripts/wave_script.gd" id="e19"]
+[ext_resource type="Script" path="res://missions/scripts/wave_rules.gd" id="e20"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+id = &"await_extraction"
+title = "Hold the caldera until the extraction ship lands"
+kind = &"primary"
+type = &"survive"
+seconds = 720.0
+area_center = Vector3(0, 0, -2)
+area_radius = 14
+
+[sub_resource type="Resource" id="s1"]
+script = ExtResource("e1")
+id = &"keep_lander"
+title = "Keep the Lander standing"
+kind = &"primary"
+type = &"keep_alive"
+side = &"player"
+passive = true
+defs = Array[ExtResource("e3")]([ExtResource("e2")])
+
+[sub_resource type="Resource" id="s2"]
+script = ExtResource("e1")
+id = &"read_fissure"
+title = "Read the seismic fissure"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"emberfall_seismic_fissure"])
+area_center = Vector3(-30, 0, 40)
+area_radius = 6
+
+[sub_resource type="Resource" id="s3"]
+script = ExtResource("e1")
+id = &"silence_warden"
+title = "Silence a Custodian Warden"
+kind = &"hidden"
+type = &"destroy_count"
+side = &"custodian"
+defs = Array[ExtResource("e3")]([ExtResource("e4")])
+amount = 1
+
+[sub_resource type="Resource" id="rules"]
+script = ExtResource("e20")
+wave_seconds = PackedFloat32Array(60, 150, 240, 330, 420, 510, 600, 680)
+wave_sizes = PackedInt32Array(3, 4, 5, 6, 7, 8, 10, 12)
+roster = Array[ExtResource("e9")]([ExtResource("e16"), ExtResource("e16"), ExtResource("e17"), ExtResource("e16"), ExtResource("e17"), ExtResource("e18")])
+entry_points = PackedVector3Array(80, 0, -72, 52, 0, 44, -56, 0, -24)
+warning_seconds = 20.0
+climax_seconds = 630.0
+extraction_objective = &"await_extraction"
+inbound_seconds = 60.0
+
+[resource]
+script = ExtResource("e0")
+id = &"emberfall_holdout"
+title = "Caldera Holdout"
+mission_type = &"holdout"
+summary = "The Lander has set down on the caldera to lift an Antecedent core out of it. Hold the plateau against growing Combine waves until the extraction ship lands."
+briefing = "The furnace showed us what the caldera hides: an Antecedent core, deep under the plateau. The Lander has set down on top of it and is drawing it up; that takes twelve minutes, and the Combine will not let it go quietly. Their waves will come over the bridges and up the ramps, larger each time.
+
+Keep the Lander standing until the extraction ship lands. The three vents around the plateau fill with pressure as you tap them and erupt when full, hurting everything near them, the Lander too; vent a Tap early with its VENT button. Near the end the whole caldera will surge: every vent on it erupts in turn. Keep your units out of the rings, and let the surge catch the Combine on the ramps."
+map_scene = ExtResource("e5")
+planet = ExtResource("planet")
+player_hq = ExtResource("e2")
+player_start = Vector3(0, 0, -2)
+player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e10"), ExtResource("e7"), ExtResource("e7"), ExtResource("e7"), ExtResource("e7"), ExtResource("e7"), ExtResource("e8")])
+start_alloy = 650
+start_flux = 120
+hostile_faction = 1
+mission_script = ExtResource("e19")
+script_rules = SubResource("rules")
+objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3")])

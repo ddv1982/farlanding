@@ -16,6 +16,9 @@ extends PanelContainer
 ## - Haulers selected: how to send them harvesting.
 ## - Wisps selected: the stealth-mode toggle (creep and cloak, or run in the open) and
 ##   how to sabotage.
+## - A Flux Tap on an erupting vent (Emberfall): the vent's pressure as a bar, the
+##   countdown of an announced eruption or of a knock-out, and the VENT button (a
+##   controlled burst; ADR 0015).
 ##
 ## Hints name the command button of the current mouse scheme (Settings).
 
@@ -38,6 +41,13 @@ const STEALTH_HINT: String = (
 const LAB_HINT: String = (
 	"Pick a field option, then left-click the map  ·  " + "Intel comes from discoveries"
 )
+const VENT_HINT: String = (
+	"VENT releases the pressure on purpose: the Tap takes a little damage and pauses"
+	+ "  ·  an eruption knocks it out"
+)
+## The vent button's icon once the art exists; the vent's own icon until then.
+const VENT_ICON: String = "res://assets/icons/action_vent.png"
+const VENT_FALLBACK_ICON: String = "res://assets/icons/kessel_resource_flux_vent.png"
 
 var controller: SelectionController = null
 var world: SimWorld = null
@@ -145,6 +155,8 @@ func _rebuild() -> void:
 		if building.is_operational():
 			for option: FieldOptionDef in building.def.field_options:
 				_add_option_button(option, building)
+		if building.is_operational() and _eruptions_on(building) != null:
+			_add_vent_button(building)
 	elif _mode.begins_with("aim:"):
 		_title.text = controller.targeting_option.display_name.to_upper()
 	elif _mode == "stealth":
@@ -183,6 +195,9 @@ func _refresh() -> void:
 		_refresh_building(controller.selected_building)
 	for entry: Dictionary in _entries:
 		if entry.has("stealth"):
+			continue
+		if entry.has("vent"):
+			_refresh_vent_button(entry)
 			continue
 		if entry.has("option"):
 			_refresh_option(entry, pile)
@@ -223,6 +238,9 @@ func _refresh_building(building: Building) -> void:
 			line += "  ·  LOW POWER: %d%% speed" % roundi(world.rules.low_power_rate * 100.0)
 		_set_status(line, HudStyle.WARNING_COLOR if low else HudStyle.TEXT_COLOR)
 		_hint.text = PRODUCE_HINT % _command_click().to_lower()
+		return
+	if _eruptions_on(building) != null:
+		_refresh_tap(building)
 		return
 	if not building.def.field_options.is_empty():
 		var intel: int = world.economy.stockpile(faction).intel
@@ -392,6 +410,76 @@ func _set_status(text: String, color: Color) -> void:
 	_status.visible = true
 	_status.text = text
 	_status.add_theme_color_override(&"font_color", color)
+
+
+## The EruptionSystem when `building` is a Tap on an erupting vent, else null.
+func _eruptions_on(building: Building) -> EruptionSystem:
+	if building == null or building.vent == null or not is_instance_valid(building.vent):
+		return null
+	if building.flux_extractor == null or not building.vent.erupts():
+		return null
+	return world.planet as EruptionSystem
+
+
+## The Tap's line: its vent's pressure (bar), an eruption's countdown, a knock-out.
+func _refresh_tap(building: Building) -> void:
+	var eruptions: EruptionSystem = _eruptions_on(building)
+	var vent: ResourceNode = building.vent
+	var pressure: float = eruptions.pressure_of(vent)
+	_progress.visible = true
+	_progress.value = pressure
+	var line: String = "Vent pressure %d%%" % roundi(pressure * 100.0)
+	var burst: float = eruptions.seconds_to_burst(vent)
+	var alarm: bool = burst < INF
+	if alarm:
+		line += "  ·  ERUPTING IN %d s" % ceili(burst)
+	if building.flux_extractor.is_stalled():
+		line += "  ·  knocked out %d s" % ceili(building.flux_extractor.stalled_seconds)
+	_set_status(line, HudStyle.WARNING_COLOR if alarm else HudStyle.TEXT_COLOR)
+	_hint.text = VENT_HINT
+
+
+func _add_vent_button(building: Building) -> void:
+	var path: String = VENT_ICON if ResourceLoader.exists(VENT_ICON) else VENT_FALLBACK_ICON
+	var icon: Texture2D = load(path) as Texture2D
+	var button: Button = HudStyle.make_button(icon, "Vent")
+	button.tooltip_text = (
+		"Vent the pressure now: a small controlled burst. The Tap takes a little damage"
+		+ " and pauses briefly; the vent then needs time before it can be vented again."
+	)
+	button.pressed.connect(_on_vent_pressed.bind(building))
+	_buttons.add_child(button)
+	_entries.append({"vent": true, "button": button, "building": building})
+
+
+func _refresh_vent_button(entry: Dictionary) -> void:
+	var button: Button = entry["button"]
+	var building: Building = entry["building"]
+	var eruptions: EruptionSystem = _eruptions_on(building) if is_instance_valid(building) else null
+	if eruptions == null:
+		return
+	var reason: StringName = eruptions.can_vent(building)
+	var line: String = "ready"
+	match reason:
+		EruptionSystem.COOLING:
+			line = "ready in %d s" % ceili(eruptions.vent_cooldown_left(building.vent))
+		EruptionSystem.TOO_LOW:
+			line = "pressure too low"
+		EruptionSystem.SURGING:
+			line = "surge: too late"
+		EruptionSystem.NOT_A_TAP:
+			line = "offline"
+	button.modulate = Color.WHITE if reason == EruptionSystem.OK else Color(1, 1, 1, 0.55)
+	var caption: String = "Vent\n%s" % line
+	if button.text != caption:
+		button.text = caption
+
+
+func _on_vent_pressed(building: Building) -> void:
+	if not is_instance_valid(building):
+		return
+	var entities: Array[Node3D] = [building]
+	world.context.command_queue.push(VentCommand.new(faction, entities))
 
 
 func _add_stealth_button() -> void:

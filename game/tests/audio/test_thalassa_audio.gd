@@ -84,8 +84,8 @@ func test_each_planet_names_its_score_and_ambience() -> void:
 	assert_eq(thalassa.score.id, THALASSA, "the score id is the planet id")
 	assert_eq(kessel.ambience.id, KESSEL)
 	assert_eq(thalassa.ambience.id, THALASSA)
-	assert_null(PlanetAudio.find(&"emberfall"), "a planet without a file has none")
-	assert_eq(PlanetAudio.find_or_default(&"emberfall"), kessel, "and falls back to Kessel")
+	assert_null(PlanetAudio.find(&"no_such_planet"), "a planet without a file has none")
+	assert_eq(PlanetAudio.find_or_default(&"no_such_planet"), kessel, "and falls back to Kessel")
 	assert_eq(kessel.ambience, AmbienceCues.kessel(), "one Kessel set")
 
 
@@ -108,7 +108,7 @@ func test_play_planet_switches_the_score_and_the_ambience() -> void:
 	Audio.play_planet(THALASSA)
 	assert_eq(Audio.music().target_score().id, THALASSA)
 	assert_eq(Audio.ambience().ambience_set().id, THALASSA)
-	Audio.play_planet(&"emberfall")
+	Audio.play_planet(&"no_such_planet")
 	assert_eq(Audio.music().target_score().id, THALASSA, "an unknown planet changes nothing")
 	Audio.play_planet(KESSEL)
 	assert_eq(Audio.music().target_score().id, KESSEL)

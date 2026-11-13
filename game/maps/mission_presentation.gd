@@ -33,6 +33,10 @@ func setup(p_world: SimWorld, p_player_faction: int) -> void:
 	Events.entity_sabotaged.connect(_on_entity_sabotaged)
 	for unit: Unit in world.units:
 		_on_entity_spawned(unit)
+	# Emberfall: a pressure gauge over every erupting vent (placeholder look).
+	for node: ResourceNode in world.resource_nodes:
+		if node.erupts() and node.get_node_or_null(^"VentGauge") == null:
+			VentGauge.attach(node)
 
 
 ## After a saved game was restored: give the restored world the looks the events

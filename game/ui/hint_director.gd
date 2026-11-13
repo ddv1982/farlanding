@@ -28,6 +28,7 @@ func setup(p_catalog: HintCatalog) -> void:
 	Events.construction_completed.connect(_on_construction_completed)
 	Events.storm_incoming.connect(_on_storm_incoming)
 	Events.tide_turning.connect(_on_tide_turning)
+	Events.eruption_warning.connect(_on_eruption_warning)
 	Events.alert_level_changed.connect(_on_alert_level_changed)
 
 
@@ -40,6 +41,7 @@ func dispose() -> void:
 	Events.construction_completed.disconnect(_on_construction_completed)
 	Events.storm_incoming.disconnect(_on_storm_incoming)
 	Events.tide_turning.disconnect(_on_tide_turning)
+	Events.eruption_warning.disconnect(_on_eruption_warning)
 	Events.alert_level_changed.disconnect(_on_alert_level_changed)
 
 
@@ -158,6 +160,10 @@ func _on_storm_incoming(_seconds: float) -> void:
 
 func _on_tide_turning(_seconds: float, _rising: bool) -> void:
 	fire(HintDef.TRIGGER_TIDE_TURNING)
+
+
+func _on_eruption_warning(_vent: Node3D, _seconds: float, _radius: float) -> void:
+	fire(HintDef.TRIGGER_ERUPTION_WARNING)
 
 
 func _on_alert_level_changed(_faction: int, _level: StringName, _previous: StringName) -> void:
