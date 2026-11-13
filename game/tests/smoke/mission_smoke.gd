@@ -66,6 +66,9 @@ func _check(mission: MissionDef, map: LandingMap) -> void:
 	_expect(runner.guards.patrols.size() == mission.patrols.size(), mission, "every patrol")
 	var unaware: bool = map.world.stealth.alert_level(mission.hostile_faction) == &"unaware"
 	_expect(unaware, mission, "nobody noticed the drop")
+	if not mission.enemy_alert_meter:
+		# Patrols without an alert meter (Verdance's Hornet watch) show no cones.
+		return
 	for unit: Unit in runner.guards.guards():
 		var cones: Array[Node] = unit.find_children("SightCone", "", true, false)
 		_expect(cones.size() == 1, mission, "a sight cone on %s" % unit.name)

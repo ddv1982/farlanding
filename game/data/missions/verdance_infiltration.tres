@@ -1,0 +1,157 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Resource" path="res://data/planets/verdance.tres" id="planet"]
+[ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/units/combine_hornet.tres" id="e1"]
+[ext_resource type="Script" path="res://core/defs/patrol_route.gd" id="e2"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e3"]
+[ext_resource type="Script" path="res://missions/objective_def.gd" id="e4"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="e5"]
+[ext_resource type="Script" path="res://missions/scripts/infiltration_rules.gd" id="e6"]
+[ext_resource type="Resource" path="res://data/buildings/combine_hub.tres" id="e7"]
+[ext_resource type="PackedScene" path="res://maps/verdance_understory/verdance_understory.tscn" id="e9"]
+[ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e11"]
+[ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="e12"]
+[ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="e13"]
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="e14"]
+[ext_resource type="Script" path="res://missions/scripts/infiltration_script.gd" id="e15"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e2")
+id = &"west_lane"
+unit = ExtResource("e1")
+count = 1
+waypoints = PackedVector3Array(-60, 0, 50, -50, 0, 6, -10, 0, 30, -40, 0, 46)
+default_pause = 2.5
+loop = true
+facing = Vector3(0, 0, -1)
+
+[sub_resource type="Resource" id="s1"]
+script = ExtResource("e2")
+id = &"centre_lane"
+unit = ExtResource("e1")
+count = 1
+waypoints = PackedVector3Array(-16, 0, -32, 22, 0, -36, 52, 0, -12, 24, 0, 30, -16, 0, 26)
+default_pause = 2.0
+loop = true
+facing = Vector3(1, 0, 0)
+
+[sub_resource type="Resource" id="s2"]
+script = ExtResource("e2")
+id = &"east_lane"
+unit = ExtResource("e1")
+count = 1
+waypoints = PackedVector3Array(100, 0, 22, 66, 0, -2, 100, 0, -8)
+default_pause = 3.0
+loop = true
+facing = Vector3(-1, 0, 0)
+
+[sub_resource type="Resource" id="s3"]
+script = ExtResource("e2")
+id = &"outpost_ring"
+unit = ExtResource("e1")
+count = 2
+waypoints = PackedVector3Array(56, 0, -52, 100, 0, -50, 104, 0, -96, 56, 0, -100)
+default_pause = 2.5
+loop = true
+facing = Vector3(0, 0, 1)
+
+[sub_resource type="Resource" id="s4"]
+script = ExtResource("e2")
+id = &"grove_sentry"
+unit = ExtResource("e3")
+count = 1
+waypoints = PackedVector3Array(76, 0, -40, 92, 0, -40)
+default_pause = 4.0
+loop = false
+facing = Vector3(0, 0, 1)
+
+[sub_resource type="Resource" id="s5"]
+script = ExtResource("e4")
+id = &"extract"
+title = "Get the survey team out"
+kind = &"primary"
+type = &"reach_area"
+side = &"player"
+require_all = true
+area_center = Vector3(-80, 0, 85)
+area_radius = 12
+at_start = false
+
+[sub_resource type="Resource" id="s6"]
+script = ExtResource("e6")
+target_objective = &"survey_groves"
+extraction = SubResource("s5")
+alerted_extraction = Vector3(-100, 0, 20)
+alerted_deadline_seconds = 300.0
+reinforcements = Array[ExtResource("e5")]([ExtResource("e1"), ExtResource("e1"), ExtResource("e1"), ExtResource("e3"), ExtResource("e3")])
+reinforcement_entry = Vector3(80, 0, -102)
+max_reinforcement_waves = 1
+
+[sub_resource type="Resource" id="s7"]
+script = ExtResource("e4")
+id = &"survey_groves"
+title = "Scan the moths and the Combine flight log"
+kind = &"primary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"verdance_lantern_moths", &"verdance_combine_listening_post"])
+
+[sub_resource type="Resource" id="s8"]
+script = ExtResource("e4")
+id = &"stay_hidden"
+title = "Stay undetected"
+kind = &"secondary"
+type = &"stay_undetected"
+side = &"enemy"
+passive = true
+
+[sub_resource type="Resource" id="s9"]
+script = ExtResource("e4")
+id = &"read_vein"
+title = "Map the root-split vein"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"verdance_root_vein"])
+area_center = Vector3(-78, 0, -40)
+area_radius = 7
+
+[sub_resource type="Resource" id="s10"]
+script = ExtResource("e4")
+id = &"no_losses"
+title = "Leave no one behind"
+kind = &"hidden"
+type = &"keep_alive"
+side = &"player"
+passive = true
+require_all = true
+
+[resource]
+script = ExtResource("e0")
+id = &"verdance_infiltration"
+title = "Under the Crowns"
+mission_type = &"infiltration"
+summary = "No base. Take a survey team from grove to grove to the Combine's side of the basin while Hornets hunt the open lanes."
+briefing = "The Combine has strung a listening post under a grove by its outpost and logs every crown in the basin. We want that log, and the moths roosting in the hollow trunk east of the centre, whose eyes see in the dark under the trees.
+
+You have two Surveyors and three Rangers, no base and no reinforcements. Hornets fly patrols over the open lanes and the outpost: in the open they see you from far off, but under a crown nobody sees you unless they come within a few metres on foot, or you fire. Go from grove to grove, scan both sites (the moths east of the centre grove, the post in the grove north of the outpost), then bring the team home to the landing.
+
+If they raise the alarm, more Hornets come hunting, the pick-up moves to the far west and the clock starts. Firing from under a crown gives you away for a few seconds."
+map_scene = ExtResource("e9")
+planet = ExtResource("planet")
+player_start = Vector3(-80, 0, 85)
+player_facing = Vector3(1, 0, -1)
+player_roster = Array[ExtResource("e5")]([ExtResource("e11"), ExtResource("e11"), ExtResource("e10"), ExtResource("e10"), ExtResource("e10")])
+start_alloy = 0
+start_flux = 0
+hostile_faction = 1
+hostile_hq = ExtResource("e7")
+hostile_hq_position = Vector3(82, 0, -84)
+hostile_buildings = Array[ExtResource("e14")]([ExtResource("e12"), ExtResource("e13")])
+hostile_building_positions = PackedVector3Array(64, 0, -66, 62, 0, -84)
+patrols = Array[ExtResource("e2")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3"), SubResource("s4")])
+enemy_alert_meter = true
+objectives = Array[ExtResource("e4")]([SubResource("s7"), SubResource("s5"), SubResource("s8"), SubResource("s9"), SubResource("s10")])
+mission_script = ExtResource("e15")
+script_rules = SubResource("s6")
+camera_start = Vector3(-80, 0, 85)

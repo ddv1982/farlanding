@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/verdance.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/verdance_conquest.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"verdance_conquest"
+title = "Canopy Conquest"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.62, 0.74)
+leads_to = Array[StringName]([&"verdance_infiltration"])
+excludes = Array[StringName]([])
+scan_summary = "An overgrown world under giant trees: crowns that hide everything beneath them from the air and from far away. The Combine holds the far shelf and flies Hornets over the open lanes."
+intel_notes = "A conquest landing. Groves are cover; the lanes are watched. The trail continues in a grove in the north-west."
+placeholder = false

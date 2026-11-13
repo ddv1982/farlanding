@@ -16,9 +16,16 @@ extends EntityDef
 ## Can pick up and carry an artefact (a carriable prop); it then moves slower and
 ## does not fight.
 @export var can_carry: bool = true
+@export_group("Flight")
+## Flies (gunships, drones; ADR 0016): straight over anything at `flight_altitude`
+## above the ground, no navmesh, never blocks or is blocked by ground units. Only
+## weapons that hit air can shoot it; it cannot see under a tree crown.
+@export var flies: bool = false
+## Height above the terrain it flies at, in metres (above Verdance's crowns).
+@export_range(0.0, 60.0, 0.5, "suffix:m") var flight_altitude: float = 13.0
 @export_group("Combat")
-## Column of the DamageTable: &"light" or &"heavy". Empty = not stated (taken as
-## light by combat; audio then guesses the weight class from the unit).
+## Column of the DamageTable: &"light", &"heavy" or &"air" (flyers). Empty = not
+## stated (taken as light by combat; audio then guesses the weight class from the unit).
 @export var armour_type: StringName = &""
 ## The unit's gun, or null for an unarmed unit (it only moves near an attack target).
 @export var weapon: WeaponDef = null
@@ -100,6 +107,12 @@ func can_harvest() -> bool:
 ## The armour combat uses: `armour_type`, or light when it is not stated.
 func armour() -> StringName:
 	return armour_type if armour_type != &"" else DamageTable.ARMOUR_LIGHT
+
+
+## True for units the ground does not slow or catch (hovering or flying): storms slow
+## them as hovering units, the sea never closes their way.
+func rides_above_ground() -> bool:
+	return hovers or flies
 
 
 ## True if this unit carries a weapon.

@@ -104,6 +104,21 @@ text = "Keep the Lander standing until the extraction ship arrives (the timer in
 mission_types = Array[StringName]([&"holdout"])
 delay_seconds = 6.0
 
+[sub_resource type="Resource" id="h13"]
+script = ExtResource("1_hint")
+id = &"canopy"
+title = "Under the canopy"
+text = "That unit is under a tree crown (COVER over it while selected). Here it is hidden from the air and from far away: the enemy sees it only from a few metres off on the ground, and for a few seconds after it fires. It still sees out as far as ever, so the groves are where to wait, scout and ambush. Flyers see nothing under the crowns."
+trigger = &"canopy_cover"
+
+[sub_resource type="Resource" id="h14"]
+script = ExtResource("1_hint")
+id = &"air_units"
+title = "Flying units"
+text = "Talons fly straight over ridges, roots and the stream, and {command} orders work as for ground units. Only guns that shoot up can hit them (Rangers and Sentries; not Lancers, Bulwarks or Arcs). They cannot see or shoot anything under a tree crown unless it fires."
+trigger = &"selected"
+subject = &"concord_talon"
+
 [resource]
 script = ExtResource("2_catalog")
-hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10"), SubResource("h11"), SubResource("h12")])
+hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10"), SubResource("h11"), SubResource("h12"), SubResource("h13"), SubResource("h14")])

@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="5"]
 [ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="6"]
 [ext_resource type="Resource" path="res://data/units/combine_mauler.tres" id="7"]
+[ext_resource type="Resource" path="res://data/units/combine_hornet.tres" id="8_hornet"]
 
 [resource]
 script = ExtResource("1")
@@ -24,7 +25,7 @@ door = Vector3(0, 0, 9.5)
 cost_alloy = 220
 cost_flux = 0
 build_time = 30.0
-produces = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7")])
+produces = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8_hornet")])
 scene = ExtResource("2")
 icon = ExtResource("3")
 model = ExtResource("20")

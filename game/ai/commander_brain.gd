@@ -277,7 +277,11 @@ func _grow_economy(view: CommanderView, actions: Array[AiAction]) -> void:
 
 
 func _build_defence(view: CommanderView, actions: Array[AiAction]) -> void:
-	if view.count_of(profile.defence) >= GoalScorer.wanted_defences(profile, memory, _alloy):
+	var wanted: int = GoalScorer.wanted_defences(profile, memory, _alloy)
+	if view.enemy_air_share > 0.0:
+		# Flyers seen: one more tower (it shoots up), within the cap.
+		wanted = mini(wanted + 1, profile.max_defences)
+	if view.count_of(profile.defence) >= wanted:
 		return
 	if not view.sites.is_empty():
 		return
@@ -368,7 +372,7 @@ func _build_army(view: CommanderView, actions: Array[AiAction]) -> void:
 		if maker.def != profile.factory or maker.producer == null:
 			continue
 		while maker.producer.queue.size() + _queued_now(actions, maker) < FACTORY_QUEUE:
-			var choice: UnitDef = pick_army_unit(view.enemy_heavy_share)
+			var choice: UnitDef = pick_army_unit(view.enemy_heavy_share, view.enemy_air_share)
 			if choice == null or _alloy - choice.cost_alloy < reserve or not can_afford(choice):
 				return
 			actions.append(_produce(view, maker, choice, &"army"))
@@ -381,14 +385,21 @@ func army_cap() -> int:
 
 
 ## One unit type from the army mix, weighted; the anti-heavy unit counts more the more
-## heavy armour the enemy fields.
-func pick_army_unit(heavy_share: float) -> UnitDef:
+## heavy armour the enemy fields, the anti-air unit the more flyers it fields (made
+## even when it is not in the mix: once flyers are seen, half the picks or more).
+func pick_army_unit(heavy_share: float, air_share: float = 0.0) -> UnitDef:
 	var total: float = 0.0
 	var weights: Array[float] = []
-	for def: UnitDef in profile.army:
+	var mix: Array[UnitDef] = profile.army.duplicate()
+	var anti_air: UnitDef = profile.anti_air
+	if anti_air != null and air_share > 0.0 and not mix.has(anti_air):
+		mix.append(anti_air)
+	for def: UnitDef in mix:
 		var weight: float = profile.weight_of(def)
 		if def == profile.anti_heavy:
 			weight *= 1.0 + heavy_share * 2.0
+		if def == anti_air and air_share > 0.0:
+			weight = maxf(weight, 1.0) * (1.0 + air_share * 4.0)
 		weights.append(weight)
 		total += weight
 	if total <= 0.0:
@@ -397,8 +408,8 @@ func pick_army_unit(heavy_share: float) -> UnitDef:
 	for i: int in weights.size():
 		roll -= weights[i]
 		if roll <= 0.0:
-			return profile.army[i]
-	return profile.army[profile.army.size() - 1]
+			return mix[i]
+	return mix[mix.size() - 1]
 
 
 func _produce(view: CommanderView, maker: Building, def: UnitDef, reason: StringName) -> AiAction:

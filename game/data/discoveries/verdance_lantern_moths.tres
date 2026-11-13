@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/kessel_site_flora.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"verdance_lantern_moths"
+display_name = "Lantern moths"
+discovery_type = &"biological"
+scene = ExtResource("2")
+intel_reward = 45
+scan_time = 8.0
+radius = 3.0
+leads_to = &"verdance_trail_root"
+codex_title = "Lantern moths"
+codex_text = "Moths that roost in a hollow trunk and see in the green dark under the crowns, where our optics see nothing past a few metres. They gather in thousands round something pale in the north-west grove. Their eyes filter the canopy's light: a lens cut the same way would let a sensor see much further in the understory."
+payoff = &"none"
+color = Color(0.45, 0.95, 0.5, 1)

@@ -82,6 +82,9 @@ func _ready() -> void:
 	world.setup(context, paths, heights, economy_rules, player_faction, damage_table)
 	world.build_bounds = map_def.build_bounds
 	world.dry_crossings = map_def.dry_crossings
+	world.canopy_zones = map_def.canopy_zones
+	if not map_def.canopy_zones.is_empty():
+		add_to_group(&"canopy")
 	if fog_of_war:
 		world.enable_vision(area, map_def.vision_cell)
 	camera.heights = heights
@@ -118,6 +121,12 @@ func _exit_tree() -> void:
 
 ## The landing as it is now, for a saved game: the sim clock, the world, the mission
 ## runner (objectives, script, AI), the camera's focus and the control groups.
+## True when `point` is under a tree crown (asked by the sound of the canopy).
+func is_under_canopy(point: Vector3) -> bool:
+	var canopy: CanopySystem = world.planet as CanopySystem if world != null else null
+	return canopy != null and canopy.is_under_canopy(point)
+
+
 func snapshot() -> Dictionary:
 	var groups: Dictionary = (
 		selection_controller.control_groups().to_dict() if selection_controller != null else {}

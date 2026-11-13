@@ -16,6 +16,9 @@ const TRIGGER_TIDE_TURNING: StringName = &"tide_turning"
 const TRIGGER_ERUPTION_WARNING: StringName = &"eruption_warning"
 ## The enemy keeps an alert meter (a stealth mission began).
 const TRIGGER_ALERT_METER: StringName = &"alert_meter"
+## One of the player's units went under a tree crown (Verdance:
+## `Events.canopy_cover_changed`); `subject` matches it like `selected`.
+const TRIGGER_CANOPY_COVER: StringName = &"canopy_cover"
 ## Capabilities `subject` may name (otherwise it is a def id).
 const SUBJECT_BUILDER: StringName = &"builder"
 const SUBJECT_HARVESTER: StringName = &"harvester"

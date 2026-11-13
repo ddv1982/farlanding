@@ -155,7 +155,7 @@ func _choose(position: Vector3, ordered: Node3D, may_auto: bool, sight_reach: fl
 		and target != ordered
 		and is_instance_valid(target)
 		and in_range(target, position)
-		and combat.can_target(faction, target)
+		and combat.can_engage(carrier, def, target)
 	):
 		return target
 	if (combat.tick_count + _stagger) % ACQUIRE_PERIOD != 0:
@@ -167,7 +167,7 @@ func _choose(position: Vector3, ordered: Node3D, may_auto: bool, sight_reach: fl
 ## set to one within `sight_reach` beyond it.
 func _look(position: Vector3, sight_reach: float) -> Node3D:
 	var found: Node3D = combat.find_target(
-		faction, position, max_range() + sight_reach, def.min_range
+		faction, position, max_range() + sight_reach, def.min_range, def, _carrier_flies()
 	)
 	if found != null and not in_range(found, position):
 		sighted = found
@@ -175,11 +175,19 @@ func _look(position: Vector3, sight_reach: float) -> Node3D:
 	return found
 
 
-## Without a combat system (bare tests) any live enemy may be aimed at.
+## Without a combat system (bare tests) any live enemy the gun reaches may be aimed at.
 func _may_target(entity: Node3D) -> bool:
 	if combat != null:
-		return combat.can_target(faction, entity)
-	return AttackCommand.is_valid_target(entity, faction)
+		return combat.can_engage(carrier, def, entity)
+	var unit: Unit = entity as Unit
+	return (
+		AttackCommand.is_valid_target(entity, faction) and def.reaches(unit != null and unit.flies)
+	)
+
+
+func _carrier_flies() -> bool:
+	var unit: Unit = carrier as Unit
+	return unit != null and unit.flies
 
 
 func _fire(position: Vector3, point: Vector3) -> void:

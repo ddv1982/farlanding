@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/weapon_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"talon_autocannon"
+display_name = "Chin autocannon"
+damage = 11.0
+damage_type = &"light"
+hits_air = true
+hits_ground = true
+splash_radius = 0.0
+max_range = 14.0
+cooldown = 0.45
+salvo = 2
+salvo_spacing = 0.8
+projectile_speed = 85.0
+arc_height = 0.0
+fire_while_moving = true
+turret = false
+turn_speed = 300.0
+fire_arc = 35.0
+muzzle = Vector3(0, -0.5, -1.8)
+projectile_style = &"bolt"
+impact_size = 0.0
+sound_set = &"talon_autocannon"

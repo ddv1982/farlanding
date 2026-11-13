@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/combine_hornet.tscn" id="2_scene"]
+[ext_resource type="Texture2D" path="res://assets/icons/combine_unit_hornet.png" id="3_icon"]
+[ext_resource type="Resource" path="res://data/weapons/hornet_dartgun.tres" id="w_weapon"]
+
+[resource]
+script = ExtResource("1_def")
+max_health = 150
+move_speed = 11.0
+turn_speed = 320.0
+vision_range = 24.0
+radius = 1.2
+sensor = 1.0
+sight_angle = 140.0
+acceleration = 12.0
+can_carry = false
+flies = true
+flight_altitude = 13.0
+armour_type = &"air"
+weapon = ExtResource("w_weapon")
+id = &"combine_hornet"
+display_name = "Hornet"
+faction = 1
+scene = ExtResource("2_scene")
+icon = ExtResource("3_icon")
+sound_set = &"hornet"
+description = "Combine rotor drone. Flies over everything to hunt in the open; it cannot see under the tree crowns or shoot at other flyers."
+cost_alloy = 95
+cost_flux = 0
+build_time = 10.0

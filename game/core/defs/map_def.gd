@@ -39,6 +39,11 @@ extends Resource
 ## Crossings that stay dry at any tide (a causeway): the enemy routes a wave through
 ## the nearest one when the shallows will flood before it is across.
 @export var dry_crossings: PackedVector3Array = PackedVector3Array()
+@export_group("Canopy")
+## Tree crowns (Verdance, ADR 0016): ellipses on the ground, one Vector4 each as
+## (centre x, centre z, radius x, radius z). Ground units standing inside are under
+## canopy; a CanopyRule hides them from the air and from far away.
+@export var canopy_zones: PackedVector4Array = PackedVector4Array()
 @export_group("Resources")
 @export var deposit: ResourceNodeDef
 @export var deposit_positions: PackedVector3Array = PackedVector3Array()

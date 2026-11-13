@@ -58,6 +58,9 @@ var survey: SurveyBehaviour = null
 var retrieval: RetrieveGroup = null
 ## Venting, fleeing and siphons on an erupting planet (ADR 0015).
 var vents: VentKeeper = null
+## The faction's patrols when the mission has them (Verdance's Hornet watch), or null:
+## their units are never taken into the army.
+var guards: GuardCommander = null
 ## Where the base is, and where new army units wait.
 var home: Vector3 = Vector3.ZERO
 var staging: Vector3 = Vector3.ZERO
@@ -273,6 +276,9 @@ func build_view(tick: int) -> CommanderView:
 		if group != null:
 			for unit: Unit in group.members:
 				grouped[unit] = true
+	if guards != null:
+		for unit: Unit in guards.guards():
+			grouped[unit] = true
 	for unit: Unit in world.units_of(faction):
 		if unit.is_dead or unit.def == null:
 			continue
@@ -307,6 +313,7 @@ func build_view(tick: int) -> CommanderView:
 	view.attack_target = target if view.has_target else Vector3.ZERO
 	view.known_enemy_buildings = knowledge.known_buildings().size()
 	view.enemy_heavy_share = knowledge.heavy_share()
+	view.enemy_air_share = knowledge.air_share()
 	view.explored_share = knowledge.explored_share()
 	view.scout_active = scout != null
 	view.attack_active = attack_group != null

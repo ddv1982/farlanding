@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/antecedent_site_cache.tscn" id="2"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="n_node"]
+
+[resource]
+script = ExtResource("1")
+id = &"verdance_seed_vault"
+display_name = "Seed vault"
+discovery_type = &"antecedent"
+scene = ExtResource("2")
+intel_reward = 75
+scan_time = 11.0
+radius = 1.5
+leads_to = &""
+codex_title = "Seed vault"
+codex_text = "An Antecedent store under the oldest tree in the basin, guarded by its own machines. It holds no seeds any more, only worked alloy grown through with roots; opened, it spills out beside the trunk."
+payoff = &"deposit"
+payoff_node = ExtResource("n_node")
+payoff_offset = Vector3(0, 0, -9)
+color = Color(0.75, 0.6, 1.0, 1)

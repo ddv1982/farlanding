@@ -5,7 +5,8 @@ extends Node
 ## (following its state and moves), a SightConeVisual on every watcher of a faction
 ## with an alert meter (fed with its suspicion and alert each frame, shrinking with a
 ## dust storm's sight factor; hidden with the unit when the player cannot see it) and
-## the cloak shimmer on the player's own cloaked units. Reads the simulation, never
+## the cloak shimmer on the player's own cloaked units, and the COVER mark on the
+## player's units under a tree crown (Verdance, ADR 0016). Reads the simulation, never
 ## changes it.
 
 ## How fast the cloak look fades in and out, per second.
@@ -31,6 +32,7 @@ func setup(p_world: SimWorld, p_player_faction: int) -> void:
 	Events.objective_completed.connect(_on_objective_changed)
 	Events.objective_failed.connect(_on_objective_changed)
 	Events.entity_sabotaged.connect(_on_entity_sabotaged)
+	Events.canopy_cover_changed.connect(_on_canopy_cover_changed)
 	for unit: Unit in world.units:
 		_on_entity_spawned(unit)
 	# Emberfall: a pressure gauge over every erupting vent (placeholder look).
@@ -47,6 +49,10 @@ func show_restored_state() -> void:
 	for building: Building in world.buildings:
 		if building.is_sabotaged:
 			_on_entity_sabotaged(building, null)
+	var canopy: CanopySystem = world.planet as CanopySystem
+	if canopy != null:
+		for unit: Unit in canopy.covered_units(player_faction):
+			_on_canopy_cover_changed(unit, true)
 
 
 func _process(delta: float) -> void:
@@ -127,6 +133,15 @@ func _on_entity_sabotaged(building: Node3D, _saboteur: Node3D) -> void:
 		var visual: BuildingVisual = child as BuildingVisual
 		if visual != null:
 			visual.set_sabotaged(true)
+
+
+func _on_canopy_cover_changed(unit: Node3D, covered: bool) -> void:
+	var own: Unit = unit as Unit
+	if own == null or not is_instance_valid(own) or own.faction != player_faction:
+		return
+	var visual: UnitVisual = _visual_of(own)
+	if visual != null:
+		visual.set_covered(covered)
 
 
 func _on_objective_changed(objective: RefCounted) -> void:

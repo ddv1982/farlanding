@@ -1,6 +1,8 @@
 class_name Locomotion
 extends Node
-## Ground movement component. Wraps a Mover, asks the PathService for a path once per
+## Movement component (ground units; flying units too, ADR 0016: they get a
+## straight-line PathService and keep `flight_altitude` above the terrain).
+## Wraps a Mover, asks the PathService for a path once per
 ## destination, follows the terrain through a HeightField, and (when the path backend
 ## offers a navigation map) joins server-side RVO avoidance. Runs on sim ticks; the
 ## parent Node3D is moved every frame by `interpolate()`.
@@ -58,6 +60,8 @@ var _extra_scales: Dictionary[StringName, float] = {}
 var _wanted: Vector3 = Vector3.INF
 ## True while the sea closes the way to `_wanted` but low water would open it.
 var _tide_wait: bool = false
+## Height kept above the terrain: a flying unit's altitude, 0 on the ground.
+var _altitude: float = 0.0
 
 
 ## Configures the component from a definition and places it. Call once after the
@@ -76,6 +80,7 @@ func setup(
 	radius = def.radius
 	paths = p_paths
 	_heights = heights
+	_altitude = def.flight_altitude if def.flies else 0.0
 	mover.position = _on_ground(start)
 	mover.yaw = start_yaw
 	_previous_position = mover.position
@@ -357,7 +362,9 @@ func _reset_stuck() -> void:
 
 func _on_ground(point: Vector3) -> Vector3:
 	if _heights != null:
-		point.y = _heights.sample(point.x, point.z)
+		point.y = _heights.sample(point.x, point.z) + _altitude
+	elif _altitude > 0.0:
+		point.y = _altitude
 	return point
 
 

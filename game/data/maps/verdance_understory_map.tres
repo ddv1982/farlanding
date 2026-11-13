@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="MapDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/map_def.gd" id="1_def"]
+[ext_resource type="NavigationMesh" path="res://maps/verdance_understory/verdance_understory_navmesh.res" id="2_navmesh"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit.tres" id="5_deposit"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="6_rich"]
+[ext_resource type="Resource" path="res://data/resources/kessel_flux_vent.tres" id="7_vent"]
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="8_discovery_def"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="9_unit_def"]
+[ext_resource type="Resource" path="res://data/units/custodian_warden.tres" id="10_warden"]
+[ext_resource type="Resource" path="res://data/maps/verdance_mossrocks.tres" id="11_rocks"]
+[ext_resource type="Resource" path="res://data/discoveries/verdance_trail_root.tres" id="d0"]
+[ext_resource type="Resource" path="res://data/discoveries/verdance_glowcap_ring.tres" id="d1"]
+[ext_resource type="Resource" path="res://data/discoveries/verdance_root_vein.tres" id="d2"]
+[ext_resource type="Resource" path="res://data/discoveries/verdance_combine_listening_post.tres" id="d3"]
+[ext_resource type="Resource" path="res://data/discoveries/verdance_lantern_moths.tres" id="d4"]
+[ext_resource type="Resource" path="res://data/discoveries/verdance_seed_vault.tres" id="d5"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"verdance_understory"
+display_name = "Verdance Understory"
+minimap_low = Color(0.14, 0.24, 0.11, 1)
+minimap_high = Color(0.46, 0.62, 0.32, 1)
+terrain_area = Rect2(-120, -120, 240, 240)
+landing_zone = Vector3(-80, 0, 85)
+build_bounds = Rect2(-104, -104, 208, 208)
+default_mission_path = "res://data/missions/verdance_conquest.tres"
+navmesh = ExtResource("2_navmesh")
+canopy_zones = PackedVector4Array(0, 0, 22, 18, -84, 30, 20, 16, -70, -40, 18, 22, -20, 70, 16, 14, -30, -80, 20, 15, -36, -10, 13, 12, -96, -84, 14, 14, 84, -30, 20, 16, 70, 40, 18, 22, 20, -70, 16, 14, 30, 80, 20, 15, 36, 10, 13, 12, 96, 84, 14, 14)
+deposit = ExtResource("5_deposit")
+deposit_positions = PackedVector3Array(-98, 0, 64, -60, 0, 100, -84, 0, 40, -26, 0, 62, -58, 0, 14, -6, 0, 96, 98, 0, -64, 60, 0, -100, 84, 0, -40, 26, 0, -62, 58, 0, -14, 6, 0, -96)
+rich_deposit = ExtResource("6_rich")
+rich_deposit_positions = PackedVector3Array(-30, 0, -4, -8, 0, 10, 30, 0, 4, 8, 0, -10)
+vent = ExtResource("7_vent")
+vent_positions = PackedVector3Array(-98, 0, 98, 98, 0, -98, -60, 0, -40, 60, 0, 40, -30, 0, -74, 30, 0, 74)
+discoveries = Array[ExtResource("8_discovery_def")]([ExtResource("d0"), ExtResource("d1"), ExtResource("d2"), ExtResource("d3"), ExtResource("d4"), ExtResource("d5")])
+discovery_positions = PackedVector3Array(-96, 0, -74, -12, 0, 76, -78, 0, -40, 84, 0, -22, 44, 0, 14, 96, 0, 74)
+custodian_roster = Array[ExtResource("9_unit_def")]([ExtResource("10_warden"), ExtResource("10_warden")])
+custodian_positions = PackedVector3Array(86, 0, 84, 104, 0, 80)
+prop_layout = ExtResource("11_rocks")

@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://maps/landing_map.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://maps/verdance_understory/verdance_visuals.tscn" id="2_visuals"]
+[ext_resource type="Resource" path="res://data/maps/verdance_understory_map.tres" id="3_map"]
+
+[node name="VerdanceUnderstory" instance=ExtResource("1_base")]
+map_def = ExtResource("3_map")
+
+[node name="VerdanceVisuals" parent="." instance=ExtResource("2_visuals")]

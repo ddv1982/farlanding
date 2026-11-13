@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="PlanetDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/planet_def.gd" id="1_planet"]
+[ext_resource type="Script" path="res://core/defs/canopy_rule.gd" id="2_rule"]
+[ext_resource type="Script" path="res://sim/systems/planet/canopy_system.gd" id="3_system"]
+
+[sub_resource type="Resource" id="rule"]
+script = ExtResource("2_rule")
+id = &"verdance_canopy"
+summary = "Canopy hides ground units from the air and from long-range sight. Under a crown a unit is seen only from close by on the ground, and only until it fires."
+system = ExtResource("3_system")
+random_seed = 41
+close_sight = 9.0
+fire_reveal_seconds = 4.0
+hides_buildings = true
+
+[resource]
+script = ExtResource("1_planet")
+id = &"verdance"
+display_name = "Verdance"
+summary = "An overgrown basin under the crowns of giant trees: moss, root ridges and a shallow stream. What stands under the canopy is hidden from the air and from far away."
+rule = SubResource("rule")

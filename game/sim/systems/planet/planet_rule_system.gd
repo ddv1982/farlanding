@@ -54,6 +54,18 @@ func forecast(_faction: int, _seconds: float) -> void:
 	pass
 
 
+## True if the planet hides `entity` from `faction` although that faction's vision
+## grid may cover it (Verdance: a unit under a crown, ADR 0016). VisionSystem asks it,
+## so fog of war, targeting, the AI's perception and the minimap all agree.
+func hides(_faction: int, _entity: Node3D) -> bool:
+	return false
+
+
+## True if a flying unit can neither see nor target `entity` (under a crown).
+func hides_from_air(_entity: Node3D) -> bool:
+	return false
+
+
 ## Short name for the HUD indicator ("DUST STORM"), or "" to hide it.
 func indicator_title() -> String:
 	return ""

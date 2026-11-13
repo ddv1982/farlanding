@@ -128,13 +128,16 @@ func from_dict(data: Dictionary) -> void:
 
 
 ## The enemy to fire on: armed units first, then armed buildings, then anything, the
-## nearest to the group's centre within each class.
-static func pick_focus(enemies: Array[Node3D], from: Vector3) -> Node3D:
+## nearest to the group's centre within each class. With `members`, enemies none of
+## them can hit (flyers, for guns that do not hit air) come last.
+static func pick_focus(enemies: Array[Node3D], from: Vector3, members: Array[Unit] = []) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
 	for enemy: Node3D in enemies:
 		var rank: float = 0.0
-		if not Combat.is_armed(enemy):
+		if not members.is_empty() and AiGroup.able_to_hit(members, enemy).is_empty():
+			rank = 3000.0
+		elif not Combat.is_armed(enemy):
 			rank = 2000.0
 		elif enemy is Building:
 			rank = 1000.0
@@ -295,7 +298,7 @@ class FightState:
 			if ours < g.initial_strength * g.profile.retreat_losses:
 				g.retreat_reason = &"losses"
 				return RETREAT
-		var pick: Node3D = AttackGroup.pick_focus(enemies, g.centroid())
+		var pick: Node3D = AttackGroup.pick_focus(enemies, g.centroid(), g.members)
 		if pick != g.focus or (g.idle_share() > 0.0 and g.may_reorder()):
 			g.focus = pick
 			g.order_attack(pick)

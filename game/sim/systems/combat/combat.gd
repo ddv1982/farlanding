@@ -77,10 +77,29 @@ func can_target(faction: int, target: Variant) -> bool:
 	return world == null or world.vision == null or world.vision.can_see(faction, node)
 
 
+## True if `shooter` may fire `weapon` at `target` now: `can_target` for its faction,
+## the weapon reaches it (only some weapons hit flying units; ADR 0016), and a flying
+## shooter is not aiming under a tree crown it cannot see through.
+func can_engage(shooter: Node3D, weapon: WeaponDef, target: Variant) -> bool:
+	if not can_target(faction_of(shooter), target):
+		return false
+	var node: Node3D = target
+	return _may_hit(node, weapon, _flies(shooter))
+
+
 ## The best target for `faction` whose body is within `reach` of `from`: the
 ## nearest visible enemy, armed units before unarmed ones and buildings. Dormant
-## Custodians are left alone (only an explicit attack order wakes them). Null if none.
-func find_target(faction: int, from: Vector3, reach: float, min_reach: float = 0.0) -> Node3D:
+## Custodians are left alone (only an explicit attack order wakes them). With
+## `weapon`, only what it can hit (flying or not) counts; `airborne` says the shooter
+## flies (it cannot see under a crown). Null if none.
+func find_target(
+	faction: int,
+	from: Vector3,
+	reach: float,
+	min_reach: float = 0.0,
+	weapon: WeaponDef = null,
+	airborne: bool = false,
+) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
 	var span: float = reach + MAX_BODY_RADIUS
@@ -114,6 +133,8 @@ func find_target(faction: int, from: Vector3, reach: float, min_reach: float = 0
 					continue
 				var score: float = distance + (0.0 if is_armed(candidate) else SOFT_TARGET_PENALTY)
 				if score >= best_score or not can_target(faction, candidate):
+					continue
+				if not _may_hit(candidate, weapon, airborne):
 					continue
 				best = candidate
 				best_score = score
@@ -331,6 +352,9 @@ func _impact(def: WeaponDef, shooter: Node3D, faction: int, point: Vector3, vict
 		var entity_faction: int = faction_of(entity)
 		if entity_faction == faction or entity_faction < 0:
 			continue
+		if not _may_hit(entity, def, false):
+			# Ground shells burst under flying units (and air bursts over the ground).
+			continue
 		var distance: float = reach_to(entity, point)
 		if distance > def.splash_radius:
 			continue
@@ -355,6 +379,21 @@ func _splash_props(def: WeaponDef, shooter: Node3D, point: Vector3) -> void:
 			continue
 		var falloff: float = lerpf(1.0, SPLASH_EDGE, distance / def.splash_radius)
 		damage(prop, def.damage * falloff, def.damage_type, shooter)
+
+
+## True if `weapon` (null: any) reaches `target` (flying or not) and a flying shooter
+## (`airborne`) may aim at it (not under a crown).
+func _may_hit(target: Node3D, weapon: WeaponDef, airborne: bool) -> bool:
+	if weapon != null and not weapon.reaches(_flies(target)):
+		return false
+	if airborne and world != null and world.planet != null and world.planet.hides_from_air(target):
+		return false
+	return true
+
+
+static func _flies(entity: Node3D) -> bool:
+	var unit: Unit = entity as Unit
+	return unit != null and unit.flies
 
 
 func _update_seen(shot: Projectile) -> void:

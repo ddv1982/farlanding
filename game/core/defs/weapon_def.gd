@@ -14,6 +14,10 @@ extends Resource
 ## Splash radius at the impact point; 0 = only the target is hit. Splash damage falls
 ## off to half at the edge and never hurts the shooter's own faction.
 @export_range(0.0, 30.0, 0.1, "suffix:m") var splash_radius: float = 0.0
+## Can hit flying units (ADR 0016); most guns cannot.
+@export var hits_air: bool = false
+## Can hit units and buildings on the ground.
+@export var hits_ground: bool = true
 @export_group("Firing")
 ## Reach from the shooter to the target's body edge.
 @export_range(1.0, 200.0, 0.5, "suffix:m") var max_range: float = 15.0
@@ -45,6 +49,11 @@ extends Resource
 ## 0 = sparks only; larger = explosion radius in metres.
 @export_range(0.0, 20.0, 0.1, "suffix:m") var impact_size: float = 0.0
 @export var sound_set: StringName = &""
+
+
+## True if the weapon can hit a target that flies (`airborne`) or stands on the ground.
+func reaches(airborne: bool) -> bool:
+	return hits_air if airborne else hits_ground
 
 
 ## Seconds a projectile needs for `distance`; 0 for instant weapons.

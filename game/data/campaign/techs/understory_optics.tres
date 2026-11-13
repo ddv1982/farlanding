@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TechDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e0"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e1"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+kind = &"scale"
+stat = &"canopy_sight"
+factor = 1.5
+
+[resource]
+script = ExtResource("e0")
+id = &"understory_optics"
+title = "Understory Optics"
+description = "Lenses cut like the lantern moths' eyes: our ground units and buildings see enemies under a crown from half as far again (9 m to 13.5 m)."
+branch = &"survey"
+intel_cost = 80
+requires = Array[StringName]([])
+requires_discovery = &"verdance_lantern_moths"
+grid = Vector2i(0, 2)
+effects = Array[ExtResource("e1")]([SubResource("s0")])

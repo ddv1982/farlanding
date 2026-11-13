@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/concord_talon.tscn" id="2_scene"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_unit_talon.png" id="3_icon"]
+[ext_resource type="Resource" path="res://data/weapons/talon_autocannon.tres" id="w_weapon"]
+
+[resource]
+script = ExtResource("1_def")
+armour_type = &"air"
+weapon = ExtResource("w_weapon")
+max_health = 320
+move_speed = 10.0
+turn_speed = 220.0
+vision_range = 24.0
+radius = 1.6
+acceleration = 9.0
+can_carry = false
+flies = true
+flight_altitude = 13.0
+id = &"concord_talon"
+display_name = "Talon"
+faction = 0
+scene = ExtResource("2_scene")
+icon = ExtResource("3_icon")
+sound_set = &"talon"
+description = "Twin-fan gunship. Flies straight over ridges and water and hits ground and air alike, but sees nothing under the tree crowns. Only guns that shoot up can hit it. Built at the Foundry."
+cost_alloy = 220
+cost_flux = 80
+build_time = 20.0

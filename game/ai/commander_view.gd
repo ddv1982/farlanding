@@ -41,6 +41,8 @@ var attack_target: Vector3 = Vector3.ZERO
 var has_target: bool = false
 var known_enemy_buildings: int = 0
 var enemy_heavy_share: float = 0.0
+## Share of flying units in the enemy army as remembered (ADR 0016).
+var enemy_air_share: float = 0.0
 ## Share of the map seen at least once.
 var explored_share: float = 0.0
 var scout_active: bool = false

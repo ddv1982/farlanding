@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/kessel_site_flora.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"verdance_glowcap_ring"
+display_name = "Glowcap ring"
+discovery_type = &"biological"
+scene = ExtResource("2")
+intel_reward = 35
+scan_time = 7.0
+radius = 3.5
+leads_to = &""
+codex_title = "Glowcap ring"
+codex_text = "A ring of pale fungus around a fallen bough, lit faintly from inside. Its spores settle on damaged plating and seal hairline cracks: anything resting near it mends."
+payoff = &"heal_field"
+payoff_radius = 16.0
+payoff_amount = 10.0
+payoff_seconds = 90.0
+color = Color(0.45, 0.95, 0.5, 1)

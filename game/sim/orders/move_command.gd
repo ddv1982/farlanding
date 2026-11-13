@@ -47,10 +47,16 @@ func execute() -> void:
 			units[0].locomotion.mover.yaw if units[0].locomotion != null else 0.0
 		)
 	var walkable: Callable = Callable()
-	if units[0].locomotion != null:
+	var lead: Unit = units[0]
+	for unit: Unit in units:
+		# Slots are laid out on ground the walkers can reach; flyers go anywhere.
+		if not unit.flies:
+			lead = unit
+			break
+	if lead.locomotion != null:
 		# The sea is ignored here (a tidal map, ADR 0014): a slot on flooded ground
 		# stays where it was asked for, and the unit waits on the shore for low water.
-		walkable = units[0].locomotion.paths.for_hover().is_walkable
+		walkable = lead.locomotion.paths.for_hover().is_walkable
 	var formation: Formation = Formation.new(
 		units.size(), target_position, heading, Formation.spacing_for(radii), walkable
 	)

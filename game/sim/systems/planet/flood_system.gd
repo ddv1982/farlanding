@@ -137,7 +137,12 @@ func nearest_dry(at: Vector3, above: float = -INF) -> Vector3:
 
 func _replan() -> void:
 	for unit: Unit in world.units:
-		if unit.is_dead or unit.locomotion == null or unit.def == null or unit.def.hovers:
+		if (
+			unit.is_dead
+			or unit.locomotion == null
+			or unit.def == null
+			or unit.def.rides_above_ground()
+		):
 			continue
 		var locomotion: Locomotion = unit.locomotion
 		if locomotion.is_waiting_for_tide():
@@ -151,7 +156,12 @@ func _check_units(tick_number: int, step_seconds: float) -> void:
 	var player_wading: bool = false
 	wading_count = 0
 	for unit: Unit in world.units:
-		if unit.is_dead or unit.locomotion == null or unit.def == null or unit.def.hovers:
+		if (
+			unit.is_dead
+			or unit.locomotion == null
+			or unit.def == null
+			or unit.def.rides_above_ground()
+		):
 			continue
 		var at: Vector3 = unit.sim_position()
 		var depth: float = conditions.sea_level - world.heights.sample(at.x, at.z)

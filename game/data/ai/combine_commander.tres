@@ -28,6 +28,7 @@ scout = ExtResource("9_skitter")
 army = Array[ExtResource("2_unit")]([ExtResource("9_skitter"), ExtResource("10_stinger"), ExtResource("11_mauler")])
 army_weights = PackedFloat32Array(0.45, 0.35, 0.2)
 anti_heavy = ExtResource("10_stinger")
+anti_air = ExtResource("9_skitter")
 opening = Array[ExtResource("3_entity")]([ExtResource("7_scrapper"), ExtResource("7_scrapper"), ExtResource("9_skitter"), ExtResource("7_scrapper"), ExtResource("10_stinger"), ExtResource("9_skitter")])
 harvesters_per_deposit = 2.0
 max_harvesters = 8

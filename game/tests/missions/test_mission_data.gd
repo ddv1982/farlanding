@@ -30,10 +30,12 @@ func _kinds(mission: MissionDef) -> Array[StringName]:
 
 func test_catalog_lists_the_kessel_missions_and_recovery() -> void:
 	var catalog: MissionCatalog = load(CATALOG)
-	assert_eq(catalog.missions.size(), 6)
+	assert_eq(catalog.missions.size(), 8)
 	assert_eq(catalog.missions[3].id, &"thalassa_recovery")
 	assert_eq(catalog.missions[4].id, &"emberfall_conquest")
 	assert_eq(catalog.missions[5].id, &"emberfall_holdout")
+	assert_eq(catalog.missions[6].id, &"verdance_conquest")
+	assert_eq(catalog.missions[7].id, &"verdance_infiltration")
 	for mission: MissionDef in catalog.missions:
 		assert_not_null(mission.map_scene, String(mission.id))
 		assert_ne(mission.title, "")
@@ -86,3 +88,42 @@ func test_infiltration_has_no_base_patrols_an_alert_meter_and_a_script() -> void
 	assert_not_null(rules)
 	assert_false(rules.extraction.at_start, "the way out appears after the sabotage")
 	assert_ne(rules.alerted_extraction, rules.extraction.area_center)
+
+
+func test_the_verdance_missions_use_the_canopy() -> void:
+	var conquest: MissionDef = load("res://data/missions/verdance_conquest.tres")
+	var infiltration: MissionDef = load("res://data/missions/verdance_infiltration.tres")
+	var hornet: UnitDef = load("res://data/units/combine_hornet.tres")
+	for mission: MissionDef in [conquest, infiltration]:
+		assert_eq(mission.planet.id, &"verdance", String(mission.id))
+		assert_true(mission.planet.rule is CanopyRule)
+		var hornets: int = 0
+		for route: PatrolRoute in mission.patrols:
+			hornets += route.count if route.unit == hornet else 0
+		assert_gt(hornets, 1, "Hornets watch the lanes in %s" % mission.id)
+	assert_eq(conquest.mission_type, MissionDef.TYPE_CONQUEST)
+	assert_true(_types(conquest).has(&"destroy_all"))
+	assert_eq(conquest.commander_profile.resource_path, "res://data/ai/combine_understory.tres")
+	assert_false(conquest.enemy_alert_meter, "a Conquest: no alert meter")
+	assert_eq(infiltration.mission_type, MissionDef.TYPE_INFILTRATION)
+	assert_true(infiltration.enemy_alert_meter)
+	assert_null(infiltration.player_hq, "no base")
+	var rules: InfiltrationRules = infiltration.script_rules as InfiltrationRules
+	assert_not_null(rules)
+	assert_eq(rules.target_objective, &"survey_groves")
+	var target: ObjectiveDef = null
+	for objective: ObjectiveDef in infiltration.objectives:
+		if objective.id == rules.target_objective:
+			target = objective
+	assert_not_null(target, "the target objective exists")
+	assert_eq(target.type, &"scan_sites")
+	var map_def: MapDef = load("res://data/maps/verdance_understory_map.tres")
+	for site_id: StringName in target.site_ids:
+		assert_true(_map_has_site(map_def, site_id), "%s is on the map" % site_id)
+
+
+func _map_has_site(map_def: MapDef, site_id: StringName) -> bool:
+	for discovery: DiscoveryDef in map_def.discoveries:
+		if discovery.id == site_id:
+			return true
+	return false
