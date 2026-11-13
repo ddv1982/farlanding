@@ -293,6 +293,16 @@ func from_dict(data: Dictionary) -> void:
 		cloak.from_dict(cloak_data)
 
 
+## After a load, once every entity exists: saved target ids become nodes again
+## (orders, their handlers' state, the weapon's target). `lookup` is
+## `func(id: int) -> Node3D` (SimWorld.entity).
+func resolve_references(lookup: Callable) -> void:
+	if orders != null:
+		orders.resolve_targets(lookup)
+	if weapon != null:
+		weapon.resolve_target(lookup)
+
+
 func _add_combat_components() -> void:
 	if health == null:
 		health = Health.new()

@@ -27,3 +27,21 @@ func _evaluate() -> void:
 		fail()
 		return
 	set_progress("%d to go" % open if targets.size() > 1 else "")
+
+
+func to_dict() -> Dictionary:
+	var data: Dictionary = super()
+	data["targets"] = Objective.ids_of(targets)
+	return data
+
+
+## Targets destroyed before the save are gone; they no longer count as open.
+func from_dict(data: Dictionary) -> void:
+	super(data)
+	targets.clear()
+	var ids: Array = data.get("targets", [])
+	for entry: Variant in ids:
+		var id: int = entry
+		var found: Building = mission.world.entity(id) as Building if mission != null else null
+		if found != null:
+			targets.append(found)

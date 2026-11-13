@@ -122,6 +122,29 @@ func nearest_enemy() -> Node3D:
 	return best
 
 
+func to_dict() -> Dictionary:
+	var data: Dictionary = super()
+	data["index"] = index
+	data["direction"] = direction
+	data["post"] = var_to_str(post)
+	data["investigate"] = var_to_str(investigate_point)
+	data["investigations"] = investigations
+	data["hunts"] = hunts
+	return data
+
+
+func from_dict(data: Dictionary) -> void:
+	index = data.get("index", 0)
+	direction = data.get("direction", 1)
+	var post_text: String = data.get("post", var_to_str(post))
+	post = str_to_var(post_text)
+	var point_text: String = data.get("investigate", var_to_str(Vector3.INF))
+	investigate_point = str_to_var(point_text)
+	super(data)
+	investigations = data.get("investigations", 0)
+	hunts = data.get("hunts", 0)
+
+
 class PatrolBaseState:
 	extends State
 

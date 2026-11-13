@@ -183,7 +183,6 @@ func _build_sparks() -> GPUParticles3D:
 	quad.size = Vector2(0.09, 0.09)
 	quad.material = surface
 	var sparks := GPUParticles3D.new()
-	sparks.name = "SabotageSparks"
 	sparks.amount = 14
 	sparks.lifetime = 0.7
 	# Bursts with dead time between them read as shorting, not as a fountain.
@@ -191,6 +190,9 @@ func _build_sparks() -> GPUParticles3D:
 	sparks.randomness = 0.6
 	sparks.process_material = process
 	sparks.draw_pass_1 = quad
+	# Named only after the process material is set (see UnitVisual's dust: naming it
+	# first leaks one shader RID at exit under the headless renderer).
+	sparks.name = "SabotageSparks"
 	sparks.position.y = _height * 0.8
 	sparks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return sparks

@@ -54,3 +54,33 @@ func entity() -> Node3D:
 ## Sim ticks since it was last seen.
 func age(now: int) -> int:
 	return now - last_seen_tick
+
+
+func to_dict() -> Dictionary:
+	return {
+		"entity": Order.entity_id_of(entity()),
+		"building": is_building,
+		"def": String(def_id),
+		"position": var_to_str(position),
+		"footprint": var_to_str(footprint),
+		"strength": strength,
+		"armed": armed,
+		"heavy": heavy,
+		"seen": last_seen_tick,
+	}
+
+
+## Restores a saved sighting; `found` is its entity if it still exists (or null).
+func from_dict(data: Dictionary, found: Node3D) -> void:
+	is_building = data.get("building", false)
+	var saved_def: String = data.get("def", "")
+	def_id = StringName(saved_def)
+	var position_text: String = data.get("position", "Vector3(0, 0, 0)")
+	position = str_to_var(position_text)
+	var footprint_text: String = data.get("footprint", "Rect2(0, 0, 0, 0)")
+	footprint = str_to_var(footprint_text)
+	strength = data.get("strength", 0.0)
+	armed = data.get("armed", false)
+	heavy = data.get("heavy", false)
+	last_seen_tick = data.get("seen", 0)
+	_ref = weakref(found) if found != null else null

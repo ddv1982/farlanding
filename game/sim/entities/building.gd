@@ -20,7 +20,8 @@ signal aim_cleared
 ## A saboteur disabled the building for good.
 signal sabotaged
 
-const SAVE_VERSION: int = 3
+## 4: whether the player has seen it (enemy buildings stay shown under fog).
+const SAVE_VERSION: int = 4
 const GROUP: StringName = &"buildings"
 
 var def: BuildingDef
@@ -194,6 +195,7 @@ func to_dict() -> Dictionary:
 		"weapon": weapon.to_dict() if weapon != null else {},
 		"sabotage": sabotage_progress,
 		"sabotaged": is_sabotaged,
+		"seen": seen_by_player,
 	}
 
 
@@ -223,6 +225,16 @@ func from_dict(data: Dictionary) -> void:
 		weapon.from_dict(weapon_data)
 	sabotage_progress = data.get("sabotage", 0.0)
 	is_sabotaged = data.get("sabotaged", false)
+	seen_by_player = data.get("seen", seen_by_player)
+	if world != null and world.vision != null:
+		world.vision.refresh_building(self)
+
+
+## After a load, once every entity exists: the weapon's saved target becomes a node
+## again. `lookup` is `func(id: int) -> Node3D` (SimWorld.entity).
+func resolve_references(lookup: Callable) -> void:
+	if weapon != null:
+		weapon.resolve_target(lookup)
 
 
 ## The unit types of `options` the faction may produce (its perks may lock some).

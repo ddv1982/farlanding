@@ -4,7 +4,8 @@ extends RefCounted
 ## opening got, attack waves sent, when it last scouted, attacks on its base, and
 ## build types it should not retry for a while (no room found).
 
-const SAVE_VERSION: int = 1
+## 2: every field (threat flags, the premature-wave roll, build back-offs).
+const SAVE_VERSION: int = 2
 
 var opening_index: int = 0
 var waves_launched: int = 0
@@ -35,6 +36,9 @@ func back_off(def: EntityDef, until_tick: int) -> void:
 
 
 func to_dict() -> Dictionary:
+	var backoff: Dictionary = {}
+	for id: StringName in build_backoff:
+		backoff[String(id)] = build_backoff[id]
 	return {
 		"version": SAVE_VERSION,
 		"opening_index": opening_index,
@@ -42,14 +46,30 @@ func to_dict() -> Dictionary:
 		"last_attack_tick": last_attack_tick,
 		"last_scout_tick": last_scout_tick,
 		"attacks_on_base": attacks_on_base,
+		"threatened": threatened,
+		"recalled": recalled,
+		"storm_recalled": storm_recalled,
+		"wave_rolled": wave_rolled,
+		"wave_premature": wave_premature,
+		"build_backoff": backoff,
 	}
 
 
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
-	assert(version == SAVE_VERSION, "Unsupported CommanderMemory save version")
+	assert(version >= 1 and version <= SAVE_VERSION, "Unsupported CommanderMemory save version")
 	opening_index = data.get("opening_index", 0)
 	waves_launched = data.get("waves_launched", 0)
 	last_attack_tick = data.get("last_attack_tick", -1000000)
 	last_scout_tick = data.get("last_scout_tick", -1000000)
 	attacks_on_base = data.get("attacks_on_base", 0)
+	threatened = data.get("threatened", false)
+	recalled = data.get("recalled", false)
+	storm_recalled = data.get("storm_recalled", false)
+	wave_rolled = data.get("wave_rolled", -1)
+	wave_premature = data.get("wave_premature", false)
+	build_backoff.clear()
+	var backoff: Dictionary = data.get("build_backoff", {})
+	for key: Variant in backoff:
+		var until: int = backoff[key]
+		build_backoff[StringName(str(key))] = until

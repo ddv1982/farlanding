@@ -45,6 +45,18 @@ func transition_to(state_name: StringName) -> void:
 	state_changed.emit(previous, state_name)
 
 
+## Enters `state_name` as if coming from `previous` (a load: the state rebuilds its
+## transient data in `enter()` the way it would after that transition).
+func resume(state_name: StringName, previous: StringName = &"") -> void:
+	assert(_states.has(state_name), "Unknown state: %s" % state_name)
+	if _current != null:
+		_current.exit(state_name)
+	_current_name = state_name
+	_current = _states[state_name]
+	_current.enter(previous)
+	state_changed.emit(previous, state_name)
+
+
 ## Runs the active state for one sim tick and applies the transition it requests.
 func tick(sim_tick: int) -> void:
 	if _current == null:

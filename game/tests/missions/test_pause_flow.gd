@@ -4,13 +4,18 @@ extends GutTest
 ## mission select, Restart lands the mission again and Quit goes back to the missions.
 
 const PATH: String = "user://test_pause_flow.cfg"
+const SAVES: String = "user://test_pause_flow_saves/"
 
 var _main: Main
+var _saved_dir: String
 var _saved_path: String
 var _saved_seen: PackedStringArray
 
 
 func before_each() -> void:
+	# Landing autosaves and quicksaves must not land in the real profile either.
+	_saved_dir = SaveSlots.default_dir
+	SaveSlots.default_dir = SAVES
 	# Hints shown in these landings must not be written into the real profile.
 	_saved_path = Settings.path
 	_saved_seen = Settings.hints_seen
@@ -22,6 +27,10 @@ func before_each() -> void:
 func after_each() -> void:
 	_main.queue_free()
 	await wait_frames(2)
+	for slot: StringName in SaveSlots.slots():
+		SaveSlots.remove(slot)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVES))
+	SaveSlots.default_dir = _saved_dir
 	Settings.path = _saved_path
 	Settings.hints_seen = _saved_seen
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))

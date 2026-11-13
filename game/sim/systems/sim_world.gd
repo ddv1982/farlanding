@@ -669,9 +669,6 @@ func from_dict(data: Dictionary) -> void:
 			var site: DiscoverySite = spawn_site(site_def, _saved_position(site_data))
 			_restore_id(site, site.entity_id, site_data)
 			site.from_dict(site_data)
-	var discovery_data: Dictionary = data.get("discovery", {})
-	if not discovery_data.is_empty():
-		discovery.from_dict(discovery_data)
 	var saved_buildings: Array = data.get("buildings", [])
 	for entry: Variant in saved_buildings:
 		var building_data: Dictionary = entry
@@ -683,6 +680,10 @@ func from_dict(data: Dictionary) -> void:
 			)
 			_restore_id(building, building.entity_id, building_data)
 			building.from_dict(building_data)
+	# After the buildings: field options look their definitions up on the Survey Lab.
+	var discovery_data: Dictionary = data.get("discovery", {})
+	if not discovery_data.is_empty():
+		discovery.from_dict(discovery_data)
 	var saved_units: Array = data.get("units", [])
 	for entry: Variant in saved_units:
 		var unit_data: Dictionary = entry
@@ -694,9 +695,6 @@ func from_dict(data: Dictionary) -> void:
 			unit.from_dict(unit_data)
 	var saved_next: int = data.get("next_id", _next_id)
 	_next_id = maxi(_next_id, saved_next)
-	for unit: Unit in units:
-		if unit.orders != null:
-			unit.orders.resolve_targets(entity)
 	var vision_data: Dictionary = data.get("vision", {})
 	if vision != null and not vision_data.is_empty():
 		vision.from_dict(vision_data)
@@ -713,6 +711,16 @@ func from_dict(data: Dictionary) -> void:
 	var props_data: Dictionary = data.get("props", {})
 	if not props_data.is_empty():
 		_props_from_dict(props_data)
+	# Restoring handed out (and then replaced) fresh ids: continue from the saved count.
+	var highest: int = saved_next - 1
+	for id: int in _entities:
+		highest = maxi(highest, id)
+	_next_id = highest + 1
+	# Second pass, every entity exists now: saved ids become nodes again (ADR 0013).
+	for unit: Unit in units:
+		unit.resolve_references(entity)
+	for building: Building in buildings:
+		building.resolve_references(entity)
 
 
 func _props_to_dict() -> Dictionary:
@@ -746,6 +754,8 @@ func _props_from_dict(data: Dictionary) -> void:
 		var turns: int = prop_data.get("turns", 0)
 		var prop: Prop = spawn_prop(def, _saved_position(prop_data), turns)
 		if prop != null:
+			_restore_id(prop, prop.entity_id, prop_data)
+			prop.entity_id = prop_data.get("entity_id", prop.entity_id)
 			prop.from_dict(prop_data)
 
 

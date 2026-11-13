@@ -43,6 +43,17 @@ func stop() -> void:
 	pass
 
 
+## Run-time state for a saved game. Triggers are code (a mission script adds them),
+## so a load re-creates them through the script and restores this by position.
+func to_dict() -> Dictionary:
+	return {"fired": fired_count, "armed": _armed}
+
+
+func from_dict(data: Dictionary) -> void:
+	fired_count = data.get("fired", 0)
+	_armed = data.get("armed", true)
+
+
 ## Override: true while the condition holds.
 func _check(_mission: Mission) -> bool:
 	return false

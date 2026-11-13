@@ -236,3 +236,41 @@ static func _walkable_near(centre: Vector3, reach: float, walkable: Callable) ->
 
 static func _flat_distance(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
+func to_dict() -> Dictionary:
+	var saved: Array[Dictionary] = []
+	for sighting: AiSighting in sightings.values():
+		saved.append(sighting.to_dict())
+	return {
+		"sightings": saved,
+		"last_seen": Array(sector_last_seen),
+		"blocked_until": Array(sector_blocked_until),
+	}
+
+
+## Restores what `to_dict()` saved (after `setup_sectors()` on the same map). Sightings
+## are keyed by the live entity again; one whose entity is gone keeps what was seen.
+## `lookup` is `func(id: int) -> Node3D`.
+func from_dict(data: Dictionary, lookup: Callable) -> void:
+	sightings.clear()
+	var saved: Array = data.get("sightings", [])
+	var gone_key: int = -1
+	for entry: Variant in saved:
+		var sighting_data: Dictionary = entry
+		var id: int = sighting_data.get("entity", -1)
+		var found: Node3D = lookup.call(id) if id >= 0 else null
+		var sighting: AiSighting = AiSighting.new()
+		sighting.from_dict(sighting_data, found)
+		if found != null:
+			sighting.key = found.get_instance_id()
+		else:
+			sighting.key = gone_key
+			gone_key -= 1
+		sightings[sighting.key] = sighting
+	var last_seen: Array = data.get("last_seen", [])
+	if last_seen.size() == sector_last_seen.size():
+		sector_last_seen = PackedInt32Array(last_seen)
+	var blocked: Array = data.get("blocked_until", [])
+	if blocked.size() == sector_blocked_until.size():
+		sector_blocked_until = PackedInt32Array(blocked)

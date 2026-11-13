@@ -12,9 +12,15 @@ extends Node
 ## Single missions: the mission select, briefing, mission and debrief with Retry and
 ## Back to missions, as before.
 ##
-## The pause menu (Esc or the HUD's MENU: Resume, Settings, Restart, Quit; the sim
-## clock and the camera stop) quits to the star map in a campaign and to the mission
-## select otherwise. One mission map exists at a time; it is taken out of the tree
+## The pause menu (Esc or the HUD's MENU: Resume, Save, Load, Settings, Restart,
+## Quit; the sim clock and the camera stop) quits to the star map in a campaign and to
+## the mission select otherwise.
+##
+## Saved landings (ADR 0013): F5 quicksaves and F9 quickloads in a mission, the pause
+## menu saves into and loads from any slot, a campaign landing is autosaved as it
+## starts, and the title's Continue picks the newest of the campaign autosave and the
+## saved landings. A save that cannot be loaded is refused before anything in play
+## is touched. One mission map exists at a time; it is taken out of the tree
 ## before the next one loads, so nothing leaks between landings. Behind the menus a
 ## backdrop scene plays when it exists: the menu backdrop (an orbiting view of the
 ## terrain) behind the title, the mission select and its briefings, the star backdrop
@@ -59,6 +65,11 @@ var _debrief: DebriefPanel
 var _pause: PauseMenu
 var _settings: SettingsPanel
 var _hints: TutorialHints
+var _slots: SaveLoadPanel
+var _notice: SaveNotice
+## How the last save or load went, and whether it failed.
+var _message: String = ""
+var _message_failed: bool = false
 var _backdrop_path: String = ""
 ## The route node of the campaign landing briefed or played.
 var _landing_node: StringName = &""
@@ -118,6 +129,15 @@ func _ready() -> void:
 	_pause.settings_pressed.connect(open_settings)
 	_pause.restart_pressed.connect(_on_restart)
 	_pause.quit_pressed.connect(_back_from_landing)
+	_pause.save_pressed.connect(func() -> void: _slots.open(true))
+	_pause.load_pressed.connect(func() -> void: _slots.open(false))
+	_slots = SaveLoadPanel.new()
+	_slots.name = &"SaveLoad"
+	_layer.add_child(_slots)
+	_slots.slot_chosen.connect(_on_slot_chosen)
+	_notice = SaveNotice.new()
+	_notice.name = &"SaveNotice"
+	_layer.add_child(_notice)
 	_settings = SettingsPanel.new()
 	_settings.name = &"Settings"
 	_layer.add_child(_settings)
@@ -128,7 +148,18 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	var key: InputEventKey = event as InputEventKey
-	if key == null or not key.pressed or key.echo or key.keycode != KEY_ESCAPE:
+	if key == null or not key.pressed or key.echo:
+		return
+	# Raw keys (no input actions: project.godot is not edited while the editor is open).
+	if key.keycode == KEY_F5 and map != null and not paused:
+		quicksave()
+		get_viewport().set_input_as_handled()
+		return
+	if key.keycode == KEY_F9 and map != null and not paused:
+		quickload()
+		get_viewport().set_input_as_handled()
+		return
+	if key.keycode != KEY_ESCAPE:
 		return
 	# Anything in the map that wanted Esc (cancel placement, close the codex) had it.
 	if map != null and not paused and not _debrief.visible:
@@ -142,7 +173,8 @@ func show_title() -> void:
 	campaign = null
 	_show_only(_title)
 	_show_backdrop(BACKDROP_SCENE)
-	_title.open(campaign_def != null and CampaignSession.has_save())
+	var has_campaign: bool = campaign_def != null and CampaignSession.has_save()
+	_title.open(has_campaign or not SaveSlots.newest().is_empty())
 	_set_screen(&"title")
 
 
@@ -155,8 +187,20 @@ func new_campaign() -> void:
 	show_star_map()
 
 
-## Loads the autosave and opens its star map; stays on the title when it cannot.
+## Continues where the player left off: the newest of the campaign autosave (its
+## star map) and the saved landings (back into the mission). Stays on the title when
+## nothing can be loaded.
 func continue_campaign() -> void:
+	var newest: Array = SaveSlots.newest()
+	if not newest.is_empty():
+		var game: SaveGame = newest[1]
+		var campaign_time: int = -1
+		if campaign_def != null and CampaignSession.has_save():
+			campaign_time = FileAccess.get_modified_time(CampaignSession.default_path)
+		if game.saved_at >= campaign_time:
+			var slot: StringName = newest[0]
+			load_game(slot)
+			return
 	if campaign_def == null:
 		return
 	var loaded: CampaignSession = CampaignSession.new(campaign_def)
@@ -224,8 +268,11 @@ func show_briefing(mission: MissionDef) -> void:
 
 
 ## Lands `mission`: loads its map with the mission (and the campaign's `modifiers`,
-## if any) set and starts it.
-func start_mission(mission: MissionDef, modifiers: LandingModifiers = null) -> void:
+## if any) set and starts it; with `restore` (a map snapshot from a save) the landing
+## is restored instead of placed fresh.
+func start_mission(
+	mission: MissionDef, modifiers: LandingModifiers = null, restore: Dictionary = {}
+) -> void:
 	_close_map()
 	_free_backdrop()
 	current = mission
@@ -240,6 +287,8 @@ func start_mission(mission: MissionDef, modifiers: LandingModifiers = null) -> v
 	map.set(&"mission", mission)
 	if modifiers != null:
 		map.set(&"modifiers", modifiers)
+	if not restore.is_empty():
+		map.set(&"restore_state", restore)
 	add_child(map)
 	# The flow's screens take input before the map's nodes.
 	move_child(_layer, -1)
@@ -253,6 +302,74 @@ func start_mission(mission: MissionDef, modifiers: LandingModifiers = null) -> v
 		hud.menu_requested.connect(open_pause)
 	_apply_graphics()
 	_hints.begin_mission(mission)
+
+
+## Saves the landing in play into `slot`. False (with a message) when there is no
+## landing to save (none, or it is over) or the file cannot be written.
+func save_game(slot: StringName) -> bool:
+	var problem: String = ""
+	var snapshot: Variant = null
+	if map == null or runner == null or current == null:
+		problem = "There is no landing to save."
+	elif runner.result != null:
+		problem = "The landing is over."
+	elif not map.has_method(&"snapshot"):
+		problem = "This map cannot be saved."
+	else:
+		snapshot = map.call(&"snapshot")
+	if problem == "" and snapshot is Dictionary:
+		var landing_data: Dictionary = snapshot
+		var game: SaveGame = SaveGame.capture(
+			current, landing_data, runner.elapsed_seconds(), campaign
+		)
+		problem = SaveSlots.write(slot, game)
+	if problem != "":
+		_report(problem, true)
+		Events.ui_feedback.emit(&"save_failed")
+		return false
+	_report("Saved to %s." % SaveSlots.label_of(slot), false)
+	Events.campaign_saved.emit(slot)
+	Events.ui_feedback.emit(&"save_done")
+	return true
+
+
+## Loads the landing saved in `slot`: its map is built again and restored, a
+## campaign landing with its campaign as it was then. False (with a message, and the
+## game in play untouched) when the save is missing, damaged, newer or incomplete.
+func load_game(slot: StringName) -> bool:
+	var game: SaveGame = SaveSlots.read(slot)
+	var problem: String = SaveSlots.last_error if game == null else ""
+	var mission: MissionDef = game.mission_def() if game != null else null
+	if problem == "" and (mission == null or mission.map_scene == null):
+		problem = "The mission of this save cannot be loaded."
+	var session: CampaignSession = null
+	var modifiers: LandingModifiers = null
+	if problem == "" and game.kind == SaveGame.KIND_CAMPAIGN:
+		session = _session_of(game)
+		if session == null:
+			problem = "The campaign of this save cannot be read."
+		else:
+			modifiers = LandingBuilder.build(session.def, session.landing)
+	if problem != "":
+		_report(problem, true)
+		Events.ui_feedback.emit(&"invalid")
+		return false
+	campaign = session
+	if session != null:
+		_landing_node = session.landing.node_id
+	start_mission(mission, modifiers, game.landing)
+	_report("Loaded %s." % SaveSlots.label_of(slot), false)
+	Events.campaign_loaded.emit(slot)
+	Events.ui_feedback.emit(&"load_done")
+	return true
+
+
+func quicksave() -> bool:
+	return save_game(SaveSlots.QUICKSAVE)
+
+
+func quickload() -> bool:
+	return load_game(SaveSlots.QUICKSAVE)
 
 
 ## Opens the pause menu: the sim clock and the camera stop.
@@ -274,6 +391,7 @@ func resume() -> void:
 	paused = false
 	_hints.suspended = false
 	_settings.visible = false
+	_slots.visible = false
 	_pause.visible = false
 	_set_map_running(true)
 	Events.ui_feedback.emit(&"pause_close")
@@ -297,6 +415,14 @@ func _land(mission: MissionDef) -> void:
 		show_star_map()
 		return
 	start_mission(mission, modifiers)
+	# The landing autosave: a lost landing can be retried from its first moment.
+	if runner != null:
+		var snapshot: Variant = map.call(&"snapshot") if map.has_method(&"snapshot") else null
+		if snapshot is Dictionary:
+			var landing_data: Dictionary = snapshot
+			var game: SaveGame = SaveGame.capture(mission, landing_data, 0.0, campaign)
+			if SaveSlots.write(SaveSlots.AUTOSAVE, game) == "":
+				Events.campaign_saved.emit(SaveSlots.AUTOSAVE)
 
 
 ## Back from a briefing, the debrief or the pause menu: the star map in a campaign,
@@ -339,6 +465,41 @@ func _on_mission_finished(result: MissionResult) -> void:
 	_hints.end_mission()
 	_debrief.show_result(result, banked)
 	_debrief.visible = true
+
+
+func _on_slot_chosen(slot: StringName, saving: bool) -> void:
+	if saving:
+		if save_game(slot):
+			_slots.refresh()
+		_slots.show_status(_message, _message_failed)
+		return
+	if not load_game(slot):
+		_slots.show_status(_message, _message_failed)
+
+
+## The campaign a saved landing belongs to, as it was when saved, with the landing in
+## play; null when it cannot be read.
+func _session_of(game: SaveGame) -> CampaignSession:
+	var def: CampaignDef = game.campaign_def()
+	if def == null or game.plan == null:
+		return null
+	var state: CampaignState = CampaignState.from_dict(game.campaign, def)
+	if state == null or def.node(game.plan.node_id) == null:
+		return null
+	var session: CampaignSession = CampaignSession.new(def)
+	session.state = state
+	session.state.current_node = game.plan.node_id
+	session.landing = game.plan
+	return session
+
+
+## Shows how a save or load went (the notice over the map, the slot screen's line).
+func _report(text: String, failed: bool) -> void:
+	_message = text
+	_message_failed = failed
+	_notice.show_text(text, failed)
+	if failed:
+		print("Main: %s" % text)
 
 
 func _on_retry() -> void:
@@ -400,6 +561,7 @@ func _close_map() -> void:
 		paused = false
 		_pause.visible = false
 		_settings.visible = false
+		_slots.visible = false
 		Events.ui_feedback.emit(&"pause_close")
 	_hints.end_mission()
 	runner = null

@@ -10,6 +10,7 @@ extends Node
 ## last noticed).
 signal reinforcements_called(position: Vector3)
 
+const SAVE_VERSION: int = 1
 ## Sim ticks between behaviour steps.
 const BEHAVIOUR_TICKS: int = 5
 
@@ -56,6 +57,36 @@ func guards() -> Array[Unit]:
 	return result
 
 
+## The guards' state for a saved game; `routes` is the mission's patrol list (a
+## patrol is saved as its index there, -1 for hunters without a route).
+func to_dict(routes: Array[PatrolRoute] = []) -> Dictionary:
+	var saved: Array[Dictionary] = []
+	for patrol: PatrolBehaviour in patrols:
+		if patrol.finished:
+			continue
+		var data: Dictionary = patrol.to_dict()
+		data["route"] = routes.find(patrol.route) if patrol.route != null else -1
+		saved.append(data)
+	return {"version": SAVE_VERSION, "calls": calls, "patrols": saved}
+
+
+## Brings back the patrols `to_dict()` saved, on the same `routes`, with their units.
+func from_dict(data: Dictionary, routes: Array[PatrolRoute]) -> void:
+	calls = data.get("calls", 0)
+	var saved: Array = data.get("patrols", [])
+	for entry: Variant in saved:
+		var patrol_data: Dictionary = entry
+		var index: int = patrol_data.get("route", -1)
+		var route: PatrolRoute = routes[index] if index >= 0 and index < routes.size() else null
+		var ids: Array = patrol_data.get("members", [])
+		var units: Array[Unit] = AiGroup.units_from_ids(ids, world.entity)
+		if units.is_empty():
+			continue
+		var patrol: PatrolBehaviour = PatrolBehaviour.new(port, route, units)
+		patrol.from_dict(patrol_data)
+		patrols.append(patrol)
+
+
 func _on_ticked(tick: int) -> void:
 	if (tick + _phase) % BEHAVIOUR_TICKS != 0:
 		return
@@ -67,10 +98,9 @@ func _on_ticked(tick: int) -> void:
 	patrols = running
 
 
-func _on_alert_level_changed(
-	alerted_faction: int, level: StringName, _previous: StringName
-) -> void:
-	if alerted_faction != faction or level != StealthSystem.LEVEL_ALERTED:
+func _on_alert_level_changed(alerted_faction: int, level: StringName, previous: StringName) -> void:
+	# `previous == level` is a re-announcement (a start or a load), not a new alert.
+	if alerted_faction != faction or level != StealthSystem.LEVEL_ALERTED or previous == level:
 		return
 	calls += 1
 	reinforcements_called.emit(port.alert_position())

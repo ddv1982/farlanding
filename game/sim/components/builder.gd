@@ -98,8 +98,18 @@ func work_spot(slide: float = 0.0) -> Vector3:
 	return Vector3(spot.x, site.position.y, spot.y)
 
 
+## A load: the site is the restored order's target; work goes on from the saved spot.
+func resume(order: Order) -> void:
+	site = order.target_entity as Building if can_build_on(order.target_entity) else null
+	_working = false
+
+
 func to_dict() -> Dictionary:
-	return {"site": Order.entity_id_of(site)}
+	return {"site": Order.entity_id_of(site), "attempts": _attempts}
+
+
+func from_dict(data: Dictionary) -> void:
+	_attempts = data.get("attempts", 0)
 
 
 func _approach() -> void:

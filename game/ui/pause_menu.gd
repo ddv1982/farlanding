@@ -1,12 +1,14 @@
 class_name PauseMenu
 extends Control
-## The in-mission menu (Esc or the HUD's MENU button): Resume, Settings, Restart and
-## Quit to missions over a dimmed map. It takes every click and key while open (the
+## The in-mission menu (Esc or the HUD's MENU button): Resume, Save, Load, Settings,
+## Restart and Quit to missions over a dimmed map. It takes every click and key while open (the
 ## map behind it cannot be ordered about); Main pauses the sim clock and the camera.
 ## Esc closes it (or, with the settings open, the settings).
 
 signal resume_pressed
 signal settings_pressed
+signal save_pressed
+signal load_pressed
 signal restart_pressed
 signal quit_pressed
 
@@ -51,6 +53,8 @@ func _ready() -> void:
 	gap.custom_minimum_size = Vector2(0, 6)
 	column.add_child(gap)
 	column.add_child(_button("RESUME  (Esc)", resume_pressed))
+	column.add_child(_button("SAVE", save_pressed))
+	column.add_child(_button("LOAD", load_pressed))
 	column.add_child(_button("SETTINGS", settings_pressed))
 	column.add_child(_button("RESTART MISSION", restart_pressed))
 	_quit = _button("QUIT TO MISSIONS", quit_pressed)
@@ -94,6 +98,9 @@ func _settings_hidden() -> bool:
 	for sibling: Node in get_parent().get_children():
 		var settings: SettingsPanel = sibling as SettingsPanel
 		if settings != null and settings.visible:
+			return false
+		var slots: SaveLoadPanel = sibling as SaveLoadPanel
+		if slots != null and slots.visible:
 			return false
 	return true
 

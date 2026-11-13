@@ -259,3 +259,20 @@ func from_dict(data: Dictionary) -> void:
 		for id: Variant in left:
 			var ticks: int = left[id]
 			_ready_at[faction][StringName(str(id))] = _tick + ticks
+			# Still cooling down: the "ready" alert is still owed.
+			var option: FieldOptionDef = _option_def(StringName(str(id)))
+			if ticks > 0 and option != null:
+				_waiting[faction][option.id] = option
+
+
+## The option `id` as a building of the world offers it (the Survey Lab), or null.
+func _option_def(id: StringName) -> FieldOptionDef:
+	if world == null:
+		return null
+	for building: Building in world.buildings:
+		if building.def == null:
+			continue
+		for option: FieldOptionDef in building.def.field_options:
+			if option != null and option.id == id:
+				return option
+	return null

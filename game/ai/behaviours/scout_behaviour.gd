@@ -70,6 +70,32 @@ func in_danger() -> bool:
 	return false
 
 
+func to_dict() -> Dictionary:
+	var data: Dictionary = super()
+	data["waypoint"] = var_to_str(waypoint)
+	data["legs"] = legs
+	data["encounters"] = encounters
+	return data
+
+
+func from_dict(data: Dictionary) -> void:
+	var text: String = data.get("waypoint", var_to_str(Vector3.INF))
+	waypoint = str_to_var(text)
+	super(data)
+	legs = data.get("legs", legs)
+	encounters = data.get("encounters", encounters)
+
+
+## Travelling on: keep the saved waypoint (entered as after evading, which picks
+## none) and walk on to it.
+func _resume_state(state_name: StringName) -> void:
+	if state_name == TRAVEL and waypoint != Vector3.INF:
+		machine.resume(state_name, EVADE)
+		order_move(waypoint)
+		return
+	machine.resume(state_name)
+
+
 class ScoutState:
 	extends State
 

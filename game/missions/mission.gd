@@ -14,6 +14,7 @@ extends Node
 signal finished(result: MissionResult)
 
 const SERVICE_KEY: StringName = &"mission"
+const SAVE_VERSION: int = 1
 ## Seconds left on a countdown when the Advisor warns about it (once).
 const TIME_LOW_SECONDS: float = 60.0
 
@@ -126,40 +127,108 @@ func spawn_units() -> void:
 ## Starts the enemy AI, the objectives and the script.
 func start() -> void:
 	started_tick = now()
-	if def.commander_profile != null:
-		commander = Commander.new()
-		commander.name = &"Commander"
-		add_child(commander)
-		commander.verbose = log_enemy_ai
-		commander.setup(
-			context,
-			world,
-			def.hostile_faction,
-			def.commander_profile,
-			StringName(def.enemy_difficulty),
-			map_area
-		)
+	_start_commander()
 	if def.enemy_alert_meter:
 		# Tells presentation and audio that this is a stealth mission from the first frame.
 		Events.alert_level_changed.emit(
 			def.hostile_faction, StealthSystem.LEVEL_UNAWARE, StealthSystem.LEVEL_UNAWARE
 		)
-	context.sim_clock.ticked.connect(_on_ticked)
-	Events.entity_died.connect(_on_entity_died)
-	Events.intel_changed.connect(_on_intel_changed)
-	Events.alert_level_changed.connect(_on_alert_level_changed)
+	_listen()
 	for objective_def: ObjectiveDef in def.starting_objectives():
 		add_objective_def(objective_def)
 	_schedule_climax()
-	if def.mission_script != null:
-		var source: GDScript = def.mission_script as GDScript
-		var instance: Variant = source.new() if source != null else null
-		script_instance = instance if instance is MissionScript else null
-		if script_instance == null:
-			push_error("Mission %s: its script is not a MissionScript" % def.id)
-		else:
-			script_instance.setup(self)
-			script_instance.on_started()
+	_make_script()
+	if script_instance != null:
+		script_instance.on_started()
+
+
+## Picks up a saved game instead of `spawn_units()` and `start()` (ADR 0013): the
+## world was restored from its save first (forces, buildings, sites, the storm). Brings
+## back the enemy AI, the guards, the objectives, the triggers and the script as
+## `to_dict()` saved them, then announces the restored state on `Events` (objectives,
+## alert level) so the HUD, markers and audio follow it.
+func resume(data: Dictionary) -> void:
+	started_tick = data.get("started_tick", now())
+	intel_earned = data.get("intel_earned", 0)
+	units_lost = data.get("units_lost", 0)
+	buildings_lost = data.get("buildings_lost", 0)
+	enemies_destroyed = data.get("enemies_destroyed", 0)
+	_last_intel = data.get("last_intel", world.economy.stockpile(player_faction).intel)
+	var warned: Array = data.get("warned", [])
+	for entry: Variant in warned:
+		_warned[StringName(str(entry))] = true
+	var hq_id: int = data.get("hq", -1)
+	player_hq = world.entity(hq_id) as Building if hq_id >= 0 else null
+	_start_commander()
+	var commander_data: Dictionary = data.get("commander", {})
+	if commander != null and not commander_data.is_empty():
+		commander.from_dict(commander_data)
+	var guards_data: Dictionary = data.get("guards", {})
+	if not guards_data.is_empty():
+		guards = GuardCommander.new()
+		guards.name = &"Guards"
+		add_child(guards)
+		guards.setup(context, world, def.hostile_faction)
+		guards.from_dict(guards_data, def.patrols)
+	_listen()
+	_make_script()
+	var saved_objectives: Array = data.get("objectives", [])
+	for entry: Variant in saved_objectives:
+		var objective_data: Dictionary = entry
+		var objective_id: String = objective_data.get("id", "")
+		var objective_def: ObjectiveDef = _objective_def(objective_id)
+		var restored: Objective = (
+			ObjectiveFactory.create(objective_def) if objective_def != null else null
+		)
+		if restored == null:
+			continue
+		restored.mission = self
+		restored.from_dict(objective_data)
+		objectives.append(restored)
+	if script_instance != null:
+		var script_data: Dictionary = data.get("script", {})
+		script_instance.from_dict(script_data)
+		script_instance.on_resumed()
+	var saved_triggers: Array = data.get("triggers", [])
+	for i: int in mini(saved_triggers.size(), triggers.size()):
+		var trigger_data: Dictionary = saved_triggers[i]
+		triggers[i].from_dict(trigger_data)
+	for found: Objective in objectives:
+		if found.is_known:
+			Events.objective_added.emit(found)
+	if def.enemy_alert_meter and world.stealth != null:
+		var level: StringName = world.stealth.alert_level(def.hostile_faction)
+		Events.alert_level_changed.emit(def.hostile_faction, level, level)
+
+
+## The mission's run-time state for a saved game (the world saves itself).
+func to_dict() -> Dictionary:
+	var saved_objectives: Array[Dictionary] = []
+	for found: Objective in objectives:
+		saved_objectives.append(found.to_dict())
+	var saved_triggers: Array[Dictionary] = []
+	for trigger: Trigger in triggers:
+		saved_triggers.append(trigger.to_dict())
+	var warned: Array[String] = []
+	for key: StringName in _warned:
+		warned.append(String(key))
+	return {
+		"version": SAVE_VERSION,
+		"mission": String(def.id),
+		"started_tick": started_tick,
+		"intel_earned": intel_earned,
+		"units_lost": units_lost,
+		"buildings_lost": buildings_lost,
+		"enemies_destroyed": enemies_destroyed,
+		"last_intel": _last_intel,
+		"warned": warned,
+		"hq": Order.entity_id_of(player_hq),
+		"objectives": saved_objectives,
+		"triggers": saved_triggers,
+		"script": script_instance.to_dict() if script_instance != null else {},
+		"commander": commander.to_dict() if commander != null else {},
+		"guards": guards.to_dict(def.patrols) if guards != null else {},
+	}
 
 
 ## Spawns `defs` as one formation centred on `center`, facing `facing`.
@@ -305,6 +374,53 @@ func finish(won: bool) -> void:
 
 func _exit_tree() -> void:
 	_stop_listening()
+
+
+func _start_commander() -> void:
+	if def.commander_profile == null:
+		return
+	commander = Commander.new()
+	commander.name = &"Commander"
+	add_child(commander)
+	commander.verbose = log_enemy_ai
+	commander.setup(
+		context,
+		world,
+		def.hostile_faction,
+		def.commander_profile,
+		StringName(def.enemy_difficulty),
+		map_area
+	)
+
+
+func _listen() -> void:
+	context.sim_clock.ticked.connect(_on_ticked)
+	Events.entity_died.connect(_on_entity_died)
+	Events.intel_changed.connect(_on_intel_changed)
+	Events.alert_level_changed.connect(_on_alert_level_changed)
+
+
+func _make_script() -> void:
+	if def.mission_script == null:
+		return
+	var source: GDScript = def.mission_script as GDScript
+	var instance: Variant = source.new() if source != null else null
+	script_instance = instance if instance is MissionScript else null
+	if script_instance == null:
+		push_error("Mission %s: its script is not a MissionScript" % def.id)
+	else:
+		script_instance.setup(self)
+
+
+## The definition of objective `objective_id`: the mission's, or one its script adds.
+func _objective_def(objective_id: String) -> ObjectiveDef:
+	var candidates: Array[ObjectiveDef] = def.objectives.duplicate()
+	if script_instance != null:
+		candidates.append_array(script_instance.objective_defs())
+	for candidate: ObjectiveDef in candidates:
+		if candidate != null and String(candidate.id) == objective_id:
+			return candidate
+	return null
 
 
 func _on_ticked(_tick: int) -> void:

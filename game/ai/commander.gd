@@ -13,6 +13,7 @@ signal decided(actions: Array[AiAction])
 ## A notable event in words (wave launched, building placed ...), for logs and tests.
 signal logged(text: String)
 
+const SAVE_VERSION: int = 1
 ## Sim ticks between attempts to order the same idle harvester or builder.
 const IDLE_RETRY_TICKS: int = 100
 ## Enemies seen this recently near home count as a threat.
@@ -316,14 +317,8 @@ func _apply(action: AiAction, tick: int) -> void:
 		AiAction.ATTACK:
 			_launch(action)
 		AiAction.DEFEND:
-			defence_group = AttackGroup.new(
-				port,
-				profile,
-				action.units,
-				AttackGroup.MODE_DEFEND,
-				action.position,
-				staging,
-				staging
+			defence_group = _make_attack(
+				action.units, AttackGroup.MODE_DEFEND, action.position, staging, staging
 			)
 			defence_group.start()
 			_log("defending home with %d" % action.units.size())
@@ -362,14 +357,19 @@ func _harvest(units: Array[Unit], tick: int) -> void:
 
 
 func _send_scout(unit: Unit) -> void:
-	scout = ScoutBehaviour.new(port, profile, unit)
-	var stale: int = CommanderDifficulty.ticks(profile.stale_seconds)
-	scout.next_point = func(from: Vector3) -> Vector3:
-		return knowledge.next_scout_point(from, home, port.now(), stale)
-	scout.on_unreachable = func(point: Vector3) -> void:
-		knowledge.block_sector_at(point, port.now() + UNREACHABLE_TICKS)
+	scout = _make_scout(unit)
 	scout.start()
 	_log("scout out (%s)" % unit.def.id)
+
+
+func _make_scout(unit: Unit) -> ScoutBehaviour:
+	var made: ScoutBehaviour = ScoutBehaviour.new(port, profile, unit)
+	var stale: int = CommanderDifficulty.ticks(profile.stale_seconds)
+	made.next_point = func(from: Vector3) -> Vector3:
+		return knowledge.next_scout_point(from, home, port.now(), stale)
+	made.on_unreachable = func(point: Vector3) -> void:
+		knowledge.block_sector_at(point, port.now() + UNREACHABLE_TICKS)
+	return made
 
 
 func _launch(action: AiAction) -> void:
@@ -379,22 +379,13 @@ func _launch(action: AiAction) -> void:
 		target = knowledge.next_scout_point(staging, home, port.now(), 0)
 	if target == Vector3.INF:
 		return
-	attack_group = AttackGroup.new(
-		port,
-		profile,
+	attack_group = _make_attack(
 		action.units,
 		AttackGroup.MODE_LAST_STAND if last_stand else AttackGroup.MODE_ATTACK,
 		target,
 		staging,
 		staging
 	)
-	attack_group.next_target = func(from: Vector3) -> Vector3:
-		var next: Vector3 = knowledge.attack_target(from, port.now())
-		if next == Vector3.INF and last_stand:
-			# Searching: the sector just reached is done for a while.
-			knowledge.block_sector_at(from, port.now() + UNREACHABLE_TICKS)
-			next = knowledge.next_scout_point(from, home, port.now(), 0)
-		return next
 	attack_group.start()
 	wave_sizes.append(action.units.size())
 	_log(
@@ -409,6 +400,133 @@ func _launch(action: AiAction) -> void:
 			]
 		)
 	)
+
+
+func _make_attack(
+	units: Array[Unit],
+	mode: StringName,
+	target: Vector3,
+	group_home: Vector3,
+	group_staging: Vector3
+) -> AttackGroup:
+	var made: AttackGroup = AttackGroup.new(
+		port, profile, units, mode, target, group_home, group_staging
+	)
+	if mode == AttackGroup.MODE_DEFEND:
+		return made
+	var last_stand: bool = mode == AttackGroup.MODE_LAST_STAND
+	made.next_target = func(from: Vector3) -> Vector3:
+		var next: Vector3 = knowledge.attack_target(from, port.now())
+		if next == Vector3.INF and last_stand:
+			# Searching: the sector just reached is done for a while.
+			knowledge.block_sector_at(from, port.now() + UNREACHABLE_TICKS)
+			next = knowledge.next_scout_point(from, home, port.now(), 0)
+		return next
+	return made
+
+
+## The commander's state for a saved game (ADR 0013): its memory and dice, what it
+## knows, its base, and its running groups (members by save id).
+func to_dict() -> Dictionary:
+	var ordered: Dictionary = {}
+	for id: int in _last_ordered:
+		ordered[str(id)] = _last_ordered[id]
+	var refused: Array = []
+	for area: Rect2 in _refused_sites:
+		refused.append([var_to_str(area), _refused_sites[area]])
+	return {
+		"version": SAVE_VERSION,
+		"memory": memory.to_dict(),
+		"rng": str(brain.rng.state),
+		"knowledge": knowledge.to_dict(),
+		"home": var_to_str(home),
+		"staging": var_to_str(staging),
+		"wave_sizes": wave_sizes.duplicate(),
+		"last_ordered": ordered,
+		"refused": refused,
+		"attack": _group_dict(attack_group),
+		"defence": _group_dict(defence_group),
+		"scout": _group_dict(scout),
+		"survey": _group_dict(survey),
+	}
+
+
+## Restores what `to_dict()` saved into a commander that was just `setup()`.
+func from_dict(data: Dictionary) -> void:
+	var memory_data: Dictionary = data.get("memory", {})
+	if not memory_data.is_empty():
+		memory.from_dict(memory_data)
+	var rng_text: String = data.get("rng", "")
+	if rng_text != "":
+		brain.rng.state = int(rng_text)
+	var knowledge_data: Dictionary = data.get("knowledge", {})
+	knowledge.from_dict(knowledge_data, world.entity)
+	var home_text: String = data.get("home", var_to_str(home))
+	home = str_to_var(home_text)
+	var staging_text: String = data.get("staging", var_to_str(staging))
+	staging = str_to_var(staging_text)
+	var sizes: Array = data.get("wave_sizes", [])
+	wave_sizes.clear()
+	for entry: Variant in sizes:
+		var size: int = entry
+		wave_sizes.append(size)
+	var ordered: Dictionary = data.get("last_ordered", {})
+	for key: Variant in ordered:
+		var tick: int = ordered[key]
+		_last_ordered[int(str(key))] = tick
+	var refused: Array = data.get("refused", [])
+	for entry: Variant in refused:
+		var pair: Array = entry
+		var area_text: String = pair[0]
+		var until: int = pair[1]
+		var area: Rect2 = str_to_var(area_text)
+		_refused_sites[area] = until
+	var attack_data: Dictionary = data.get("attack", {})
+	var defence_data: Dictionary = data.get("defence", {})
+	var scout_data: Dictionary = data.get("scout", {})
+	attack_group = _restore_attack(attack_data)
+	defence_group = _restore_attack(defence_data)
+	scout = _restore_scout(scout_data)
+	var survey_data: Dictionary = data.get("survey", {})
+	if not survey_data.is_empty():
+		var ids: Array = survey_data.get("members", [])
+		survey = SurveyBehaviour.new(port, profile, AiGroup.units_from_ids(ids, world.entity))
+		survey.restore(survey_data, world.entity)
+
+
+static func _group_dict(group: AiGroup) -> Dictionary:
+	if group == null or group.finished:
+		return {}
+	return group.to_dict()
+
+
+func _restore_attack(data: Dictionary) -> AttackGroup:
+	var ids: Array = data.get("members", [])
+	var units: Array[Unit] = AiGroup.units_from_ids(ids, world.entity)
+	if units.is_empty():
+		return null
+	var mode: String = data.get("mode", String(AttackGroup.MODE_ATTACK))
+	var target_text: String = data.get("target", var_to_str(staging))
+	var home_text: String = data.get("home", var_to_str(staging))
+	var staging_text: String = data.get("staging", var_to_str(staging))
+	var target: Vector3 = str_to_var(target_text)
+	var group_home: Vector3 = str_to_var(home_text)
+	var group_staging: Vector3 = str_to_var(staging_text)
+	var group: AttackGroup = _make_attack(
+		units, StringName(mode), target, group_home, group_staging
+	)
+	group.from_dict(data)
+	return group
+
+
+func _restore_scout(data: Dictionary) -> ScoutBehaviour:
+	var ids: Array = data.get("members", [])
+	var units: Array[Unit] = AiGroup.units_from_ids(ids, world.entity)
+	if units.is_empty():
+		return null
+	var restored: ScoutBehaviour = _make_scout(units[0])
+	restored.from_dict(data)
+	return restored
 
 
 ## True once the profile's survey may start (it has a surveyor and the delay passed).

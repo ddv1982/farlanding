@@ -8,8 +8,10 @@ extends GutTest
 
 const SAVE: String = "user://test_campaign_flow.cfg"
 const SETTINGS: String = "user://test_campaign_flow_settings.cfg"
+const SAVES: String = "user://test_campaign_flow_saves/"
 
 var _main: Main
+var _saved_dir: String
 var _saved_default: String
 var _saved_settings: String
 var _saved_seen: PackedStringArray
@@ -21,6 +23,9 @@ var _saved: int = 0
 
 
 func before_each() -> void:
+	# Landing autosaves and quicksaves must not land in the real profile either.
+	_saved_dir = SaveSlots.default_dir
+	SaveSlots.default_dir = SAVES
 	_saved_default = CampaignSession.default_path
 	CampaignSession.default_path = SAVE
 	_remove(SAVE)
@@ -44,6 +49,10 @@ func before_each() -> void:
 func after_each() -> void:
 	_main.queue_free()
 	await wait_frames(2)
+	for slot: StringName in SaveSlots.slots():
+		SaveSlots.remove(slot)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVES))
+	SaveSlots.default_dir = _saved_dir
 	Events.campaign_screen_changed.disconnect(_on_screen)
 	Events.landing_resolved.disconnect(_on_resolved)
 	Events.advisor_alert.disconnect(_on_alert)

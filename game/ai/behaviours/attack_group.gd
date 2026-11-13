@@ -109,6 +109,24 @@ func move_on() -> StringName:
 	return &""
 
 
+func to_dict() -> Dictionary:
+	var data: Dictionary = super()
+	data["mode"] = String(mode)
+	data["target"] = var_to_str(target)
+	data["home"] = var_to_str(home)
+	data["staging"] = var_to_str(staging)
+	data["reason"] = String(retreat_reason)
+	return data
+
+
+## Mode, target, home and staging were given to the constructor; the focus is picked
+## again on the next fight step.
+func from_dict(data: Dictionary) -> void:
+	var reason: String = data.get("reason", "")
+	retreat_reason = StringName(reason)
+	super(data)
+
+
 ## The enemy to fire on: armed units first, then armed buildings, then anything, the
 ## nearest to the group's centre within each class.
 static func pick_focus(enemies: Array[Node3D], from: Vector3) -> Node3D:

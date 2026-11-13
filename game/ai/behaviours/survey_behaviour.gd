@@ -92,5 +92,47 @@ func _pick(unit: Unit, at: Vector3, sites: Array[Node3D]) -> Node3D:
 	return best
 
 
+func to_dict() -> Dictionary:
+	var data: Dictionary = super()
+	var assigned: Dictionary = {}
+	for key: Variant in _assigned.keys():
+		if is_instance_valid(key):
+			assigned[str(Order.entity_id_of(key))] = Order.entity_id_of(_assigned[key])
+	var shy: Dictionary = {}
+	for key: Variant in _shy_until.keys():
+		if is_instance_valid(key):
+			shy[str(Order.entity_id_of(key))] = _shy_until[key]
+	data["home"] = var_to_str(home)
+	data["scans"] = scans_started
+	data["assigned"] = assigned
+	data["shy"] = shy
+	return data
+
+
+## Members were given to the constructor; `lookup` (`func(id: int) -> Node3D`)
+## finds the units and sites saved by id.
+func restore(data: Dictionary, lookup: Callable) -> void:
+	var home_text: String = data.get("home", var_to_str(home))
+	home = str_to_var(home_text)
+	scans_started = data.get("scans", 0)
+	last_order_tick = data.get("last_order", last_order_tick)
+	initial_strength = data.get("strength", initial_strength)
+	var assigned: Dictionary = data.get("assigned", {})
+	for key: Variant in assigned:
+		var unit_node: Node3D = lookup.call(int(str(key)))
+		var unit: Unit = unit_node as Unit
+		var site_id: int = assigned[key]
+		var site: Node3D = lookup.call(site_id)
+		if unit != null and site != null:
+			_assigned[unit] = site
+	var shy: Dictionary = data.get("shy", {})
+	for key: Variant in shy:
+		var unit_node: Node3D = lookup.call(int(str(key)))
+		var unit: Unit = unit_node as Unit
+		var until: int = shy[key]
+		if unit != null:
+			_shy_until[unit] = until
+
+
 func faction_of_port() -> int:
 	return port.faction

@@ -36,8 +36,9 @@ var deliveries: int = 0
 
 var _timer: float = 0.0
 var _attempts: int = 0
-## Saved ids restored by from_dict, resolved on the next tick.
+## Saved ids restored by from_dict, resolved by resume() (or the next begin()).
 var _deposit_id: int = -1
+var _dock_id: int = -1
 
 
 func handles() -> Array[StringName]:
@@ -85,12 +86,30 @@ func end(_order: Order) -> void:
 	dock = null
 
 
+## A load: the deposit and dock saved by id become nodes again; the cycle carries on
+## in its saved state (a vanished deposit or dock is replaced by the usual rules).
+func resume(order: Order) -> void:
+	if unit.world == null:
+		return
+	if _deposit_id >= 0:
+		deposit = unit.world.entity(_deposit_id) as ResourceNode
+	elif order.target_entity is ResourceNode:
+		deposit = order.target_entity
+	_deposit_id = -1
+	if deposit != null:
+		order.target_entity = deposit
+	dock = unit.world.entity(_dock_id) as Building if _dock_id >= 0 else null
+	_dock_id = -1
+
+
 func to_dict() -> Dictionary:
 	return {
 		"state": state,
 		"cargo": cargo,
 		"deposit": Order.entity_id_of(deposit),
+		"dock": Order.entity_id_of(dock),
 		"timer": _timer,
+		"attempts": _attempts,
 		"deliveries": deliveries,
 	}
 
@@ -99,7 +118,9 @@ func from_dict(data: Dictionary) -> void:
 	state = data.get("state", STATE_IDLE)
 	cargo = data.get("cargo", 0)
 	_deposit_id = data.get("deposit", -1)
+	_dock_id = data.get("dock", -1)
 	_timer = data.get("timer", 0.0)
+	_attempts = data.get("attempts", 0)
 	deliveries = data.get("deliveries", 0)
 
 

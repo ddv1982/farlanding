@@ -13,7 +13,9 @@ const KIND_HIDDEN: StringName = &"hidden"
 const STATE_ACTIVE: StringName = &"active"
 const STATE_DONE: StringName = &"done"
 const STATE_FAILED: StringName = &"failed"
-const SAVE_VERSION: int = 1
+## 2: bar, countdown kind, area and the definition id saved; entity references
+## restored by the subclasses (ADR 0013).
+const SAVE_VERSION: int = 2
 
 var id: StringName = &""
 var title: String = ""
@@ -138,27 +140,37 @@ func on_mission_won() -> void:
 func to_dict() -> Dictionary:
 	return {
 		"version": SAVE_VERSION,
-		"id": id,
-		"state": state,
+		"id": String(id),
+		"state": String(state),
 		"known": is_known,
 		"progress": progress_text,
+		"ratio": progress_ratio,
 		"countdown": countdown_tick,
+		"countdown_fails": countdown_fails,
 		"started": started_tick,
+		"has_area": has_area,
 		"area": var_to_str(area_center),
+		"radius": area_radius,
 	}
 
 
+## Restores the run-time state. For a load into a running mission set `mission`
+## first (subclasses look entities up in its world by saved id).
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
-	assert(version == SAVE_VERSION, "Unsupported Objective save version")
-	var saved_state: StringName = data.get("state", STATE_ACTIVE)
-	state = saved_state
+	assert(version >= 1 and version <= SAVE_VERSION, "Unsupported Objective save version")
+	var saved_state: String = data.get("state", String(STATE_ACTIVE))
+	state = StringName(saved_state)
 	is_known = data.get("known", is_known)
 	progress_text = data.get("progress", "")
+	progress_ratio = data.get("ratio", progress_ratio)
 	countdown_tick = data.get("countdown", -1)
+	countdown_fails = data.get("countdown_fails", countdown_fails)
 	started_tick = data.get("started", 0)
+	has_area = data.get("has_area", has_area)
 	var text: String = data.get("area", "Vector3(0, 0, 0)")
 	area_center = str_to_var(text)
+	area_radius = data.get("radius", area_radius)
 
 
 ## Override: set up (look at the world as it is when the objective begins).
@@ -190,6 +202,16 @@ func factions_of(side: StringName) -> Array[int]:
 		_:
 			result.append_array(mission.enemy_factions())
 	return result
+
+
+## Save ids of `entities` (for subclasses that hold entity references).
+static func ids_of(entities: Array) -> Array[int]:
+	var ids: Array[int] = []
+	for entity: Variant in entities:
+		var id: int = Order.entity_id_of(entity)
+		if id >= 0:
+			ids.append(id)
+	return ids
 
 
 ## True if `entity` is one of the things `def` is about (side and types).
