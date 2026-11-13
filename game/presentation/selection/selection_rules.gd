@@ -25,6 +25,8 @@ const CLICK_MOVE: StringName = &"move"
 const CLICK_HARVEST: StringName = &"harvest"
 const CLICK_ASSIST: StringName = &"assist"
 const CLICK_SCAN: StringName = &"scan"
+## Sabotage an enemy building (Wisps, which carry no weapon).
+const CLICK_SABOTAGE: StringName = &"sabotage"
 ## Sets the selected producer building's rally point.
 const CLICK_RALLY: StringName = &"rally"
 ## Clears the selection (classic right click).
@@ -131,9 +133,11 @@ static func right_click_target(
 
 
 ## What a command on `target` asks of the selected units: attack a visible enemy unit
-## or building, harvest a deposit (if any can harvest), scan an unresolved site (if
-## any can scan), help build an own site (if any can build), or move there. Null =
-## the ground. Nothing without a selection. The one place these rules live.
+## or building (sabotage a working enemy building when every selected unit able to
+## act on it is a saboteur, i.e. a squad of Wisps), harvest a deposit (if any can
+## harvest), scan an unresolved site (if any can scan), help build an own site (if
+## any can build), or move there. Null = the ground. Nothing without a selection.
+## The one place these rules live.
 static func command_target(current: Array[Unit], target: Node3D, player_faction: int) -> StringName:
 	var units: Array[Unit] = selectable(current, player_faction)
 	if units.is_empty():
@@ -150,7 +154,11 @@ static func command_target(current: Array[Unit], target: Node3D, player_faction:
 	var building: Building = target as Building
 	if building != null and is_instance_valid(building) and building.is_inside_tree():
 		if building.faction != player_faction:
-			return CLICK_ATTACK if building.is_visible_to_player else CLICK_MOVE
+			if not building.is_visible_to_player:
+				return CLICK_MOVE
+			if _prefers_sabotage(units, building, player_faction):
+				return CLICK_SABOTAGE
+			return CLICK_ATTACK
 		if building.is_under_construction and _any_can(units, Builder.KIND):
 			return CLICK_ASSIST
 	return CLICK_MOVE
@@ -232,6 +240,19 @@ static func _is_own(target: Node3D, player_faction: int) -> bool:
 		return is_selectable(target, player_faction)
 	var building: Building = target as Building
 	return building != null and is_instance_valid(building) and building.faction == player_faction
+
+
+## True when the selection should sabotage `building` rather than attack it: some
+## selected units can sabotage it and none of the others carries a weapon.
+static func _prefers_sabotage(units: Array[Unit], building: Building, player_faction: int) -> bool:
+	if not Saboteur.can_sabotage(building, player_faction):
+		return false
+	if not _any_can(units, Saboteur.KIND):
+		return false
+	for unit: Unit in units:
+		if unit.weapon != null:
+			return false
+	return true
 
 
 static func _any_can(units: Array[Unit], kind: StringName) -> bool:

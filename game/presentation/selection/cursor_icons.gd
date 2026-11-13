@@ -11,6 +11,8 @@ const SCAN: StringName = &"scan"
 const HARVEST: StringName = &"harvest"
 const ASSIST: StringName = &"assist"
 const RALLY: StringName = &"rally"
+## Sabotage an enemy building (Wisps).
+const SABOTAGE: StringName = &"sabotage"
 ## Aiming a field option.
 const TARGET: StringName = &"target"
 
@@ -21,6 +23,7 @@ const COLORS: Dictionary[StringName, Color] = {
 	HARVEST: Color(0.95, 0.80, 0.45),
 	ASSIST: Color(1.0, 0.62, 0.2),
 	RALLY: Color(0.45, 1.0, 0.55),
+	SABOTAGE: Color(0.78, 0.55, 1.0),
 	TARGET: Color(0.75, 0.6, 1.0),
 }
 const OUTLINE: Color = Color(0.04, 0.03, 0.03, 0.9)
@@ -94,6 +97,11 @@ static func _covers(kind: StringName, offset: Vector2, grow: float) -> bool:
 			var spread: float = 1.0 - absf(offset.y + 9.0) / 4.0
 			var pennant: bool = offset.x >= -grow and offset.x <= 9.0 * spread + grow
 			return pole or pennant or r <= 1.5 + grow
+		SABOTAGE:
+			# A broken ring (gaps on the diagonals) with an X inside.
+			var gap: bool = fposmod(offset.angle() + PI / 8.0, PI / 2.0) < PI / 4.0
+			var diagonal: bool = absf(absf(offset.x) - absf(offset.y)) <= 1.2 + grow
+			return (absf(r - 11.0) <= 1.2 + grow and not gap) or (diagonal and r <= 7.0 + grow)
 		TARGET:
 			# A ring with a cross reaching past it.
 			var cross: bool = on_axis and r >= 3.0 - grow and r <= 15.0 + grow

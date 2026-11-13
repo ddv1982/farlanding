@@ -30,7 +30,7 @@ func _ready() -> void:
 			var unit: Node3D = unit_scene.instantiate()
 			add_child(unit)
 			unit.position = Vector3(16.0 + index * 4.0, 0.4, 8.0)
-			unit.scale = Vector3.ONE * 1.6
+			unit.scale = Vector3.ONE * 3.0
 			for mesh: Node in unit.find_children("*", "MeshInstance3D", true, false):
 				var instance: MeshInstance3D = mesh
 				instance.set_instance_shader_parameter(&"cloak", float(index))

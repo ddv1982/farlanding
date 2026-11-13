@@ -25,6 +25,8 @@ uniform vec3 build_glow : source_color = vec3(0.25, 0.95, 1.0);
 instance uniform float cloak : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 cloak_color : source_color = vec3(0.2, 0.85, 1.0);
 
+const int BAYER[16] = int[16](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+
 #include "fog.gdshaderinc"
 
 varying vec3 world_pos;
@@ -45,10 +47,11 @@ void fragment() {
 		discard;
 	}
 	if (cloak > 0.0) {
-		// 4x4 ordered dither: at full cloak about two pixels in three are dropped.
+		// 4x4 ordered dither: at full cloak about a third of the pixels are dropped,
+		// enough to read as see-through while the model keeps its shape at RTS height.
 		ivec2 cell = ivec2(FRAGCOORD.xy) % 4;
-		float threshold = float((cell.x * 5 + cell.y * 11 + cell.x * cell.y * 3) % 16) / 16.0;
-		if (threshold < cloak * 0.66) {
+		float threshold = (float(BAYER[cell.y * 4 + cell.x]) + 0.5) / 16.0;
+		if (threshold < cloak * 0.3) {
 			discard;
 		}
 	}
@@ -70,8 +73,8 @@ void fragment() {
 	EMISSION *= fog.r;
 	if (cloak > 0.0) {
 		float band = smoothstep(0.75, 1.0, sin(world_pos.y * 9.0 - TIME * 3.0) * 0.5 + 0.5);
-		ALBEDO = mix(ALBEDO, cloak_color * 0.25, cloak * 0.7);
-		EMISSION = mix(EMISSION, cloak_color * (0.35 + band * 1.6), cloak * 0.8) * fog.r;
+		ALBEDO = mix(ALBEDO, cloak_color * 0.3, cloak * 0.35);
+		EMISSION = mix(EMISSION, cloak_color * (0.2 + band * 1.8), cloak * 0.55) * fog.r;
 	}
 	if (build_progress < 1.0) {
 		EMISSION += build_glow * (1.0 - smoothstep(0.0, 0.35, build_front - height)) * 3.0;
