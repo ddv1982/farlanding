@@ -1,0 +1,222 @@
+[gd_resource type="Resource" script_class="CampaignDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/campaign_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/campaign/route/kessel_proving.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/campaign/route/kessel_storm.tres" id="e2"]
+[ext_resource type="Resource" path="res://data/campaign/route/kessel_uplink.tres" id="e3"]
+[ext_resource type="Resource" path="res://data/campaign/route/thalassa_shallows.tres" id="e4"]
+[ext_resource type="Resource" path="res://data/campaign/techs/survey_lab.tres" id="e5"]
+[ext_resource type="Resource" path="res://data/campaign/techs/deep_scan.tres" id="e6"]
+[ext_resource type="Resource" path="res://data/campaign/techs/scan_discount.tres" id="e7"]
+[ext_resource type="Resource" path="res://data/campaign/techs/antecedent_lens.tres" id="e8"]
+[ext_resource type="Resource" path="res://data/campaign/techs/hauler_racks.tres" id="e9"]
+[ext_resource type="Resource" path="res://data/campaign/techs/rapid_drills.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/campaign/techs/supply_manifest.tres" id="e11"]
+[ext_resource type="Resource" path="res://data/campaign/techs/cache_alloys.tres" id="e12"]
+[ext_resource type="Resource" path="res://data/campaign/techs/lancer_rails.tres" id="e13"]
+[ext_resource type="Resource" path="res://data/campaign/techs/sentry_grid.tres" id="e14"]
+[ext_resource type="Resource" path="res://data/campaign/techs/arc_battery.tres" id="e15"]
+[ext_resource type="Resource" path="res://data/campaign/techs/long_optics.tres" id="e16"]
+[ext_resource type="Script" path="res://core/defs/loadout_slot_def.gd" id="e17"]
+[ext_resource type="Script" path="res://core/defs/loadout_option_def.gd" id="e18"]
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e19"]
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e20"]
+[ext_resource type="Script" path="res://core/defs/carryover_def.gd" id="e21"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e22"]
+[ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="e23"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e24"]
+[ext_resource type="Resource" path="res://data/units/concord_lancer.tres" id="e25"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e18")
+id = &"escort_none"
+title = "Standard crew"
+description = "Only the mission's own crew lands."
+requires_tech = Array[StringName]([])
+effects = Array[ExtResource("e22")]([])
+
+[sub_resource type="Resource" id="s1"]
+script = ExtResource("e22")
+kind = &"units"
+unit = ExtResource("e23")
+count = 2
+
+[sub_resource type="Resource" id="s2"]
+script = ExtResource("e18")
+id = &"escort_rangers"
+title = "Ranger pair"
+description = "Two Rangers land with the crew."
+requires_tech = Array[StringName]([])
+effects = Array[ExtResource("e22")]([SubResource("s1")])
+
+[sub_resource type="Resource" id="s3"]
+script = ExtResource("e22")
+kind = &"units"
+unit = ExtResource("e24")
+count = 1
+
+[sub_resource type="Resource" id="s4"]
+script = ExtResource("e18")
+id = &"escort_surveyor"
+title = "Second Surveyor"
+description = "A second Surveyor lands with the crew: two sites at once."
+requires_tech = Array[StringName]([])
+effects = Array[ExtResource("e22")]([SubResource("s3")])
+
+[sub_resource type="Resource" id="s5"]
+script = ExtResource("e22")
+kind = &"units"
+unit = ExtResource("e25")
+count = 2
+
+[sub_resource type="Resource" id="s6"]
+script = ExtResource("e18")
+id = &"escort_lancers"
+title = "Lancer pair"
+description = "Two Lancers land with the crew."
+requires_tech = Array[StringName]([&"lancer_rails"])
+effects = Array[ExtResource("e22")]([SubResource("s5")])
+
+[sub_resource type="Resource" id="s7"]
+script = ExtResource("e17")
+id = &"escort"
+title = "Escort squad"
+options = Array[ExtResource("e18")]([SubResource("s0"), SubResource("s2"), SubResource("s4"), SubResource("s6")])
+
+[sub_resource type="Resource" id="s8"]
+script = ExtResource("e18")
+id = &"ship_none"
+title = "Held in reserve"
+description = "The Meridian keeps its relay time."
+requires_tech = Array[StringName]([])
+effects = Array[ExtResource("e22")]([])
+
+[sub_resource type="Resource" id="s9"]
+script = ExtResource("e22")
+kind = &"charge_option"
+target = &"orbital_scan"
+count = 1
+
+[sub_resource type="Resource" id="s10"]
+script = ExtResource("e18")
+id = &"ship_orbital_scan"
+title = "Pre-charged scan"
+description = "One Orbital Scan from the Survey Lab costs nothing."
+requires_tech = Array[StringName]([&"survey_lab"])
+effects = Array[ExtResource("e22")]([SubResource("s9")])
+
+[sub_resource type="Resource" id="s11"]
+script = ExtResource("e22")
+kind = &"charge_option"
+target = &"supply_drop"
+count = 1
+
+[sub_resource type="Resource" id="s12"]
+script = ExtResource("e18")
+id = &"ship_supply_drop"
+title = "Pre-charged drop"
+description = "One Supply Drop from the Survey Lab costs nothing."
+requires_tech = Array[StringName]([&"survey_lab", &"supply_manifest"])
+effects = Array[ExtResource("e22")]([SubResource("s11")])
+
+[sub_resource type="Resource" id="s13"]
+script = ExtResource("e17")
+id = &"ship"
+title = "Ship ability"
+options = Array[ExtResource("e18")]([SubResource("s8"), SubResource("s10"), SubResource("s12")])
+
+[sub_resource type="Resource" id="s14"]
+script = ExtResource("e22")
+kind = &"resources"
+alloy = 150
+
+[sub_resource type="Resource" id="s15"]
+script = ExtResource("e18")
+id = &"cargo_alloy"
+title = "Alloy pallets"
+description = "+150 Alloy at the start."
+requires_tech = Array[StringName]([])
+effects = Array[ExtResource("e22")]([SubResource("s14")])
+
+[sub_resource type="Resource" id="s16"]
+script = ExtResource("e22")
+kind = &"resources"
+flux = 75
+
+[sub_resource type="Resource" id="s17"]
+script = ExtResource("e18")
+id = &"cargo_flux"
+title = "Flux cells"
+description = "+75 Flux at the start."
+requires_tech = Array[StringName]([])
+effects = Array[ExtResource("e22")]([SubResource("s16")])
+
+[sub_resource type="Resource" id="s18"]
+script = ExtResource("e22")
+kind = &"resources"
+intel = 40
+
+[sub_resource type="Resource" id="s19"]
+script = ExtResource("e18")
+id = &"cargo_intel"
+title = "Survey archive"
+description = "+40 Intel at the start, for field options."
+requires_tech = Array[StringName]([&"survey_lab"])
+effects = Array[ExtResource("e22")]([SubResource("s18")])
+
+[sub_resource type="Resource" id="s20"]
+script = ExtResource("e17")
+id = &"cargo"
+title = "Cargo hold"
+options = Array[ExtResource("e18")]([SubResource("s15"), SubResource("s17"), SubResource("s19")])
+
+[sub_resource type="Resource" id="s21"]
+script = ExtResource("e22")
+kind = &"chart_site"
+target = &"kessel_trail_ruin"
+note = "the trail ruin's site starts charted"
+
+[sub_resource type="Resource" id="s22"]
+script = ExtResource("e21")
+id = &"carry_trail_beacon"
+discovery = &"kessel_trail_beacon"
+description = "Trail beacon bearing on file"
+effects = Array[ExtResource("e22")]([SubResource("s21")])
+
+[sub_resource type="Resource" id="s23"]
+script = ExtResource("e22")
+kind = &"resources"
+intel = 30
+note = "+30 Intel from decoded relay traffic"
+
+[sub_resource type="Resource" id="s24"]
+script = ExtResource("e21")
+id = &"carry_combine_relay"
+discovery = &"kessel_combine_relay"
+description = "Combine relay codes"
+effects = Array[ExtResource("e22")]([SubResource("s23")])
+
+[sub_resource type="Resource" id="s25"]
+script = ExtResource("e22")
+kind = &"resources"
+alloy = 100
+note = "+100 Alloy salvaged from the cache"
+
+[sub_resource type="Resource" id="s26"]
+script = ExtResource("e21")
+id = &"carry_sealed_cache"
+discovery = &"kessel_sealed_cache"
+description = "Sealed cache salvage"
+effects = Array[ExtResource("e22")]([SubResource("s25")])
+
+[resource]
+script = ExtResource("e0")
+id = &"kessel_trail"
+title = "The Kessel Trail"
+nodes = Array[ExtResource("e19")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e4")])
+start_node = &"kessel_proving"
+techs = Array[ExtResource("e20")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11"), ExtResource("e12"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16")])
+loadout_slots = Array[ExtResource("e17")]([SubResource("s7"), SubResource("s13"), SubResource("s20")])
+carryovers = Array[ExtResource("e21")]([SubResource("s22"), SubResource("s24"), SubResource("s26")])
+locked_at_start = Array[StringName]([&"concord_survey_lab", &"concord_lancer", &"concord_sentry", &"concord_arc"])
+lost_landing_share = 0.0

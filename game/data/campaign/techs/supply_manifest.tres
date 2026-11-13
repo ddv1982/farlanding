@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TechDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e0"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e1"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+kind = &"resources"
+alloy = 200
+flux = 50
+
+[resource]
+script = ExtResource("e0")
+id = &"supply_manifest"
+title = "Expanded Manifest"
+description = "The Lander comes down heavier: +200 Alloy and +50 Flux at every landing."
+branch = &"industry"
+intel_cost = 80
+requires = Array[StringName]([&"hauler_racks"])
+requires_discovery = &""
+grid = Vector2i(1, 4)
+effects = Array[ExtResource("e1")]([SubResource("s0")])

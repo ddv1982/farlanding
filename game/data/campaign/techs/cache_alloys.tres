@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TechDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e0"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e1"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+kind = &"scale"
+stat = &"max_health"
+factor = 1.15
+
+[resource]
+script = ExtResource("e0")
+id = &"cache_alloys"
+title = "Cache Alloys"
+description = "Plating cast from the sealed cache's alloy: every unit and building has 15% more health. Needs the Kessel sealed cache in the codex."
+branch = &"industry"
+intel_cost = 140
+requires = Array[StringName]([&"rapid_drills"])
+requires_discovery = &"kessel_sealed_cache"
+grid = Vector2i(2, 3)
+effects = Array[ExtResource("e1")]([SubResource("s0")])

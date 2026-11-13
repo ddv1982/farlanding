@@ -47,6 +47,9 @@ var profiling: bool = false
 var section_usec: Dictionary[StringName, int] = {}
 ## Also split the units' tick into orders, movement and weapon (costs a little).
 var profiling_units: bool = false
+## Per faction: what it brought into the landing (locks and stat scales, ADR 0012).
+## Set before anything of the faction spawns; a faction without an entry has none.
+var perks: Dictionary[int, FactionPerks] = {}
 
 var _next_id: int = 1
 var _entities: Dictionary[int, Node3D] = {}

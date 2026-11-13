@@ -55,7 +55,7 @@ func begin(order: Order) -> bool:
 	if deposit == null and cargo <= 0:
 		return false
 	order.target_entity = deposit
-	if cargo >= unit.def.carry_capacity or deposit == null:
+	if cargo >= unit.carry_capacity or deposit == null:
 		_go_dock()
 	else:
 		_go_deposit()
@@ -110,7 +110,7 @@ func _step_to_deposit(order: Order) -> bool:
 		unit.locomotion.stop()
 		unit.locomotion.face(deposit.position)
 		state = STATE_MINING
-		_timer = unit.def.mine_time
+		_timer = unit.mine_time
 		return false
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
@@ -126,7 +126,7 @@ func _step_mining(order: Order, dt: float) -> bool:
 	_timer -= dt
 	if _timer > 0.0:
 		return false
-	cargo += deposit.take(unit.def.carry_capacity - cargo)
+	cargo += deposit.take(unit.carry_capacity - cargo)
 	if deposit.is_depleted() and unit.world != null:
 		unit.world.deplete(deposit, unit.faction)
 	_go_dock()

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/thalassa_low.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/thalassa_shallows.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"thalassa_shallows"
+title = "Tidewater Landing"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.78, 0.52)
+leads_to = Array[StringName]([])
+excludes = Array[StringName]([])
+scan_summary = "Tidal flats on the next world along the trail. The Combine got here first and holds a full base."
+intel_notes = "PLACEHOLDER LANDING: plays on the Kessel map until Thalassa's own map and tide rule arrive (Phase 8)."
+placeholder = true

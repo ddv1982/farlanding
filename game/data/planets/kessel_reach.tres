@@ -15,4 +15,5 @@ random_seed = 11
 script = ExtResource("1_planet")
 id = &"kessel_reach"
 display_name = "Kessel Reach"
+summary = "A dust basin on the trail's first world: thin air, bright sky, Antecedent ruins half-buried in the drift."
 rule = SubResource("rule")

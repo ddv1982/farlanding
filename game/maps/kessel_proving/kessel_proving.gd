@@ -58,6 +58,8 @@ const LANDING_ZONE: Vector3 = Vector3(-80.0, 0.0, 85.0)
 
 ## The mission to play; set before the map enters the tree.
 var mission: MissionDef = null
+## What the player brings into the landing (campaign), or null; set with `mission`.
+var modifiers: LandingModifiers = null
 ## The running mission, or null.
 var runner: Mission = null
 var heights: HeightField
@@ -96,6 +98,7 @@ func _ready() -> void:
 		runner = Mission.new()
 		runner.name = &"Mission"
 		runner.log_enemy_ai = log_enemy_ai
+		runner.modifiers = modifiers
 		add_child(runner)
 		runner.setup(mission, context, world, TERRAIN_AREA)
 		runner.spawn_structures()
@@ -153,6 +156,8 @@ func _spawn_sites() -> void:
 		var def: DiscoveryDef = discoveries[i]
 		if def != null:
 			var charted: bool = not Discovery.is_led_to(discoveries, def.id)
+			if modifiers != null and modifiers.charts(def.id):
+				charted = true
 			world.spawn_site(def, discovery_positions[i], charted)
 
 

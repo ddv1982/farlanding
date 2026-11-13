@@ -22,6 +22,7 @@ const MENU_ACTIONS: Array[StringName] = [
 ]
 
 var _title: Label
+var _quit: Button
 
 
 func _ready() -> void:
@@ -52,13 +53,15 @@ func _ready() -> void:
 	column.add_child(_button("RESUME  (Esc)", resume_pressed))
 	column.add_child(_button("SETTINGS", settings_pressed))
 	column.add_child(_button("RESTART MISSION", restart_pressed))
-	column.add_child(_button("QUIT TO MISSIONS", quit_pressed))
+	_quit = _button("QUIT TO MISSIONS", quit_pressed)
+	column.add_child(_quit)
 	visible = false
 
 
-## Opens over the mission titled `title`.
-func open(title: String) -> void:
+## Opens over the mission titled `title`; `quit_text` names where Quit goes.
+func open(title: String, quit_text: String = "QUIT TO MISSIONS") -> void:
 	_title.text = title
+	_quit.text = quit_text
 	visible = true
 
 

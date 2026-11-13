@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TechDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e0"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e1"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+kind = &"scale"
+stat = &"vision_range"
+factor = 1.2
+
+[resource]
+script = ExtResource("e0")
+id = &"long_optics"
+title = "Long Optics"
+description = "Better optics on every chassis: units see 20% farther."
+branch = &"arms"
+intel_cost = 100
+requires = Array[StringName]([&"sentry_grid"])
+requires_discovery = &""
+grid = Vector2i(2, 6)
+effects = Array[ExtResource("e1")]([SubResource("s0")])

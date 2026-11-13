@@ -13,6 +13,10 @@ var intel_earned: int = 0
 var units_lost: int = 0
 var buildings_lost: int = 0
 var enemies_destroyed: int = 0
+## Intel in the player's stockpile when the mission ended (what a campaign banks).
+var intel_held: int = 0
+## Ids of the discoveries the player made, in the order found.
+var discoveries: Array[StringName] = []
 
 
 ## "12:05" for `seconds`.

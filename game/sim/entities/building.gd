@@ -81,7 +81,7 @@ func setup(complete: bool) -> void:
 	if def.is_producer():
 		producer = Producer.new()
 		producer.name = &"Producer"
-		producer.setup(def.produces, def.queue_limit)
+		producer.setup(_available(def.produces), def.queue_limit)
 		add_child(producer)
 	if def.flux_amount > 0:
 		flux_extractor = FluxExtractor.new()
@@ -90,7 +90,12 @@ func setup(complete: bool) -> void:
 		add_child(flux_extractor)
 	health = Health.new()
 	health.name = &"Health"
-	health.setup(def.max_health, def.armour_type, self)
+	var max_health: float = def.max_health
+	if world != null:
+		max_health = FactionPerks.of(world.perks, faction).apply(
+			def.id, FactionPerks.MAX_HEALTH, max_health
+		)
+	health.setup(roundi(max_health), def.armour_type, self)
 	health.changed.connect(health_changed.emit)
 	add_child(health)
 	if def.weapon != null:
@@ -218,3 +223,14 @@ func from_dict(data: Dictionary) -> void:
 		weapon.from_dict(weapon_data)
 	sabotage_progress = data.get("sabotage", 0.0)
 	is_sabotaged = data.get("sabotaged", false)
+
+
+## The unit types of `options` the faction may produce (its perks may lock some).
+func _available(options: Array[UnitDef]) -> Array[UnitDef]:
+	if world == null:
+		return options
+	var result: Array[UnitDef] = []
+	for option: UnitDef in options:
+		if option != null and not FactionPerks.of(world.perks, faction).is_locked(option.id):
+			result.append(option)
+	return result

@@ -8,6 +8,8 @@ extends Command
 const KIND: StringName = &"place_building"
 ## `refused` when the cost could not be paid.
 const NOT_AFFORDABLE: StringName = &"not_affordable"
+## `refused` when the faction may not build this type in this landing (its perks).
+const LOCKED: StringName = &"locked"
 
 var building_def: BuildingDef
 ## The site created when the command ran, or null.
@@ -35,6 +37,11 @@ func execute() -> void:
 	if world == null or building_def == null:
 		return
 	var is_player: bool = issuer_faction == world.player_faction
+	if FactionPerks.of(world.perks, issuer_faction).is_locked(building_def.id):
+		refused = LOCKED
+		if is_player:
+			Events.ui_feedback.emit(&"placement_invalid")
+		return
 	refused = world.placement_rules().check(building_def, target_position)
 	if refused != PlacementRules.OK:
 		if is_player:

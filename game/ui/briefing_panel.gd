@@ -14,6 +14,8 @@ var _type: Label
 var _title: Label
 var _text: Label
 var _objectives: VBoxContainer
+var _carried_title: Label
+var _carried: Label
 var _back: ColorRect
 var _vignette: TextureRect
 
@@ -51,6 +53,12 @@ func _ready() -> void:
 	_objectives = VBoxContainer.new()
 	_objectives.add_theme_constant_override(&"separation", 4)
 	column.add_child(_objectives)
+	_carried_title = HudStyle.make_label(11, HudStyle.MUTED_COLOR, "FROM THE MERIDIAN")
+	column.add_child(_carried_title)
+	_carried = HudStyle.make_label(13, HudStyle.INTEL_COLOR)
+	_carried.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_carried.custom_minimum_size = Vector2(620, 0)
+	column.add_child(_carried)
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_END
 	buttons.add_theme_constant_override(&"separation", 10)
@@ -66,9 +74,16 @@ func _ready() -> void:
 	buttons.add_child(start)
 
 
-## Shows the briefing of `p_mission`.
-func show_mission(p_mission: MissionDef) -> void:
+## Shows the briefing of `p_mission`; `carried` lists what a campaign landing brings
+## along (techs, loadout, earlier finds), one line each.
+func show_mission(p_mission: MissionDef, carried: PackedStringArray = []) -> void:
 	mission = p_mission
+	_carried_title.visible = not carried.is_empty()
+	_carried.visible = not carried.is_empty()
+	var lines: PackedStringArray = []
+	for line: String in carried:
+		lines.append("·  " + line)
+	_carried.text = "\n".join(lines)
 	Events.ui_feedback.emit(&"briefing_open")
 	_type.text = MissionSelect.type_name(mission)
 	_title.text = mission.title

@@ -38,6 +38,9 @@ var buildings_lost: int = 0
 var enemies_destroyed: int = 0
 ## Prints the commander's notable decisions (play-testing).
 var log_enemy_ai: bool = false
+## What the player brings from outside the landing (campaign tech and loadout), or
+## null. Set before `setup()`.
+var modifiers: LandingModifiers = null
 
 var _last_intel: int = 0
 var _warned: Dictionary[StringName, bool] = {}
@@ -64,6 +67,8 @@ func setup(
 		Events.resources_changed.emit(player_faction, pile.alloy, pile.flux)
 	if def.start_intel > 0:
 		world.economy.add_intel(player_faction, def.start_intel)
+	if modifiers != null:
+		modifiers.apply_to_world(world, player_faction)
 	_last_intel = pile.intel
 
 
@@ -90,7 +95,10 @@ func spawn_units() -> void:
 	if player_hq != null:
 		crew_at = player_hq.door_position() + Vector3(0.0, 0.0, -5.0)
 		facing = Vector3.FORWARD
-	for unit: Unit in spawn_group(def.player_roster, player_faction, crew_at, facing):
+	var crew: Array[UnitDef] = def.player_roster.duplicate()
+	if modifiers != null:
+		crew.append_array(modifiers.extra_roster)
+	for unit: Unit in spawn_group(crew, player_faction, crew_at, facing):
 		if unit.harvester != null:
 			world.auto_harvest(unit, unit.sim_position())
 	var hostile: Array[Unit] = spawn_group(
@@ -281,6 +289,10 @@ func finish(won: bool) -> void:
 	result.units_lost = units_lost
 	result.buildings_lost = buildings_lost
 	result.enemies_destroyed = enemies_destroyed
+	result.intel_held = world.economy.stockpile(player_faction).intel
+	if world.discovery != null:
+		for found: DiscoveryDef in world.discovery.codex(player_faction):
+			result.discoveries.append(found.id)
 	for found: Objective in objectives:
 		if found.is_known:
 			result.objectives.append(

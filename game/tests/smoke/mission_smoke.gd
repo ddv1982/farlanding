@@ -1,12 +1,14 @@
 extends Node
 ## Smoke run of every mission on its real map, outside GUT (GUT's script mode leaks a
 ## renderer RID at exit once real unit visuals were created; a normal run does not).
-## Loads each mission of the catalog in turn, lets it run a few seconds and checks
+## Loads each mission of the catalog in turn (then every campaign route landing not in
+## the catalog, with a fresh campaign's modifiers), lets it run a few seconds and checks
 ## that the map supplied terrain, resources and sites and the mission its forces and
 ## rules. Exits 0 when all pass, 1 otherwise.
 ##   godot --headless --path game res://tests/smoke/mission_smoke.tscn
 
 const CATALOG: String = "res://data/missions/catalog.tres"
+const CAMPAIGN: String = "res://data/campaign/kessel_trail.tres"
 ## Frames each mission runs before it is checked.
 const FRAMES: int = 90
 
@@ -19,9 +21,20 @@ func _ready() -> void:
 
 func _run() -> void:
 	var catalog: MissionCatalog = load(CATALOG)
-	for mission: MissionDef in catalog.missions:
+	var missions: Array[MissionDef] = catalog.missions.duplicate()
+	var landings: Dictionary[MissionDef, LandingModifiers] = {}
+	var campaign: CampaignDef = load(CAMPAIGN)
+	for route_node: RouteNodeDef in campaign.nodes:
+		if not missions.has(route_node.mission):
+			missions.append(route_node.mission)
+			var plan: LandingPlan = LandingPlan.from_state(
+				CampaignState.new(campaign), route_node.id
+			)
+			landings[route_node.mission] = LandingBuilder.build(campaign, plan)
+	for mission: MissionDef in missions:
 		var map: KesselProving = mission.map_scene.instantiate() as KesselProving
 		map.mission = mission
+		map.modifiers = landings.get(mission, null)
 		add_child(map)
 		for i: int in FRAMES:
 			await get_tree().physics_frame
@@ -30,7 +43,7 @@ func _run() -> void:
 		map.free()
 		await get_tree().process_frame
 	if _failures.is_empty():
-		print("mission_smoke: all %d missions passed" % catalog.missions.size())
+		print("mission_smoke: all %d missions passed" % missions.size())
 	else:
 		printerr("mission_smoke: FAILED\n  " + "\n  ".join(_failures))
 	get_tree().quit(0 if _failures.is_empty() else 1)

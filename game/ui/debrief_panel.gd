@@ -10,6 +10,8 @@ var _title: Label
 var _mission: Label
 var _objectives: VBoxContainer
 var _stats: GridContainer
+var _back: Button
+var _retry: Button
 
 
 func _ready() -> void:
@@ -39,19 +41,23 @@ func _ready() -> void:
 	buttons.alignment = BoxContainer.ALIGNMENT_END
 	buttons.add_theme_constant_override(&"separation", 10)
 	column.add_child(buttons)
-	var back: Button = HudStyle.make_small_button("BACK TO MISSIONS")
-	back.custom_minimum_size = Vector2(170, 38)
-	back.pressed.connect(_on_back)
-	buttons.add_child(back)
-	var retry: Button = HudStyle.make_small_button("RETRY")
-	retry.custom_minimum_size = Vector2(120, 38)
-	retry.add_theme_color_override(&"font_color", HudStyle.ACCENT_COLOR)
-	retry.pressed.connect(_on_retry)
-	buttons.add_child(retry)
+	_back = HudStyle.make_small_button("BACK TO MISSIONS")
+	_back.custom_minimum_size = Vector2(170, 38)
+	_back.pressed.connect(_on_back)
+	buttons.add_child(_back)
+	_retry = HudStyle.make_small_button("RETRY")
+	_retry.custom_minimum_size = Vector2(120, 38)
+	_retry.add_theme_color_override(&"font_color", HudStyle.ACCENT_COLOR)
+	_retry.pressed.connect(_on_retry)
+	buttons.add_child(_retry)
 
 
-## Shows `result`.
-func show_result(result: MissionResult) -> void:
+## Shows `result`. In a campaign (`banked` >= 0, the Intel the landing banked) Back
+## returns to the star map, and a won landing cannot be retried.
+func show_result(result: MissionResult, banked: int = -1) -> void:
+	var in_campaign: bool = banked >= 0
+	_back.text = "BACK TO STAR MAP" if in_campaign else "BACK TO MISSIONS"
+	_retry.visible = not (in_campaign and result.won)
 	Events.ui_feedback.emit(&"debrief_open")
 	_title.text = "Mission accomplished" if result.won else "Mission failed"
 	_title.add_theme_color_override(
@@ -69,6 +75,8 @@ func show_result(result: MissionResult) -> void:
 		child.queue_free()
 	_stat("Time", MissionResult.clock_text(result.seconds))
 	_stat("Intel earned", str(result.intel_earned))
+	if in_campaign:
+		_stat("Intel banked", str(banked))
 	_stat("Units lost", str(result.units_lost))
 	_stat("Structures lost", str(result.buildings_lost))
 	_stat("Enemies destroyed", str(result.enemies_destroyed))

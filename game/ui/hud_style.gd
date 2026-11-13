@@ -14,6 +14,13 @@ const POWER_COLOR := Color(1.0, 0.82, 0.35)
 const INTEL_COLOR := Color(0.62, 1.0, 0.78)
 const BUTTON_COLOR := Color(0.10, 0.125, 0.15, 0.95)
 const BUTTON_HOVER_COLOR := Color(0.15, 0.19, 0.23, 0.98)
+## Campaign screens: route node and tech states.
+const LOCKED_COLOR := Color(0.36, 0.40, 0.45)
+const OPEN_COLOR := Color(0.93, 0.36, 0.05)
+const WON_COLOR := Color(0.55, 0.95, 0.65)
+const CURRENT_COLOR := Color(1.0, 0.92, 0.55)
+const AVAILABLE_COLOR := Color(0.70, 0.76, 0.82)
+const LINK_COLOR := Color(0.62, 0.68, 0.74, 0.45)
 const MARGIN := 14
 const ICON_SIZE := 52
 
@@ -143,6 +150,64 @@ static func cost_text(def: EntityDef) -> String:
 	if def.cost_flux > 0:
 		parts.append("%d Flux" % def.cost_flux)
 	return " · ".join(parts) if not parts.is_empty() else "Free"
+
+
+## Colour of a campaign route node or tech in `state` (CampaignState states).
+static func campaign_state_color(state: StringName) -> Color:
+	match state:
+		&"open", &"affordable":
+			return OPEN_COLOR
+		&"won", &"owned":
+			return WON_COLOR
+		&"available":
+			return AVAILABLE_COLOR
+	return LOCKED_COLOR
+
+
+## The icon at `path` when it exists (the lead draws them from the data), else null:
+## callers then show a plain placeholder.
+static func optional_icon(path: String) -> Texture2D:
+	if not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
+
+
+## A square icon of `size`: the texture at `path`, or a plain placeholder swatch with
+## `letter` in `color` when it does not exist yet.
+static func make_icon(path: String, size: float, color: Color, letter: String) -> Control:
+	var texture: Texture2D = optional_icon(path)
+	if texture != null:
+		var rect := TextureRect.new()
+		rect.texture = texture
+		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		rect.custom_minimum_size = Vector2(size, size)
+		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return rect
+	var swatch := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color, 0.18)
+	style.border_color = color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(int(size / 2.0))
+	swatch.add_theme_stylebox_override(&"panel", style)
+	swatch.custom_minimum_size = Vector2(size, size)
+	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var label: Label = make_label(int(size * 0.4), color, letter)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	swatch.add_child(label)
+	return swatch
+
+
+## A wide text button for menus (title screen, campaign screens).
+static func make_menu_button(caption: String, width: float = 240.0) -> Button:
+	var button: Button = make_small_button(caption)
+	button.custom_minimum_size = Vector2(width, 40)
+	button.add_theme_font_size_override(&"font_size", 14)
+	button.add_theme_color_override(&"font_disabled_color", Color(MUTED_COLOR, 0.5))
+	button.add_theme_stylebox_override(&"disabled", _button_style(Color(BUTTON_COLOR, 0.5)))
+	return button
 
 
 static func _button_style(color: Color) -> StyleBoxFlat:

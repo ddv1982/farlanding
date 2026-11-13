@@ -78,7 +78,7 @@ func _step_scanning(dt: float) -> bool:
 	# Pushed out of reach (a building site, a crowd): the scan is cut short.
 	if not _in_reach(REACH_SLACK):
 		return true
-	site.set_scan_progress(site.scan_progress + unit.def.scan_rate * dt / site.def.scan_time)
+	site.set_scan_progress(site.scan_progress + unit.scan_rate * dt / site.def.scan_time)
 	if site.scan_progress < 1.0:
 		return false
 	var done: DiscoverySite = site

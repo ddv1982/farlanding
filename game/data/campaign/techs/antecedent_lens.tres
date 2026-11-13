@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TechDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e0"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e1"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+kind = &"unlock_option"
+target = &"antecedent_power"
+
+[resource]
+script = ExtResource("e0")
+id = &"antecedent_lens"
+title = "Antecedent Lens"
+description = "Built from the trail ruin's resonance map. The Beacon Lance field option is ready from the start of every landing. Needs the Kessel trail ruin in the codex."
+branch = &"survey"
+intel_cost = 120
+requires = Array[StringName]([&"deep_scan"])
+requires_discovery = &"kessel_trail_ruin"
+grid = Vector2i(2, 0)
+effects = Array[ExtResource("e1")]([SubResource("s0")])

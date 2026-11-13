@@ -94,7 +94,27 @@ var sight_range: float:
 		if def == null:
 			return 0.0
 		var factor: float = world.conditions.sight_factor if world != null else 1.0
-		return def.vision_range * factor
+		return vision_range * factor
+## How far the unit sees in clear weather, in metres (its definition after perks).
+var vision_range: float:
+	get:
+		if def == null:
+			return 0.0
+		return _perk_stat(FactionPerks.VISION_RANGE, def.vision_range)
+## Alloy carried per trip (after perks).
+var carry_capacity: int:
+	get:
+		if def == null:
+			return 0
+		return roundi(_perk_stat(FactionPerks.CARRY_CAPACITY, def.carry_capacity))
+## Seconds spent mining one load (after perks).
+var mine_time: float:
+	get:
+		return _perk_stat(FactionPerks.MINE_TIME, def.mine_time) if def != null else 0.0
+## Scan seconds done per second next to a site (after perks).
+var scan_rate: float:
+	get:
+		return _perk_stat(FactionPerks.SCAN_RATE, def.scan_rate) if def != null else 0.0
 ## Full width of its sight cone in degrees (360 = all round).
 var sight_angle: float:
 	get:
@@ -278,7 +298,7 @@ func _add_combat_components() -> void:
 		health = Health.new()
 		health.name = &"Health"
 		add_child(health)
-	health.setup(def.max_health, def.armour(), self)
+	health.setup(roundi(_perk_stat(FactionPerks.MAX_HEALTH, def.max_health)), def.armour(), self)
 	health.changed.connect(health_changed.emit)
 	health.damaged.connect(_on_damaged)
 	if def.weapon != null and weapon == null:
@@ -373,3 +393,12 @@ func _can_target(target: Variant) -> bool:
 	if world != null and world.combat != null:
 		return world.combat.can_target(faction, target)
 	return AttackCommand.is_valid_target(target, faction)
+
+
+## `base` after the perks of the unit's faction (as is without a world).
+func _perk_stat(stat_name: StringName, base: float) -> float:
+	return (
+		FactionPerks.of(world.perks, faction).apply(def.id, stat_name, base)
+		if world != null
+		else base
+	)
