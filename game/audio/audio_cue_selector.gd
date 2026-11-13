@@ -34,6 +34,9 @@ const FEEDBACK_ALIASES: Dictionary[StringName, StringName] = {
 	&"production_queued": &"ui_queue",
 	&"queued": &"ui_queue",
 	&"rally": &"ui_rally_set",
+	# A save confirms itself through `campaign_saved` (CampaignSoundRouter).
+	&"save_failed": &"ui_invalid",
+	&"load_done": &"ui_campaign_saved",
 }
 
 var _last_reply_time: float = -INF
