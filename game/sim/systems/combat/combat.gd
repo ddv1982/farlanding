@@ -247,6 +247,9 @@ func damage(entity: Node3D, amount: float, damage_type: StringName, attacker: No
 	if health == null or health.is_dead() or is_inert(entity):
 		return 0.0
 	var source: Node3D = attacker if is_instance_valid(attacker) else null
+	# Custodians guard the machines: not even their splash harms one.
+	if source != null and is_machine(entity) and Factions.is_custodian(faction_of(source)):
+		return 0.0
 	var taken: float = health.take(
 		damage_table.apply(amount, damage_type, health.armour_type), source
 	)

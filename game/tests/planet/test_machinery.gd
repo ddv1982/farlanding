@@ -294,6 +294,9 @@ func test_custodians_never_shoot_an_engine() -> void:
 		Factions.CUSTODIANS, warden.sim_position(), 20.0
 	)
 	assert_null(picked, "but it guards the machines")
+	var before: float = engine.health.current
+	assert_eq(_f.world.combat.damage(engine, 50.0, &"light", warden), 0.0, "nor does its splash")
+	assert_eq(engine.health.current, before)
 
 
 func test_perks_speed_the_work_sturdy_the_engine_and_quiet_the_approach() -> void:
