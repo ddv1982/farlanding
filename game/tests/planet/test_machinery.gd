@@ -370,3 +370,11 @@ func test_draining_their_progress_does_not_hand_it_to_us() -> void:
 		ticks += 1
 	assert_eq(engine.machine.claimant, 0, "their work is used up")
 	assert_lt(engine.machine.progress, 0.1, "and ours starts from nothing")
+
+
+func test_an_engine_cannot_be_sabotaged() -> void:
+	var engine: Building = _engine()
+	_start()
+	_run_for(engine, 1)
+	_f.tick(2)
+	assert_false(Saboteur.can_sabotage(engine, 0), "it would stay dead for whoever took it")
