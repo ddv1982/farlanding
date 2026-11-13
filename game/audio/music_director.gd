@@ -17,6 +17,12 @@ extends Node
 ## Beds: `play_bed` loops a separate stream (the briefing or debrief bed) on
 ## the Music bus and dips the score under it; `stop_bed` fades it out and
 ## brings the score back.
+##
+## Variants (Phase 6): layers that share a `layer_groups` name take turns, one
+## per loop (`loop_beats`), picked at random without repeating the last; the
+## others in the group are silent. The change lands on the loop boundary.
+## `at_next_beat` runs an action on the next beat of the grid (transition
+## hits); `dip_for` lowers the score briefly under a sting.
 
 const MUSIC_BUS: StringName = &"Music"
 const AMBIENCE_BUS: StringName = &"Ambience"
@@ -45,6 +51,14 @@ var _bed_level: float = 0.0
 var _bed_target: float = 0.0
 var _score_dip_db: float = 0.0
 var _score_dip_target_db: float = 0.0
+## Variant group -> layer index (in the playing clip) that sounds this loop.
+var _variant: Dictionary[StringName, int] = {}
+var _next_variant_change: float = INF
+var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## Actions waiting for a beat: [[time, Callable], ...].
+var _on_beat: Array = []
+var _sting_dip_db: float = 0.0
+var _sting_dip_until: float = -INF
 
 
 func _ready() -> void:
@@ -68,6 +82,9 @@ func _process(delta: float) -> void:
 	if _clip < 0:
 		return
 	var now: float = _now()
+	_run_beat_actions(now)
+	if now >= _next_variant_change:
+		rotate_variants()
 	var due: StringName = _blender.poll(now)
 	if due != &"":
 		_apply(due)
@@ -94,11 +111,13 @@ func play_score(new_score: MusicScore, ambience: AudioStream = null) -> void:
 		_interactive.initial_clip = maxi(score.clip_index(start.clip), 0)
 	_clip = _interactive.initial_clip
 	_started_at = _now()
+	_pick_variants(true)
 	_blender.request(score.default_state, 0 if start == null else start.intensity, _now())
 	_apply(score.default_state, true)
 	_blender.snap()
 	_process(0.0)
 	_player.play()
+	_schedule_variant_change()
 	if ambience != null:
 		_ambience.stream = ambience
 		_ambience.volume_db = AudioMix.SILENT_DB
@@ -145,6 +164,40 @@ func set_layer_gain(layer_name: StringName, gain_db: float) -> void:
 
 func layer_gain_db(layer_name: StringName) -> float:
 	return _layer_gains.get(layer_name, 0.0)
+
+
+## Picks the next variant of every group (at a loop boundary) and applies it.
+func rotate_variants() -> void:
+	_pick_variants(false)
+	_schedule_variant_change()
+	if score != null and _clip >= 0 and _blender.current_state != &"":
+		_apply(_blender.current_state, true)
+
+
+## Layer index sounding in variant group `group` (-1 if none), for tests.
+func variant_of(group: StringName) -> int:
+	return _variant.get(group, -1)
+
+
+## Runs `action` on the next beat of the score's grid (at once without a grid).
+func at_next_beat(action: Callable) -> void:
+	var now: float = _now()
+	var when: float = now
+	if score != null and score.bpm > 0.0:
+		when = next_boundary(now, _started_at, score.bpm, 1.0)
+	_on_beat.append([when, action])
+	_run_beat_actions(now)
+
+
+## Lowers the score by `dip_db` for `seconds` (a sting over it), then lets it back.
+func dip_for(seconds: float, dip_db: float) -> void:
+	_sting_dip_until = maxf(_sting_dip_until, _now() + seconds)
+	_sting_dip_db = minf(dip_db, 0.0)
+
+
+## Picks a variant index among `count` layers, never `last` twice in a row. Pure.
+static func pick_variant(count: int, last: int, roll: float) -> int:
+	return SoundEvent.pick_index(count, last, roll, true)
 
 
 ## Target volumes (dB) of the playing clip's layers, for tests and debugging.
@@ -246,14 +299,71 @@ func _state_volumes(state: MusicState, clip: MusicClip) -> PackedFloat32Array:
 		if i < clip.layer_names.size() and level > AudioMix.SILENT_DB:
 			var gain: float = _layer_gains.get(StringName(clip.layer_names[i]), 0.0)
 			level = AudioMix.SILENT_DB if gain <= AudioMix.SILENT_DB else level + gain
+		var group: StringName = _group_of(clip, i)
+		if group != &"" and _variant.get(group, i) != i:
+			level = AudioMix.SILENT_DB
 		volumes[i] = level
 	return volumes
+
+
+static func _group_of(clip: MusicClip, index: int) -> StringName:
+	if index < clip.layer_groups.size():
+		return StringName(clip.layer_groups[index])
+	return &""
+
+
+func _pick_variants(first: bool) -> void:
+	if score == null or _clip < 0:
+		return
+	var clip: MusicClip = score.clips[_clip]
+	var members: Dictionary[StringName, Array] = {}
+	for i: int in clip.layers.size():
+		var group: StringName = _group_of(clip, i)
+		if group != &"":
+			if not members.has(group):
+				members[group] = []
+			members[group].append(i)
+	for group: StringName in members:
+		var layers: Array = members[group]
+		var last: int = layers.find(_variant.get(group, -1))
+		# The first loop of a score plays the original (first) layer of each group.
+		var pick: int = 0 if first else pick_variant(layers.size(), last, _rng.randf())
+		_variant[group] = layers[pick]
+
+
+func _schedule_variant_change() -> void:
+	_next_variant_change = INF
+	if score == null or _clip < 0 or score.bpm <= 0.0:
+		return
+	var beats: int = score.clips[_clip].loop_beats
+	if beats <= 0:
+		return
+	var now: float = _now()
+	var span: float = beats * 60.0 / score.bpm
+	_next_variant_change = next_boundary(now + 0.01, _started_at, score.bpm, float(beats))
+	if _next_variant_change - now < 0.01:
+		_next_variant_change += span
+
+
+func _run_beat_actions(now: float) -> void:
+	var waiting: Array = []
+	for entry: Array in _on_beat:
+		var when: float = entry[0]
+		if now >= when:
+			var action: Callable = entry[1]
+			action.call()
+		else:
+			waiting.append(entry)
+	_on_beat = waiting
 
 
 func _step_bed(delta: float) -> void:
 	var rate: float = BED_FADE_IN if _bed_target > _bed_level else BED_FADE_OUT
 	_bed_level = move_toward(_bed_level, _bed_target, delta / rate)
-	_score_dip_db = move_toward(_score_dip_db, _score_dip_target_db, DIP_DB_PER_SECOND * delta)
+	var target: float = _score_dip_target_db
+	if _now() < _sting_dip_until:
+		target = minf(target, _sting_dip_db)
+	_score_dip_db = move_toward(_score_dip_db, target, DIP_DB_PER_SECOND * delta)
 	if _bed.playing:
 		_bed.volume_db = AudioMix.linear_to_db_safe(_bed_level)
 		if _bed_level <= 0.0 and _bed_target <= 0.0:

@@ -30,6 +30,9 @@ var event_seconds: Callable = func(_id: StringName) -> float: return 1.5
 ## Where an Advisor alert raised by gameplay happened, if known:
 ## `func(kind: StringName) -> Vector3` (Vector3.INF when unknown).
 var alert_position: Callable = func(_kind: StringName) -> Vector3: return Vector3.INF
+## Called with each Advisor kind as its phrase starts: `func(kind: StringName) -> void`
+## (the AudioService raises the score's urgency layer on under_attack).
+var on_alert_played: Callable = func(_kind: StringName) -> void: pass
 ## Listener focus on the ground; set by the AudioService.
 var focus: Vector3 = Vector3.INF
 
@@ -67,6 +70,7 @@ func pump_advisor(now: float) -> StringName:
 	if played != &"":
 		seconds = event_seconds.call(played)
 	_advisor.started(now, seconds)
+	on_alert_played.call(kind)
 	return kind
 
 

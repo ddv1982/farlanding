@@ -21,6 +21,7 @@ const SCAN_LOOP: StringName = &"scan_loop"
 const SCAN_CUT: StringName = &"scan_interrupted"
 const CODEX_ENTRY: StringName = &"ui_codex_entry"
 const INTEL_TICK: StringName = &"ui_intel_tick"
+const ENEMY_INTEL: StringName = &"discovery_enemy_intel"
 const ANTECEDENT_SWELL: StringName = &"mus_swell_antecedent"
 const ANTECEDENT: StringName = &"antecedent"
 ## Every discovery type has its phrase `discovery_resolve_<type>`; an unknown

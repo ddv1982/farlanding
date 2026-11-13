@@ -24,6 +24,8 @@ static func create(def: ObjectiveDef) -> Objective:
 			objective = ScanSitesObjective.new()
 		ObjectiveDef.TYPE_SABOTAGE:
 			objective = SabotageObjective.new()
+		ObjectiveDef.TYPE_RIVAL_INTEL:
+			objective = RivalIntelObjective.new()
 		_:
 			push_error("ObjectiveFactory: unknown objective type '%s'" % def.type)
 			return null

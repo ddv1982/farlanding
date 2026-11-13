@@ -148,6 +148,16 @@ func test_storm_follows_the_deadline() -> void:
 	assert_eq(_played, [&"mus_storm_minute", &"mus_storm_countdown"] as Array[StringName])
 
 
+func test_the_final_storm_warning_leaves_the_countdown_to_the_deadline() -> void:
+	var survey: FakeObjective = _objective(&"bank_intel")
+	survey.countdown_tick = 1000
+	_router.handle_objective_added(survey)
+	var rate: int = SimClock.TICK_RATE
+	_router.handle_sim_ticked(1000 - 60 * rate)
+	assert_eq(_router.handle_advisor_alert(&"storm_final", 0.0), &"", "a minute out is too early")
+	assert_eq(_router.handle_sim_ticked(1000 - 10 * rate), &"mus_storm_countdown")
+
+
 func test_a_survive_timer_is_not_a_storm() -> void:
 	var hold: FakeObjective = _objective(&"hold")
 	hold.countdown_tick = 100
@@ -169,9 +179,37 @@ func test_beating_the_deadline_clears_the_storm() -> void:
 
 func test_storm_alerts_as_a_fallback() -> void:
 	assert_eq(_router.handle_advisor_alert(&"objective_time_low", 0.0), &"mus_storm_minute")
-	assert_eq(_router.handle_advisor_alert(&"storm_warning", 5.0), &"", "too soon to be the final")
-	assert_eq(_router.handle_advisor_alert(&"storm_warning", 50.0), &"mus_storm_countdown")
+	assert_eq(
+		_router.handle_advisor_alert(&"objective_time_low", 5.0), &"", "too soon to be the final"
+	)
+	assert_eq(_router.handle_advisor_alert(&"objective_time_low", 50.0), &"mus_storm_countdown")
 	assert_eq(_router.handle_advisor_alert(&"storm_final", 55.0), &"")
+
+
+func test_weather_storm_warning_is_not_a_deadline() -> void:
+	# Phase 6: storm_warning is the weather's (StormSound); the Advisor voices
+	# it, but it must not start the Survey deadline stages.
+	assert_eq(_router.handle_advisor_alert(&"storm_warning", 0.0), &"")
+	assert_eq(_router.storm_stage(), 0)
+	assert_true(_storm_gain.is_empty() or _storm_gain[-1] == AudioMix.SILENT_DB)
+
+
+func test_menu_theme_under_the_mission_select() -> void:
+	_router.handle_ui_feedback(&"menu_open", 0.0)
+	assert_eq(_beds[-1], MissionSoundRouter.MENU_THEME)
+	assert_lt(_bed_ducks[-1], -30.0, "the score all but stops under the theme")
+	assert_true(_router.is_menu_open())
+	_router.handle_ui_feedback(&"menu_close", 1.0)
+	assert_eq(_bed_stops, 1)
+	_router.handle_ui_feedback(&"menu_close", 2.0)
+	assert_eq(_bed_stops, 1, "a second close does not stop someone else's bed")
+
+
+func test_mission_start_ends_the_menu_theme() -> void:
+	_router.handle_ui_feedback(&"menu_open", 0.0)
+	_router.handle_mission_started(1.0)
+	assert_false(_router.is_menu_open())
+	assert_eq(_bed_stops, 1)
 
 
 func test_storm_final_alert() -> void:

@@ -59,8 +59,12 @@ var combat: Combat = null
 var heights: HeightField = null
 ## Wall-clock cost of the last tick, in microseconds.
 var last_tick_usec: int = 0
+## Sight blockers (props), world X/Z rectangles: nothing is noticed through them.
+var occluders: Array[Rect2] = []
 
 var _tick: int = 0
+## True while some watcher's suspicion has not calmed down yet.
+var _watchers_uneasy: bool = false
 var _levels: Dictionary[int, StringName] = {}
 ## Per guard faction: sim tick of the last thing noticed (the quiet period starts there).
 var _last_noticed_tick: Dictionary[int, int] = {}
@@ -146,6 +150,13 @@ func tick(tick_number: int, dt: float, units: Array[Unit]) -> void:
 	for unit: Unit in units:
 		if not unit.is_dead and unit.signature < 1.0:
 			stealthy_factions[unit.faction] = true
+	if guard_factions.is_empty() and stealthy_factions.is_empty() and not _watchers_uneasy:
+		# Nobody hides and nobody keeps a meter (a plain Conquest fight): nothing to do.
+		if tick_number % 50 == 0:
+			_forget_freed()
+		last_tick_usec = Time.get_ticks_usec() - started
+		return
+	_watchers_uneasy = false
 	for unit: Unit in units:
 		var watcher: Watcher = unit.watcher
 		if watcher == null or unit.is_dead or unit.is_dormant:
@@ -162,6 +173,7 @@ func tick(tick_number: int, dt: float, units: Array[Unit]) -> void:
 		if not anyone:
 			watcher.focus = null
 		_update_watcher(unit, found, dt)
+		_watchers_uneasy = _watchers_uneasy or watcher.suspicion > 0.0
 	for faction: int in guard_factions:
 		_step_down(faction)
 	if tick_number % 50 == 0:
@@ -209,8 +221,16 @@ static func in_cone(watcher: Unit, point: Vector3) -> bool:
 	return forward.angle_to(offset) <= deg_to_rad(angle) * 0.5
 
 
-## True unless terrain rises between an eye at `from` and a target at `to`.
+## Sets the props that block sight (world X/Z footprints).
+func set_occluders(rects: Array[Rect2]) -> void:
+	occluders = rects.duplicate()
+
+
+## True unless terrain rises, or a sight-blocking prop stands, between an eye at
+## `from` and a target at `to`.
 func has_line_of_sight(from: Vector3, to: Vector3) -> bool:
+	if not occluders.is_empty() and _blocked_by_prop(from, to):
+		return false
 	if heights == null:
 		return true
 	var start: Vector3 = Vector3(from.x, heights.sample(from.x, from.z) + EYE_HEIGHT, from.z)
@@ -219,6 +239,42 @@ func has_line_of_sight(from: Vector3, to: Vector3) -> bool:
 	for i: int in range(1, steps):
 		var point: Vector3 = start.lerp(end, float(i) / steps)
 		if heights.sample(point.x, point.z) > point.y:
+			return false
+	return true
+
+
+## True if the ground segment `from` -> `to` passes through a sight blocker (one the
+## target stands inside does not count: it is up against it, in plain view on top).
+func _blocked_by_prop(from: Vector3, to: Vector3) -> bool:
+	var start: Vector2 = Vector2(from.x, from.z)
+	var end: Vector2 = Vector2(to.x, to.z)
+	var bounds: Rect2 = Rect2(start, Vector2.ZERO).expand(end)
+	for rect: Rect2 in occluders:
+		if not rect.intersects(bounds, true) or rect.has_point(end) or rect.has_point(start):
+			continue
+		if _segment_hits_rect(start, end, rect):
+			return true
+	return false
+
+
+static func _segment_hits_rect(start: Vector2, end: Vector2, rect: Rect2) -> bool:
+	var delta: Vector2 = end - start
+	var t_in: float = 0.0
+	var t_out: float = 1.0
+	for axis: int in 2:
+		var origin: float = start[axis]
+		var step: float = delta[axis]
+		var low: float = rect.position[axis]
+		var high: float = rect.end[axis]
+		if absf(step) < 0.000001:
+			if origin < low or origin > high:
+				return false
+			continue
+		var t1: float = (low - origin) / step
+		var t2: float = (high - origin) / step
+		t_in = maxf(t_in, minf(t1, t2))
+		t_out = minf(t_out, maxf(t1, t2))
+		if t_in > t_out:
 			return false
 	return true
 

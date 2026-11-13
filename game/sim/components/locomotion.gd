@@ -43,8 +43,12 @@ var _reported_speed: float = 0.0
 var _repaths: int = 0
 var _facing: bool = false
 var _face_point: Vector3 = Vector3.ZERO
+var _agent_priority: float = -1.0
+var _agent_position: Vector3 = Vector3.INF
+var _agent_velocity: Vector3 = Vector3.INF
 var _base_speed: float = INF
 var _speed_limit: float = INF
+var _speed_scale: float = 1.0
 
 
 ## Configures the component from a definition and places it. Call once after the
@@ -57,7 +61,7 @@ func setup(
 	heights: HeightField,
 ) -> void:
 	_base_speed = def.move_speed
-	mover.max_speed = minf(def.move_speed, _speed_limit)
+	mover.max_speed = _top_speed()
 	mover.acceleration = def.acceleration
 	mover.turn_speed = deg_to_rad(def.turn_speed)
 	radius = def.radius
@@ -97,7 +101,27 @@ func follow_path(path: PackedVector3Array) -> bool:
 ## a unit creeps in stealth mode.
 func set_speed_limit(limit: float) -> void:
 	_speed_limit = limit
-	mover.max_speed = minf(_base_speed, limit)
+	_apply_top_speed()
+
+
+## Scales the top speed (a dust storm slows everyone); 1 = normal.
+func set_speed_scale(scale: float) -> void:
+	if is_equal_approx(scale, _speed_scale):
+		return
+	_speed_scale = maxf(scale, 0.05)
+	_apply_top_speed()
+
+
+func get_speed_scale() -> float:
+	return _speed_scale
+
+
+func _top_speed() -> float:
+	return minf(_base_speed, _speed_limit) * _speed_scale
+
+
+func _apply_top_speed() -> void:
+	mover.max_speed = _top_speed()
 	if _agent.is_valid():
 		NavigationServer3D.agent_set_max_speed(_agent, mover.max_speed)
 
@@ -269,6 +293,9 @@ func _create_agent(def: UnitDef) -> void:
 	NavigationServer3D.agent_set_time_horizon_agents(_agent, 0.8)
 	NavigationServer3D.agent_set_avoidance_priority(_agent, PRIORITY_IDLE)
 	NavigationServer3D.agent_set_position(_agent, mover.position)
+	_agent_priority = PRIORITY_IDLE
+	_agent_position = mover.position
+	_agent_velocity = Vector3.ZERO
 	NavigationServer3D.agent_set_avoidance_callback(_agent, _on_safe_velocity)
 	NavigationServer3D.agent_set_avoidance_enabled(_agent, true)
 	NavigationServer3D.agent_set_map(_agent, map)
@@ -277,12 +304,18 @@ func _create_agent(def: UnitDef) -> void:
 func _update_agent() -> void:
 	if not _agent.is_valid():
 		return
-	NavigationServer3D.agent_set_position(_agent, mover.position)
+	# Only tell the server what changed: most units stand still most of the time.
+	if mover.position != _agent_position:
+		_agent_position = mover.position
+		NavigationServer3D.agent_set_position(_agent, mover.position)
 	var moving: bool = mover.has_path()
-	NavigationServer3D.agent_set_avoidance_priority(
-		_agent, PRIORITY_MOVING if moving else PRIORITY_IDLE
-	)
-	NavigationServer3D.agent_set_velocity(_agent, mover.velocity)
+	var priority: float = PRIORITY_MOVING if moving else PRIORITY_IDLE
+	if priority != _agent_priority:
+		_agent_priority = priority
+		NavigationServer3D.agent_set_avoidance_priority(_agent, priority)
+	if mover.velocity != _agent_velocity:
+		_agent_velocity = mover.velocity
+		NavigationServer3D.agent_set_velocity(_agent, mover.velocity)
 	if not moving:
 		_has_safe_velocity = false
 

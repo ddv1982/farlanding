@@ -84,6 +84,19 @@ extends Resource
 @export_range(0.0, 5.0, 0.05) var attack_weight: float = 1.0
 ## Alloy kept back for economy steps before army units are bought.
 @export_range(0, 5000, 10) var economy_reserve: int = 100
+@export_group("Weather")
+## What the commander does about a dust storm (public knowledge: everyone sees it
+## coming). &"hold": no new waves while one blows or is about to, and a wave out in
+## the open is called home when it hits. &"press": the next wave leaves as the storm
+## arrives, even under strength, using the cover.
+@export_enum("hold", "press") var storm_tactic: String = "hold"
+@export_group("Survey")
+## Unit that scans discovery sites for the faction's Intel (null = it never scans).
+@export var surveyor: UnitDef
+## How many units of `surveyor` are kept scanning (extra ones are made at the HQ).
+@export_range(0, 10, 1) var surveyors_wanted: int = 0
+## Scanning starts this long after the mission began.
+@export_range(0.0, 1200.0, 5.0, "suffix:s") var survey_after_seconds: float = 45.0
 @export_group("Difficulty")
 @export var easy: CommanderDifficulty
 @export var normal: CommanderDifficulty

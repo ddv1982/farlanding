@@ -1,5 +1,7 @@
 [gd_resource type="Resource" script_class="MissionDef" format=3]
 
+[ext_resource type="Resource" path="res://data/planets/kessel_reach.tres" id="planet"]
+[ext_resource type="Resource" path="res://data/maps/infiltration_outpost.tres" id="outpost"]
 [ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
 [ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e1"]
 [ext_resource type="Script" path="res://core/defs/patrol_route.gd" id="e2"]
@@ -139,6 +141,7 @@ mission_type = &"infiltration"
 summary = "No base. Slip a Wisp squad past the outpost's patrols and sabotage its uplink."
 briefing = "The Combine outpost in the north-east relays everything it finds to their fleet. We want it deaf, and we do not want them to know who did it.\n\nYou have three Wisps and a Surveyor, dropped at the far side of the basin. No base, no reinforcements. In stealth mode Wisps creep and cloak; guards only notice them close up and inside their sight cones, and not at once. Sabotage the uplink (the outpost's Hub), then get the squad out.\n\nIf they raise the alarm the job is not over, but it changes: more drones arrive, the pick-up moves to the far west and the clock starts."
 map_scene = ExtResource("e9")
+planet = ExtResource("planet")
 player_start = Vector3(-78, 0, 80)
 player_facing = Vector3(1, 0, -1)
 player_roster = Array[ExtResource("e5")]([ExtResource("e10"), ExtResource("e10"), ExtResource("e10"), ExtResource("e11")])
@@ -155,3 +158,4 @@ objectives = Array[ExtResource("e4")]([SubResource("s7"), SubResource("s5"), Sub
 mission_script = ExtResource("e15")
 script_rules = SubResource("s6")
 camera_start = Vector3(-78, 0, 80)
+props = ExtResource("outpost")

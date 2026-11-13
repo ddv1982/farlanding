@@ -27,6 +27,8 @@ var player_faction: int = 0
 var stealth: StealthSystem = null
 ## Wall-clock cost of the last faction update (grid plus applying the view), in µs.
 var last_update_usec: int = 0
+## Every unit's and building's vision range is multiplied by this (a dust storm).
+var range_scale: float = 1.0
 
 var _factions: Array[int] = []
 ## Per faction: exposed entity -> sim tick its exposure ends.
@@ -84,10 +86,10 @@ func update_faction(
 	grid.begin_update(faction)
 	for unit: Unit in units:
 		if unit.faction == faction and not unit.is_dead and unit.def != null:
-			grid.reveal(faction, unit.sim_position(), unit.def.vision_range)
+			grid.reveal(faction, unit.sim_position(), unit.def.vision_range * range_scale)
 	for building: Building in buildings:
 		if building.faction == faction and not building.is_dead and building.def != null:
-			grid.reveal(faction, building.position, building.def.vision_range)
+			grid.reveal(faction, building.position, building.def.vision_range * range_scale)
 	_reveal_exposed(faction)
 	_reveal_timed(faction)
 	grid.end_update(faction)

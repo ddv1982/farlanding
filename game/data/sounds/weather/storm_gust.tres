@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_gust_1.ogg" id="2_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_gust_2.ogg" id="3_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_gust_3.ogg" id="4_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_gust_4.ogg" id="5_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"storm_gust"
+streams = Array[AudioStream]([ExtResource("2_stream"), ExtResource("3_stream"), ExtResource("4_stream"), ExtResource("5_stream")])
+bus = &"Weather"
+priority = 35
+max_instances = 2
+cooldown = 1.5
+positional = false
+max_distance = 0.0

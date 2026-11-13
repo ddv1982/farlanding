@@ -30,6 +30,8 @@ const REPATH_TICKS: int = 10
 const REPATH_MOVE: float = 2.0
 ## Height above the target's origin to aim at, in metres.
 const AIM_HEIGHT: float = 1.0
+## A unit backing out of its minimum range walks this far past it.
+const BACK_OFF_SLACK: float = 3.0
 
 ## The order being carried out, or null when idle.
 var current: Order = null
@@ -38,6 +40,9 @@ var queue: Array[Order] = []
 ## Distance from a target at which this unit stops and fires (weapon range minus a
 ## margin; set by the unit).
 var engage_distance: float = AttackCommand.ENGAGE_RANGE
+## Artillery cannot hit closer than this (its minimum range plus a margin): an attack
+## whose target is nearer backs away first; 0 = no minimum (set by the unit).
+var min_engage_distance: float = 0.0
 ## `func(target: Variant) -> bool`: may this unit's faction shoot `target` now
 ## (alive, hostile, seen)? Unset: any live target counts.
 var can_target: Callable = Callable()
@@ -269,7 +274,14 @@ func _tick_attack() -> void:
 	var distance: float = (
 		Vector2(target_position.x - position.x, target_position.z - position.z).length()
 	)
-	var engage_range: float = current.engage_offset.length()
+	var engage_range: float = minf(
+		current.engage_offset.length(), engage_distance + AttackCommand.body_radius(target)
+	)
+	if min_engage_distance > 0.0:
+		var inner: float = min_engage_distance + AttackCommand.body_radius(target)
+		if distance < inner:
+			_back_away(target_position, position, inner)
+			return
 	if current.leash > 0.0:
 		var from_guard: float = (
 			Vector2(target_position.x - current.guard.x, target_position.z - current.guard.z)
@@ -279,14 +291,24 @@ func _tick_attack() -> void:
 			_advance()
 			return
 	if distance <= engage_range + (LEASH if _engaged else ENGAGE_SLACK):
-		if not _engaged and _heading_to_engage_spot(target_position, engage_range):
-			# Let it brake onto its spot; a hard stop here would slide fast units in.
-			return
-		if not _engaged:
-			_engaged = true
-			_locomotion.stop()
-		_locomotion.face(target_position)
+		_hold(target_position, engage_range)
 		return
+	_approach(target_position, engage_range)
+
+
+## In reach: stop on the spot and face the target while the weapon fires.
+func _hold(target_position: Vector3, engage_range: float) -> void:
+	if not _engaged and _heading_to_engage_spot(target_position, engage_range):
+		# Let it brake onto its spot; a hard stop here would slide fast units in.
+		return
+	if not _engaged:
+		_engaged = true
+		_locomotion.stop()
+	_locomotion.face(target_position)
+
+
+## Out of reach: (re)plan a path to a spot `engage_range` from the target.
+func _approach(target_position: Vector3, engage_range: float) -> void:
 	_engaged = false
 	_repath_ticks -= 1
 	if _repath_ticks > 0:
@@ -294,8 +316,37 @@ func _tick_attack() -> void:
 	if not _locomotion.is_travelling() or _path_target.distance_to(target_position) > REPATH_MOVE:
 		_path_target = target_position
 		_repath_ticks = REPATH_TICKS
-		var goal: Vector3 = _locomotion.paths.closest_point(target_position + current.engage_offset)
+		var offset: Vector3 = current.engage_offset
+		if offset.length() > engage_range:
+			offset = offset.normalized() * engage_range
+		var goal: Vector3 = _locomotion.paths.closest_point(target_position + offset)
 		_locomotion.move_to(goal)
+
+
+## The target is inside the minimum range: walk straight away from it until it can be
+## hit (artillery), instead of standing there unable to fire.
+func _back_away(target_position: Vector3, position: Vector3, inner: float) -> void:
+	_engaged = false
+	var away: Vector3 = position - target_position
+	away.y = 0.0
+	if away.length_squared() < 0.01:
+		away = (
+			current.engage_offset if current.engage_offset.length_squared() > 0.01 else Vector3.BACK
+		)
+	var goal: Vector3 = _locomotion.paths.closest_point(
+		target_position + away.normalized() * (inner + BACK_OFF_SLACK)
+	)
+	_repath_ticks -= 1
+	if _locomotion.is_travelling() and _repath_ticks > 0:
+		return
+	if (
+		_locomotion.is_travelling()
+		and _locomotion.get_destination().distance_to(goal) < REPATH_MOVE
+	):
+		return
+	_repath_ticks = REPATH_TICKS
+	_path_target = Vector3.INF
+	_locomotion.move_to(goal)
 
 
 ## True while travelling to a spot at about `engage_range` from the target.

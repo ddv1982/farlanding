@@ -5,7 +5,8 @@ extends Node3D
 ##
 ## Pan: WASD or arrows, screen edges, middle-mouse drag. Zoom: mouse wheel. Rotate:
 ## Q/E. The focus is clamped to `bounds`. Every frame it reports the focus and zoom to
-## the Audio listener.
+## the Audio listener. The player's settings switch edge-pan off and scale the pan
+## speed (`Settings.edge_pan`, `Settings.pan_speed`).
 
 ## Map area (world X/Z) the focus may move within.
 @export var bounds: Rect2 = Rect2(-105.0, -105.0, 210.0, 210.0)
@@ -104,7 +105,7 @@ func _process(delta: float) -> void:
 	pan = pan.limit_length(1.0)
 	if pan != Vector2.ZERO:
 		var screen_height_m: float = _metres_per_pixel() * get_viewport().get_visible_rect().size.y
-		var step: float = pan_speed * screen_height_m * delta
+		var step: float = pan_speed * Settings.pan_speed * screen_height_m * delta
 		_focus += (_right() * pan.x + _forward() * pan.y) * step
 		_clamp_focus()
 	var turn: float = Input.get_axis(&"camera_rotate_right", &"camera_rotate_left")
@@ -158,7 +159,7 @@ func _apply() -> void:
 
 
 func _edge_pan() -> Vector2:
-	if not edge_scroll_enabled or not _mouse_inside or _dragging:
+	if not edge_scroll_enabled or not Settings.edge_pan or not _mouse_inside or _dragging:
 		return Vector2.ZERO
 	# An unfocused window (e.g. the game embedded in the editor while you work
 	# elsewhere) must not scroll just because the cursor rests near its edge.

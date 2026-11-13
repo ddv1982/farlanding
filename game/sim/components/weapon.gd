@@ -17,6 +17,8 @@ signal fired(target: Node3D)
 const SAVE_VERSION: int = 1
 ## Ticks between looks for a new target.
 const ACQUIRE_PERIOD: int = 3
+## The aim is announced again only once the aim point moved this far (metres).
+const AIM_ANNOUNCE_STEP: float = 0.2
 ## Cooldown left below this counts as ready (absorbs float drift of 0.1 s steps).
 const READY_EPSILON: float = 0.001
 
@@ -38,6 +40,7 @@ var cooldown_left: float = 0.0
 
 var _aiming: bool = false
 var _stagger: int = 0
+var _announced_aim: Vector3 = Vector3.INF
 
 
 func setup(p_def: WeaponDef, p_carrier: Node3D, p_faction: int, p_combat: Combat) -> void:
@@ -72,6 +75,7 @@ func tick(
 			aim_yaw = body_yaw
 		if _aiming:
 			_aiming = false
+			_announced_aim = Vector3.INF
 			aim_cleared.emit()
 		return
 	var point: Vector3 = aim_point(target)
@@ -81,7 +85,10 @@ func tick(
 	else:
 		aim_yaw = body_yaw
 	_aiming = true
-	aim_changed.emit(point)
+	# Visuals ease toward the aim point; re-announcing a still target each tick is waste.
+	if _announced_aim.distance_squared_to(point) > AIM_ANNOUNCE_STEP * AIM_ANNOUNCE_STEP:
+		_announced_aim = point
+		aim_changed.emit(point)
 	var aligned: bool = absf(angle_difference(aim_yaw, wanted)) <= deg_to_rad(def.fire_arc)
 	if may_fire and aligned and cooldown_left <= READY_EPSILON and combat != null:
 		_fire(position, point)
@@ -91,7 +98,17 @@ func tick(
 ## inside its minimum range).
 func in_range(entity: Node3D, position: Vector3) -> bool:
 	var reach: float = Combat.reach_to(entity, position)
-	return reach <= def.max_range and reach >= def.min_range
+	return reach <= max_range() and reach >= def.min_range
+
+
+## How far it reaches now (a dust storm shortens long ranges).
+func max_range() -> float:
+	return combat.weapon_range(def) if combat != null else def.max_range
+
+
+## True if `entity` is closer than the weapon's minimum range (artillery).
+func too_close(entity: Node3D, position: Vector3) -> bool:
+	return def.min_range > 0.0 and Combat.reach_to(entity, position) < def.min_range
 
 
 ## Where to aim at `entity`: a metre above its origin.
@@ -138,7 +155,7 @@ func _choose(position: Vector3, ordered: Node3D, may_auto: bool, sight_reach: fl
 ## set to one within `sight_reach` beyond it.
 func _look(position: Vector3, sight_reach: float) -> Node3D:
 	var found: Node3D = combat.find_target(
-		faction, position, def.max_range + sight_reach, def.min_range
+		faction, position, max_range() + sight_reach, def.min_range
 	)
 	if found != null and not in_range(found, position):
 		sighted = found

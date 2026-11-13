@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PropDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/prop_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://assets/models/combine/combine_prop_tank.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_def")
+size = Vector3(2.8, 3.45, 2.8)
+max_health = 300
+armour_type = &"heavy"
+model = ExtResource("2_model")
+id = &"combine_prop_tank"
+display_name = "Fuel tank"
+description = "A Combine fuel tank. Tall cover; it bursts when shelled."
+faction = -1
+sound_set = &"prop_tank"

@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="MissionDef" format=3]
 
+[ext_resource type="Resource" path="res://data/planets/kessel_reach.tres" id="planet"]
 [ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
 [ext_resource type="Script" path="res://missions/objective_def.gd" id="e1"]
 [ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
@@ -66,14 +67,25 @@ kind = &"hidden"
 type = &"scan_sites"
 site_ids = Array[StringName]([&"kessel_sealed_cache"])
 
+[sub_resource type="Resource" id="s5"]
+script = ExtResource("e1")
+id = &"outsurvey"
+title = "Bank yours before the Combine banks 250"
+kind = &"primary"
+type = &"rival_intel"
+side = &"enemy"
+passive = true
+amount = 250
+
 [resource]
 script = ExtResource("e0")
 id = &"survey"
 title = "Before the Storm"
 mission_type = &"survey"
-summary = "Bank 300 Intel from the basin's signals before the dust storm closes in."
-briefing = "A dust storm is building over the Kessel basin and will bury every signal in it within fifteen minutes. The orbital scan shows a dozen unresolved contacts.\n\nScan them and bank 300 Intel before the storm arrives. Intel spent at the Survey Lab no longer counts, so spend it only if it buys you time. The Combine does not want us here: expect raiders after your Surveyors and your base, not a war."
+summary = "Race the Combine for the basin's signals: bank 300 Intel before the storm."
+briefing = "A dust storm is building over the Kessel basin and will bury every signal in it within fifteen minutes. The orbital scan shows a dozen unresolved contacts.\n\nScan them and bank 300 Intel before the storm arrives. Intel spent at the Survey Lab no longer counts, so spend it only if it buys you time. The Combine does not want us here: expect raiders after your Surveyors and your base, not a war.\n\nThey are surveying too: their Riggers scan the same signals for the Combine. If they bank 250 Intel before you bank yours, the basin is theirs. Riggers are unarmed and must walk to every site."
 map_scene = ExtResource("e4")
+planet = ExtResource("planet")
 player_hq = ExtResource("e2")
 player_start = Vector3(-80, 0, 85)
 player_roster = Array[ExtResource("e8")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e7")])
@@ -86,4 +98,5 @@ hostile_roster = Array[ExtResource("e8")]([ExtResource("e13"), ExtResource("e13"
 hostile_start = Vector3(56, 0, -84)
 commander_profile = ExtResource("e17")
 enemy_difficulty = "normal"
-objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3"), SubResource("s4")])
+climax_objective = &"bank_intel"
+objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s5"), SubResource("s2"), SubResource("s3"), SubResource("s4")])

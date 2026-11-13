@@ -45,3 +45,26 @@ func alert_position() -> Vector3:
 	if world.stealth == null:
 		return Vector3.INF
 	return world.stealth.alert_position(faction)
+
+
+func storm_intensity() -> float:
+	return world.conditions.storm_intensity
+
+
+func storm_eta_seconds() -> float:
+	return world.conditions.storm_eta_seconds
+
+
+func storm_is_final() -> bool:
+	return world.conditions.storm_is_final
+
+
+## Sites on the orbital scan (charted for everyone) that nobody resolved yet.
+func open_sites() -> Array[Node3D]:
+	var found: Array[Node3D] = []
+	if world.discovery == null:
+		return found
+	for site: DiscoverySite in world.discovery.sites:
+		if site.can_be_scanned():
+			found.append(site)
+	return found

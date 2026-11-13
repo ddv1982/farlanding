@@ -3,7 +3,8 @@ extends Node3D
 ## Kessel Reach proving ground: the map, not the mission. It builds the terrain data,
 ## wires the mission services (world, combat, fog of war), places the Alloy deposits
 ## and Flux vents, charts the discovery sites the orbital scan found (a chain's later
-## steps stay hidden until led to) and posts the dormant Custodian Wardens. Then the
+## steps stay hidden until led to), posts the dormant Custodian Wardens and scatters
+## the map's natural cover (boulders, `prop_layout`). Then the
 ## MissionDef in `mission` supplies the forces and rules through a Mission node
 ## (missions/mission.gd): who lands where, the enemy, objectives, script. Without one
 ## it plays the default mission, so the scene also runs on its own.
@@ -48,6 +49,9 @@ const LANDING_ZONE: Vector3 = Vector3(-80.0, 0.0, 85.0)
 ## Dormant Custodians, one position per entry of `custodian_positions`.
 @export var custodian_roster: Array[UnitDef] = []
 @export var custodian_positions: PackedVector3Array = PackedVector3Array()
+@export_group("Props")
+## Natural cover every mission on this map has (boulders); the mission adds its own.
+@export var prop_layout: PropLayout
 @export_group("Enemy AI")
 ## Prints the commander's notable decisions to the output (play-testing).
 @export var log_enemy_ai: bool = false
@@ -87,6 +91,7 @@ func _ready() -> void:
 	_spawn_nodes(deposit, deposit_positions)
 	_spawn_nodes(rich_deposit, rich_deposit_positions)
 	_spawn_nodes(vent, vent_positions)
+	_spawn_props()
 	if mission != null:
 		runner = Mission.new()
 		runner.name = &"Mission"
@@ -149,6 +154,14 @@ func _spawn_sites() -> void:
 		if def != null:
 			var charted: bool = not Discovery.is_led_to(discoveries, def.id)
 			world.spawn_site(def, discovery_positions[i], charted)
+
+
+func _spawn_props() -> void:
+	if prop_layout == null:
+		return
+	for placement: PropPlacement in prop_layout.placements:
+		if placement != null and placement.def != null:
+			world.spawn_prop(placement.def, placement.position, placement.quarter_turns)
 
 
 func _spawn_nodes(def: ResourceNodeDef, positions: PackedVector3Array) -> void:

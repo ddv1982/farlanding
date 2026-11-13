@@ -3,9 +3,10 @@ extends Node
 ## Gives a running mission its look on the map (the glue between missions/sim and the
 ## presentation pieces): an ObjectiveMarker for every known objective with an area
 ## (following its state and moves), a SightConeVisual on every watcher of a faction
-## with an alert meter (fed with its suspicion and alert each frame; hidden with the
-## unit when the player cannot see it) and the cloak shimmer on the player's own
-## cloaked units. Reads the simulation, never changes it.
+## with an alert meter (fed with its suspicion and alert each frame, shrinking with a
+## dust storm's sight factor; hidden with the unit when the player cannot see it) and
+## the cloak shimmer on the player's own cloaked units. Reads the simulation, never
+## changes it.
 
 ## How fast the cloak look fades in and out, per second.
 const CLOAK_FADE: float = 3.0
@@ -17,6 +18,7 @@ var player_faction: int = 0
 
 var _markers: Dictionary[Objective, ObjectiveMarker] = {}
 var _cones: Dictionary[Unit, SightConeVisual] = {}
+var _cone_ranges: Dictionary[Unit, float] = {}
 var _cloaks: Dictionary[Unit, float] = {}
 
 
@@ -37,6 +39,7 @@ func _process(delta: float) -> void:
 	for unit: Variant in _cones.keys():
 		if not is_instance_valid(unit):
 			_cones.erase(unit)
+			_cone_ranges.erase(unit)
 			continue
 		var watcher: Unit = unit
 		var cone: SightConeVisual = _cones[watcher]
@@ -45,6 +48,11 @@ func _process(delta: float) -> void:
 			continue
 		cone.set_suspicion(watcher.suspicion)
 		cone.set_alerted(watcher.is_alerted)
+		var reach: float = watcher.sight_range
+		var shown: float = _cone_ranges.get(watcher, reach)
+		if absf(reach - shown) > 0.25:
+			_cone_ranges[watcher] = reach
+			cone.set_cone(reach, watcher.sight_angle)
 	for unit: Variant in _cloaks.keys():
 		if not is_instance_valid(unit):
 			_cloaks.erase(unit)
@@ -74,6 +82,7 @@ func _on_entity_spawned(entity: Node3D) -> void:
 		visual.add_child(cone)
 		cone.set_cone(unit.sight_range, unit.sight_angle)
 		_cones[unit] = cone
+		_cone_ranges[unit] = unit.sight_range
 
 
 func _on_entity_sabotaged(building: Node3D, _saboteur: Node3D) -> void:

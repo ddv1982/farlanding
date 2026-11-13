@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/stings/mus_hit_aftermath.ogg" id="2_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"mus_hit_aftermath"
+streams = Array[AudioStream]([ExtResource("2_stream")])
+bus = &"Music"
+priority = 100
+max_instances = 1
+cooldown = 6.0
+positional = false
+max_distance = 0.0

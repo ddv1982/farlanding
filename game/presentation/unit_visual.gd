@@ -204,12 +204,15 @@ func _build_dust() -> GPUParticles3D:
 	quad.size = Vector2.ONE * footprint_radius * 1.4
 	quad.material = surface
 	var dust := GPUParticles3D.new()
-	dust.name = "Dust"
 	dust.amount = 14
 	dust.lifetime = 1.3
 	dust.emitting = false
 	dust.process_material = process
 	dust.draw_pass_1 = quad
+	# Named only after the process material is set: naming a GPUParticles3D first and
+	# then giving it a ParticleProcessMaterial leaks one shader RID at exit under the
+	# headless (dummy) renderer when the node is made after the first frame (ADR 0011).
+	dust.name = "Dust"
 	dust.position = Vector3(0.0, 0.25, footprint_radius * 0.6)
 	dust.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return dust

@@ -11,6 +11,8 @@ extends RefCounted
 ## explore after AFTERMATH_SECONDS of quiet:
 ##
 ##   explore --heat>=TENSION_ENTER--> tension --heat>=COMBAT_ENTER--> combat
+##   combat  --heat>=HEAVY_ENTER--> combat_heavy (a big fight: many units at once)
+##   combat_heavy --heat<HEAVY_EXIT for CALM_SECONDS--> combat
 ##   tension --heat<TENSION_EXIT for CALM_SECONDS--> explore
 ##   combat  --heat<COMBAT_EXIT for CALM_SECONDS--> aftermath --AFTERMATH_SECONDS--> explore
 ##   aftermath --heat rises--> tension or combat
@@ -20,6 +22,7 @@ extends RefCounted
 const EXPLORE: StringName = &"explore"
 const TENSION: StringName = &"tension"
 const COMBAT: StringName = &"combat"
+const COMBAT_HEAVY: StringName = &"combat_heavy"
 const AFTERMATH: StringName = &"aftermath"
 const VICTORY: StringName = &"victory"
 const DEFEAT: StringName = &"defeat"
@@ -30,6 +33,9 @@ const TENSION_ENTER: float = 2.5
 const TENSION_EXIT: float = 1.0
 const COMBAT_ENTER: float = 12.0
 const COMBAT_EXIT: float = 4.0
+## A skirmish of a few units settles near 25-50 heat; a full battle passes 70.
+const HEAVY_ENTER: float = 70.0
+const HEAVY_EXIT: float = 35.0
 const CALM_SECONDS: float = 6.0
 const AFTERMATH_SECONDS: float = 20.0
 
@@ -89,7 +95,9 @@ func update(now: float) -> StringName:
 	var h: float = heat(now)
 	match state:
 		EXPLORE:
-			if h >= COMBAT_ENTER:
+			if h >= HEAVY_ENTER:
+				_enter(COMBAT_HEAVY, now)
+			elif h >= COMBAT_ENTER:
 				_enter(COMBAT, now)
 			elif h >= TENSION_ENTER:
 				_enter(TENSION, now)
@@ -99,10 +107,17 @@ func update(now: float) -> StringName:
 			elif _calm_for(h < TENSION_EXIT, now) >= CALM_SECONDS:
 				_enter(EXPLORE, now)
 		COMBAT:
-			if _calm_for(h < COMBAT_EXIT, now) >= CALM_SECONDS:
+			if h >= HEAVY_ENTER:
+				_enter(COMBAT_HEAVY, now)
+			elif _calm_for(h < COMBAT_EXIT, now) >= CALM_SECONDS:
 				_enter(AFTERMATH, now)
+		COMBAT_HEAVY:
+			if _calm_for(h < HEAVY_EXIT, now) >= CALM_SECONDS:
+				_enter(COMBAT, now)
 		AFTERMATH:
-			if h >= COMBAT_ENTER:
+			if h >= HEAVY_ENTER:
+				_enter(COMBAT_HEAVY, now)
+			elif h >= COMBAT_ENTER:
 				_enter(COMBAT, now)
 			elif h >= TENSION_ENTER:
 				_enter(TENSION, now)

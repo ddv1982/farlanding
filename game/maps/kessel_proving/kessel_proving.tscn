@@ -26,6 +26,7 @@
 [ext_resource type="Resource" path="res://data/discoveries/kessel_combine_relay.tres" id="d9"]
 [ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="30_discovery_def"]
 [ext_resource type="Resource" path="res://data/units/custodian_warden.tres" id="31_warden"]
+[ext_resource type="Resource" path="res://data/maps/kessel_boulders.tres" id="32_boulders"]
 
 [node name="KesselProving" type="Node3D" node_paths=PackedStringArray("context", "world", "camera", "navigation_region", "hud", "selection_controller")]
 script = ExtResource("1_map")
@@ -48,6 +49,7 @@ discoveries = Array[ExtResource("30_discovery_def")]([ExtResource("d0"), ExtReso
 discovery_positions = PackedVector3Array(-41, 0, 54, 44, 0, 62, -90, 0, 15, -12, 0, 45, 64, 0, 40, -51, 0, -55, 0, 0, -73, 95, 0, 35, 30, 0, -50, 100, 0, -40)
 custodian_roster = Array[ExtResource("13_unit_def")]([ExtResource("31_warden"), ExtResource("31_warden")])
 custodian_positions = PackedVector3Array(11, 0, -80, 89, 0, 42)
+prop_layout = ExtResource("32_boulders")
 
 [node name="MissionContext" type="Node" parent="."]
 script = ExtResource("4_context")

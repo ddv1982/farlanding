@@ -20,6 +20,7 @@ move_speed = 6.5
 turn_speed = 400.0
 vision_range = 18.0
 radius = 1.1
+hovers = true
 acceleration = 12.0
 builds = Array[ExtResource("4")]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("9"), ExtResource("10"), ExtResource("11")])
 build_rate = 1.0

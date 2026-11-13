@@ -20,6 +20,10 @@ var title: String = ""
 var kind: StringName = KIND_PRIMARY
 var state: StringName = STATE_ACTIVE
 var progress_text: String = ""
+## Progress as a share 0..1 for a bar under the objective; -1 = no bar.
+var progress_ratio: float = -1.0
+## Whose progress the bar shows: &"player", or &"enemy" (a race the rival may win).
+var progress_side: StringName = &"player"
 ## Holds until the end: does not block a win, done when the mission is won.
 var passive: bool = false
 ## A hidden objective becomes known once achieved; the others are known at once.
@@ -103,6 +107,11 @@ func set_progress(text: String) -> void:
 	progress_text = text
 	if mission != null:
 		mission.on_objective_progress(self)
+
+
+## Sets the bar's share (announced with the next progress line change).
+func set_ratio(ratio: float) -> void:
+	progress_ratio = clampf(ratio, 0.0, 1.0)
 
 
 ## Moves its area (e.g. the extraction point moved), announced as an update.

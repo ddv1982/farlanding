@@ -9,6 +9,8 @@
 
 [resource]
 script = ExtResource("1_def")
+scan_rate = 0.4
+scan_range = 6.0
 max_health = 130
 move_speed = 6.5
 turn_speed = 400.0
@@ -16,6 +18,7 @@ vision_range = 18.0
 radius = 1.2
 sensor = 0.6
 sight_angle = 140.0
+hovers = true
 acceleration = 12.0
 armour_type = &"light"
 builds = Array[ExtResource("4_entity")]([ExtResource("5_forge"), ExtResource("6_spire")])
@@ -23,7 +26,7 @@ build_rate = 1.0
 work_range = 5.0
 id = &"combine_rigger"
 display_name = "Rigger"
-description = "Combine builder drone. Raises Forges and Spires."
+description = "Combine builder drone. Raises Forges and Spires, and scans signals for Combine Intel."
 faction = 1
 scene = ExtResource("2_scene")
 icon = ExtResource("3_icon")

@@ -4,6 +4,7 @@
 [ext_resource type="Environment" path="res://assets/environments/kessel_env.tres" id="2"]
 [ext_resource type="Script" path="res://presentation/vfx/combat_vfx.gd" id="3"]
 [ext_resource type="Script" path="res://presentation/vfx/discovery_vfx.gd" id="4"]
+[ext_resource type="Script" path="res://presentation/vfx/storm_vfx.gd" id="5"]
 
 [node name="KesselVisuals" type="Node3D"]
 
@@ -26,3 +27,8 @@ script = ExtResource("3")
 
 [node name="DiscoveryVfx" type="Node3D" parent="."]
 script = ExtResource("4")
+
+[node name="StormVfx" type="Node3D" parent="." node_paths=PackedStringArray("world_environment", "sun")]
+script = ExtResource("5")
+world_environment = NodePath("../WorldEnvironment")
+sun = NodePath("../Sun")
