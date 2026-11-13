@@ -40,7 +40,9 @@ func _ready() -> void:
 
 
 ## A ring `radius` wide on the ground at `at` that pulses faster and brighter
-## over `seconds`. Returns the decal (freed by the eruption or after `seconds`).
+## over `seconds`, then holds. Returns the decal. The ring is not freed on a timer:
+## the sim clock can stand still (pause) while this animation runs on, so only the
+## eruption or its call-off removes it.
 func warn(at: Vector3, radius: float, seconds: float) -> Decal:
 	var decal: Decal = _decal(_ring, at, WARNING_COLOR, radius)
 	decal.emission_energy = 0.0
@@ -51,7 +53,7 @@ func warn(at: Vector3, radius: float, seconds: float) -> Decal:
 		var half: float = seconds / beats * 0.5
 		tween.tween_property(decal, ^"emission_energy", strength, half)
 		tween.tween_property(decal, ^"emission_energy", strength * 0.35, half)
-	tween.tween_callback(decal.queue_free)
+	tween.tween_property(decal, ^"emission_energy", 4.0, 0.2)
 	return decal
 
 
