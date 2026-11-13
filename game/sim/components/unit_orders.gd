@@ -161,7 +161,7 @@ func tick(dt: float = SimClock.TICK_DELTA) -> void:
 	if current.kind == AttackCommand.KIND:
 		_tick_attack()
 		return
-	if _locomotion.is_travelling():
+	if _locomotion.is_travelling() or _locomotion.is_waiting_for_tide():
 		return
 	_advance()
 
@@ -242,7 +242,7 @@ func _start(order: Order) -> void:
 		return
 	var started: bool = false
 	if not order.path.is_empty():
-		started = _locomotion.follow_path(order.path)
+		started = _locomotion.follow_path(order.path, order.target_position)
 		order.path = PackedVector3Array()
 	else:
 		started = _locomotion.move_to(order.target_position)

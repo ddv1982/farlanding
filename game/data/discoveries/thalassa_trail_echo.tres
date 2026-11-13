@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/antecedent_site_beacon.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"thalassa_trail_echo"
+display_name = "Drowned beacon"
+discovery_type = &"antecedent"
+scene = ExtResource("2")
+intel_reward = 60
+scan_time = 12.0
+radius = 3.0
+leads_to = &"thalassa_trail_vault"
+codex_title = "The beacon in the shallows"
+codex_text = "A beacon of the same make as the one on Kessel's rim, answering it. Its bearing crosses the channel to a structure on the northern shoal."
+payoff = &"none"
+color = Color(0.75, 0.6, 1.0, 1)

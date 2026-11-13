@@ -10,8 +10,12 @@ extends EntityDef
 @export_range(0.1, 20.0, 0.05, "suffix:m") var radius: float = 0.5
 ## Also used for braking.
 @export_range(0.1, 200.0, 0.1, "suffix:m/s²") var acceleration: float = 10.0
-## Rides above the ground on lift (skimmers, drones): dust storms slow it less.
+## Rides above the ground on lift (skimmers, drones): dust storms slow it less, and
+## it crosses shallows the tide floods (never the deep channel; ADR 0014).
 @export var hovers: bool = false
+## Can pick up and carry an artefact (a carriable prop); it then moves slower and
+## does not fight.
+@export var can_carry: bool = true
 @export_group("Combat")
 ## Column of the DamageTable: &"light" or &"heavy". Empty = not stated (taken as
 ## light by combat; audio then guesses the weight class from the unit).

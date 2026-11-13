@@ -19,8 +19,8 @@ func _init(p_parent: Node) -> void:
 ## navigation map settle for a few physics frames. Time then moves only through `run()`.
 func land(
 	mission: MissionDef, modifiers: LandingModifiers = null, restore: Dictionary = {}
-) -> KesselProving:
-	var map: KesselProving = mission.map_scene.instantiate() as KesselProving
+) -> LandingMap:
+	var map: LandingMap = mission.map_scene.instantiate() as LandingMap
 	map.mission = mission
 	map.modifiers = modifiers
 	map.restore_state = restore
@@ -42,7 +42,7 @@ func land(
 
 
 ## Runs `ticks` sim ticks, with a physics frame every few (navigation updates).
-func run(map: KesselProving, ticks: int) -> void:
+func run(map: LandingMap, ticks: int) -> void:
 	for i: int in ticks:
 		map.context.sim_clock.advance(SimClock.TICK_DELTA)
 		if i % 5 == 4:
@@ -51,7 +51,7 @@ func run(map: KesselProving, ticks: int) -> void:
 
 ## Runs until `done` (`func() -> bool`) holds, at most `limit` ticks. Returns whether
 ## it did.
-func run_until(map: KesselProving, done: Callable, limit: int) -> bool:
+func run_until(map: LandingMap, done: Callable, limit: int) -> bool:
 	for i: int in limit:
 		map.context.sim_clock.advance(SimClock.TICK_DELTA)
 		if i % 5 == 4:
@@ -78,6 +78,7 @@ static func mission(id: StringName) -> MissionDef:
 		"res://data/missions/survey.tres",
 		"res://data/missions/infiltration.tres",
 		"res://data/missions/thalassa_shallows.tres",
+		"res://data/missions/thalassa_recovery.tres",
 	]:
 		var def: MissionDef = load(path) as MissionDef
 		if def != null and def.id == id:

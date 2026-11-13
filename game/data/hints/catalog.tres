@@ -74,6 +74,21 @@ text = "Wisps sabotage enemy buildings: {command} a building with only Wisps sel
 trigger = &"selected"
 subject = &"saboteur"
 
+[sub_resource type="Resource" id="h9"]
+script = ExtResource("1_hint")
+id = &"tide"
+title = "The tide"
+text = "The tide is turning (the gauge top right). Rising water closes the fords and floods the tidal pans: ground units caught in it wade slowly and take damage, haulers stop mining there, and nothing can be built on ground that floods. The causeway stays dry; hover units cross flooded shallows."
+trigger = &"tide_turning"
+
+[sub_resource type="Resource" id="h10"]
+script = ExtResource("1_hint")
+id = &"carry"
+title = "Carrying the artefact"
+text = "{command} the artefact with units selected: the nearest picks it up, the others escort it. A carrier moves slowly and cannot fight; if it falls, the artefact drops and anyone can lift it again. Bring it back to the Lander."
+mission_types = Array[StringName]([&"recovery"])
+delay_seconds = 8.0
+
 [resource]
 script = ExtResource("2_catalog")
-hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8")])
+hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10")])

@@ -6,16 +6,34 @@ extends RefCounted
 ##
 ## Buildings and deposits block areas with `block_area()`: paths go around them and
 ## `is_walkable()` is false inside. The base class only records the areas.
+##
+## On a tidal map the sea closes ground to ground units (ADR 0014): `set_water()` says
+## where it stands; ground lower than `closed_below` is closed. The base class judges
+## that against `water_heights` point by point (tests); NavmeshPathService switches
+## between navmeshes baked for a few sea levels. Hovering units cross flooded ground:
+## they move with `for_hover()`, which ignores the sea but not blocked areas.
+
+## The base class re-judges the sea only when the closing height moved this much.
+const WATER_STEP: float = 0.1
+## Spacing of the samples along a straight path checked against the sea, in metres.
+const WATER_SAMPLE: float = 1.0
+
+## Ground lower than this is under water too deep to wade: closed to ground units.
+## -INF = no sea.
+var closed_below: float = -INF
+## Ground heights the base class judges the sea against; null = no sea.
+var water_heights: HeightField = null
 
 var _blocked: Dictionary[int, Rect2] = {}
 var _next_block_id: int = 1
+var _hover: PathService = null
 
 
 ## Returns world-space corner points from `from` to (the reachable point nearest)
 ## `to`, excluding `from`. Empty if no path exists. Called once per order per unit
 ## (and on a stuck-repath), never per frame.
-func find_path(_from: Vector3, to: Vector3) -> PackedVector3Array:
-	return PackedVector3Array([to])
+func find_path(from: Vector3, to: Vector3) -> PackedVector3Array:
+	return PackedVector3Array([_dry_end(from, to)])
 
 
 ## Paths for a group: one per (start, goal) pair, same format as find_path(). The
@@ -31,7 +49,38 @@ func find_group_paths(
 
 ## True if a unit may stand at `point`. Must be cheap: called per unit per tick.
 func is_walkable(point: Vector3) -> bool:
-	return not is_blocked(point)
+	return not is_blocked(point) and not is_flooded(point)
+
+
+## True if the sea closes `point` to ground units now.
+func is_flooded(point: Vector3) -> bool:
+	return (
+		water_heights != null
+		and closed_below > -INF
+		and water_heights.sample(point.x, point.z) < closed_below
+	)
+
+
+## Tells navigation the sea stands at `level`; ground deeper than `wading_depth`
+## under it closes to ground units. Returns true when the closed ground changed
+## (routes in progress may have to re-plan).
+func set_water(level: float, wading_depth: float) -> bool:
+	var closed: float = level - wading_depth
+	if closed_below > -INF and absf(closed - closed_below) < WATER_STEP:
+		return false
+	closed_below = closed
+	return true
+
+
+## The paths hovering units use: the same blocked areas, but the sea does not close
+## anything to them. Without a sea, this service itself.
+func for_hover() -> PathService:
+	if water_heights == null:
+		return self
+	if _hover == null:
+		_hover = PathService.new()
+		_hover._blocked = _blocked
+	return _hover
 
 
 ## True if the terrain alone lets a unit stand at `point` (blocked areas ignored).
@@ -64,6 +113,27 @@ func is_blocked(point: Vector3) -> bool:
 		if area.has_point(Vector2(point.x, point.z)):
 			return true
 	return false
+
+
+## How far a ground unit gets walking straight from `from` to `to` before closed
+## water stops it (it may start in water and wade out): `to`, or the last dry point
+## (the base class's "nearest reachable point").
+func _dry_end(from: Vector3, to: Vector3) -> Vector3:
+	if water_heights == null or closed_below <= -INF:
+		return to
+	var length: float = Vector2(to.x - from.x, to.z - from.z).length()
+	var steps: int = maxi(1, ceili(length / WATER_SAMPLE))
+	var left_water: bool = not is_flooded(from)
+	var last_dry: Vector3 = from
+	for i: int in range(1, steps + 1):
+		var point: Vector3 = from.lerp(to, float(i) / steps)
+		var wet: bool = is_flooded(point)
+		if wet and left_water:
+			return last_dry
+		if not wet:
+			left_water = true
+			last_dry = point
+	return to
 
 
 ## Backend hook: `area` was just blocked under `id`.

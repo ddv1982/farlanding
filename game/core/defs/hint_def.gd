@@ -10,6 +10,8 @@ const TRIGGER_SELECTED: StringName = &"selected"
 ## A player building matching `subject` finished construction.
 const TRIGGER_CONSTRUCTION_COMPLETED: StringName = &"construction_completed"
 const TRIGGER_STORM_INCOMING: StringName = &"storm_incoming"
+## The tide is about to turn (Thalassa: `Events.tide_turning`).
+const TRIGGER_TIDE_TURNING: StringName = &"tide_turning"
 ## The enemy keeps an alert meter (a stealth mission began).
 const TRIGGER_ALERT_METER: StringName = &"alert_meter"
 ## Capabilities `subject` may name (otherwise it is a def id).

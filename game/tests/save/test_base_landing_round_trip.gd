@@ -16,7 +16,7 @@ const FABRICATOR: String = "res://data/units/concord_fabricator.tres"
 const SAVES: String = "user://test_base_round_trip_saves/"
 
 var _f: SaveFixture
-var _maps: Array[KesselProving] = []
+var _maps: Array[LandingMap] = []
 var _saved_dir: String
 
 
@@ -38,12 +38,12 @@ func after_each() -> void:
 
 func test_proving_ground_round_trip_carries_on() -> void:
 	var def: MissionDef = SaveFixture.mission(&"conquest")
-	var map: KesselProving = await _land(def)
+	var map: LandingMap = await _land(def)
 	var scene: Dictionary = await _set_the_scene(map)
 	var snapshot: Dictionary = map.snapshot()
 	var before: Dictionary = _situation(map)
 	_f.dispose(map)
-	var loaded: KesselProving = await _land(def, null, snapshot)
+	var loaded: LandingMap = await _land(def, null, snapshot)
 	_expect_same(snapshot, loaded, before)
 	await _expect_it_carries_on(loaded, scene)
 	await _expect_the_mission_can_be_won(loaded)
@@ -51,7 +51,7 @@ func test_proving_ground_round_trip_carries_on() -> void:
 
 func test_before_the_storm_round_trip_keeps_the_rival_at_work() -> void:
 	var def: MissionDef = SaveFixture.mission(&"survey")
-	var map: KesselProving = await _land(def)
+	var map: LandingMap = await _land(def)
 	# Let the Combine get going: its surveyors go out after a minute and a half.
 	await _f.run(map, 900)
 	var scene: Dictionary = await _set_the_scene(map)
@@ -71,7 +71,7 @@ func test_before_the_storm_round_trip_keeps_the_rival_at_work() -> void:
 	var snapshot: Dictionary = map.snapshot()
 	var before: Dictionary = _situation(map)
 	_f.dispose(map)
-	var loaded: KesselProving = await _land(def, null, snapshot)
+	var loaded: LandingMap = await _land(def, null, snapshot)
 	_expect_same(snapshot, loaded, before)
 	commander = loaded.runner.commander
 	assert_eq(_ids(commander.survey.members), surveyors, "the same surveyors")
@@ -104,7 +104,7 @@ func test_tidewater_landing_through_a_save_file_carries_on() -> void:
 	session.landing = LandingPlan.from_state(session.state, &"thalassa_shallows")
 	session.landing.techs.append(&"hauler_racks")
 	var modifiers: LandingModifiers = LandingBuilder.build(campaign, session.landing)
-	var map: KesselProving = await _land(def, modifiers)
+	var map: LandingMap = await _land(def, modifiers)
 	var scene: Dictionary = await _set_the_scene(map)
 	var game: SaveGame = SaveGame.capture(
 		def, map.snapshot(), map.runner.elapsed_seconds(), session
@@ -118,7 +118,7 @@ func test_tidewater_landing_through_a_save_file_carries_on() -> void:
 	assert_eq(read.plan.node_id, &"thalassa_shallows")
 	assert_true(read.plan.techs.has(&"hauler_racks"))
 	var again: LandingModifiers = LandingBuilder.build(read.campaign_def(), read.plan)
-	var loaded: KesselProving = await _land(read.mission_def(), again, read.landing)
+	var loaded: LandingMap = await _land(read.mission_def(), again, read.landing)
 	_expect_same(read.landing, loaded, before)
 	var hauler: Unit = SaveFixture.unit_of(loaded.world, 0, &"concord_hauler")
 	assert_eq(
@@ -130,15 +130,15 @@ func test_tidewater_landing_through_a_save_file_carries_on() -> void:
 
 func _land(
 	def: MissionDef, modifiers: LandingModifiers = null, restore: Dictionary = {}
-) -> KesselProving:
-	var map: KesselProving = await _f.land(def, modifiers, restore)
+) -> LandingMap:
+	var map: LandingMap = await _f.land(def, modifiers, restore)
 	_maps.append(map)
 	return map
 
 
 ## Gives the orders and runs until everything is under way. Returns what the later
 ## checks need to find again (by save id).
-func _set_the_scene(map: KesselProving) -> Dictionary:
+func _set_the_scene(map: LandingMap) -> Dictionary:
 	var world: SimWorld = map.world
 	var queue: CommandQueue = map.context.command_queue
 	var hq: Building = map.runner.player_hq
@@ -218,7 +218,7 @@ func _set_the_scene(map: KesselProving) -> Dictionary:
 
 
 ## What must be the same after the load, read from the world before it is freed.
-func _situation(map: KesselProving) -> Dictionary:
+func _situation(map: LandingMap) -> Dictionary:
 	var world: SimWorld = map.world
 	var positions: Dictionary = {}
 	var health: Dictionary = {}
@@ -249,7 +249,7 @@ func _situation(map: KesselProving) -> Dictionary:
 	}
 
 
-func _expect_same(snapshot: Dictionary, loaded: KesselProving, before: Dictionary) -> void:
+func _expect_same(snapshot: Dictionary, loaded: LandingMap, before: Dictionary) -> void:
 	var after: Dictionary = _situation(loaded)
 	for key: String in before:
 		assert_eq(var_to_str(after[key]), var_to_str(before[key]), "same %s after the load" % key)
@@ -269,7 +269,7 @@ func _expect_same(snapshot: Dictionary, loaded: KesselProving, before: Dictionar
 	assert_almost_eq(loaded.camera.get_focus().x, focus.x, 0.01, "the camera looks where it did")
 
 
-func _expect_it_carries_on(map: KesselProving, scene: Dictionary) -> void:
+func _expect_it_carries_on(map: LandingMap, scene: Dictionary) -> void:
 	var world: SimWorld = map.world
 	var reactor_id: int = scene["reactor"]
 	var site_id: int = scene["site"]
@@ -357,7 +357,7 @@ func _expect_it_carries_on(map: KesselProving, scene: Dictionary) -> void:
 	assert_true(finished)
 
 
-func _expect_the_mission_can_be_won(map: KesselProving) -> void:
+func _expect_the_mission_can_be_won(map: LandingMap) -> void:
 	for unit: Unit in map.world.units_of(1):
 		unit.health.take(1.0e9)
 	for building: Building in map.world.buildings_of(1):

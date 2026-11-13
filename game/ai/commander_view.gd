@@ -49,6 +49,10 @@ var scout_active: bool = false
 var storm_intensity: float = 0.0
 var storm_eta_seconds: float = INF
 var storm_is_final: bool = false
+## The tide (public): 0 low .. 1 high, and seconds until the shallows next start to
+## flood (0 while rising or high; INF without a sea).
+var tide_level: float = 0.0
+var shallows_close_seconds: float = INF
 ## Own units of the profile's surveyor kind scanning for Intel, and all of that kind.
 var surveying: int = 0
 var surveyor_count: int = 0

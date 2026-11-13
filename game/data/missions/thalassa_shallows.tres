@@ -6,7 +6,7 @@
 [ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
 [ext_resource type="Script" path="res://core/defs/entity_def.gd" id="e3"]
 [ext_resource type="Resource" path="res://data/units/custodian_warden.tres" id="e4"]
-[ext_resource type="PackedScene" path="res://maps/kessel_proving/kessel_proving.tscn" id="e5"]
+[ext_resource type="PackedScene" path="res://maps/thalassa_tidewater/thalassa_tidewater.tscn" id="e5"]
 [ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="e6"]
 [ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="e7"]
 [ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e8"]
@@ -45,8 +45,8 @@ id = &"follow_trail"
 title = "Follow the Antecedent trail"
 kind = &"secondary"
 type = &"scan_sites"
-site_ids = Array[StringName]([&"kessel_trail_beacon", &"kessel_trail_ruin"])
-area_center = Vector3(-51, 0, -55)
+site_ids = Array[StringName]([&"thalassa_trail_echo", &"thalassa_trail_vault"])
+area_center = Vector3(28, 0, 78)
 area_radius = 8
 
 [sub_resource type="Resource" id="s3"]
@@ -59,30 +59,40 @@ side = &"custodian"
 defs = Array[ExtResource("e3")]([ExtResource("e4")])
 amount = 1
 
+[sub_resource type="Resource" id="s4"]
+script = ExtResource("e1")
+id = &"drowned_cache"
+title = "Scan the drowned cache at low water"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"thalassa_drowned_cache"])
+area_center = Vector3(-24, 0, 68)
+area_radius = 6
+
 [resource]
 script = ExtResource("e0")
 id = &"thalassa_shallows"
 title = "Tidewater Landing"
 mission_type = &"conquest"
-summary = "Placeholder landing on Thalassa Low: a dug-in Combine base and the trail's next marker."
-briefing = "Thalassa Low, the next world along the trail. The Combine got here first and holds a full base on the far side of the flats; their commander is sharper than the one on Kessel.
+summary = "Tidal flats on Thalassa Low: the Combine holds the far shoal, and the tide decides which way across is open."
+briefing = "Thalassa Low, the next world along the trail. The Combine got here first and holds a full base on the far shoal; their commander is sharper than the one on Kessel.
 
-Put the Lander down, build up and take their base apart. The trail continues here: a beacon and a ruin, if a Surveyor can reach them. Anything the Meridian learned on Kessel lands with you.
+The tide here is the rule: when it rises it floods the fords and the tidal pans, and ground units caught in them wade slowly and take damage. Only the causeway in the middle crosses the deep channel at every tide; skimmers like the Kite hover over flooded shallows, never over the channel.
 
-(Placeholder landing: Thalassa's own map and tide arrive in Phase 8; this plays on the Kessel map.)"
+Build up on your shoal, mine the pans while they are dry, and take their base apart. The trail continues here: a drowned beacon south of the channel bears on something across it."
 map_scene = ExtResource("e5")
 planet = ExtResource("planet")
 player_hq = ExtResource("e2")
-start_alloy = 450
-player_start = Vector3(-80, 0, 85)
+player_start = Vector3(-80, 0, 86)
 player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8")])
+start_alloy = 450
 hostile_faction = 1
 hostile_hq = ExtResource("e10")
-hostile_hq_position = Vector3(66, 0, -95)
+hostile_hq_position = Vector3(84, 0, -88)
 hostile_buildings = Array[ExtResource("e13")]([ExtResource("e11"), ExtResource("e12")])
-hostile_building_positions = PackedVector3Array(47, 0, -92, 54, 0, -79)
+hostile_building_positions = PackedVector3Array(64, 0, -86, 74, 0, -66)
 hostile_roster = Array[ExtResource("e9")]([ExtResource("e14"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e16"), ExtResource("e16"), ExtResource("e17")])
-hostile_start = Vector3(56, 0, -84)
+hostile_start = Vector3(94, 0, -68)
 commander_profile = ExtResource("e18")
 enemy_difficulty = "normal"
-objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3")])
+objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s4"), SubResource("s3")])

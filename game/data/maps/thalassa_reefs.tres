@@ -1,0 +1,69 @@
+[gd_resource type="Resource" script_class="PropLayout" format=3]
+
+[ext_resource type="Script" path="res://core/defs/prop_layout.gd" id="1_layout"]
+[ext_resource type="Script" path="res://core/defs/prop_placement.gd" id="2_place"]
+[ext_resource type="Resource" path="res://data/props/thalassa_prop_reef.tres" id="p0"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(-72, 0, -8)
+
+[sub_resource type="Resource" id="s1"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(-72, 0, -44)
+quarter_turns = 1
+
+[sub_resource type="Resource" id="s2"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(2, 0, 16)
+
+[sub_resource type="Resource" id="s3"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(24, 0, -14)
+quarter_turns = 1
+
+[sub_resource type="Resource" id="s4"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(86, 0, 12)
+
+[sub_resource type="Resource" id="s5"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(86, 0, 48)
+quarter_turns = 1
+
+[sub_resource type="Resource" id="s6"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(-90, 0, 30)
+
+[sub_resource type="Resource" id="s7"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(40, 0, -80)
+quarter_turns = 1
+
+[sub_resource type="Resource" id="s8"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(-6, 0, -50)
+
+[sub_resource type="Resource" id="s9"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(-50, 0, 78)
+quarter_turns = 1
+
+[sub_resource type="Resource" id="s10"]
+script = ExtResource("2_place")
+def = ExtResource("p0")
+position = Vector3(60, 0, 52)
+
+[resource]
+script = ExtResource("1_layout")
+placements = Array[ExtResource("2_place")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3"), SubResource("s4"), SubResource("s5"), SubResource("s6"), SubResource("s7"), SubResource("s8"), SubResource("s9"), SubResource("s10")])

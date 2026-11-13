@@ -10,7 +10,7 @@ extends GutTest
 const WISP_HEALTH: float = 5000.0
 
 var _f: SaveFixture
-var _maps: Array[KesselProving] = []
+var _maps: Array[LandingMap] = []
 
 
 func before_each() -> void:
@@ -27,7 +27,7 @@ func after_each() -> void:
 
 func test_quiet_uplink_round_trip_carries_on() -> void:
 	var def: MissionDef = SaveFixture.mission(&"infiltration")
-	var map: KesselProving = await _land(def)
+	var map: LandingMap = await _land(def)
 	var world: SimWorld = map.world
 	await _f.run(map, 30)
 	var guards: GuardCommander = map.runner.guards
@@ -65,7 +65,7 @@ func test_quiet_uplink_round_trip_carries_on() -> void:
 	var hub_id: int = hub.entity_id
 	var wisp_id: int = wisp.entity_id
 	_f.dispose(map)
-	var loaded: KesselProving = await _land(def, snapshot)
+	var loaded: LandingMap = await _land(def, snapshot)
 	var after: Dictionary = _situation(loaded)
 	for key: String in before:
 		assert_eq(var_to_str(after[key]), var_to_str(before[key]), "same %s after the load" % key)
@@ -101,13 +101,13 @@ func test_quiet_uplink_round_trip_carries_on() -> void:
 	assert_true(loaded.runner.result != null and loaded.runner.result.won, "won")
 
 
-func _land(def: MissionDef, restore: Dictionary = {}) -> KesselProving:
-	var map: KesselProving = await _f.land(def, null, restore)
+func _land(def: MissionDef, restore: Dictionary = {}) -> LandingMap:
+	var map: LandingMap = await _f.land(def, null, restore)
 	_maps.append(map)
 	return map
 
 
-func _situation(map: KesselProving) -> Dictionary:
+func _situation(map: LandingMap) -> Dictionary:
 	var world: SimWorld = map.world
 	var patrols: Array = []
 	for patrol: PatrolBehaviour in map.runner.guards.patrols:

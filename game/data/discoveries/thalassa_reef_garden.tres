@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/kessel_site_flora.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"thalassa_reef_garden"
+display_name = "Reef garden"
+discovery_type = &"biological"
+scene = ExtResource("2")
+intel_reward = 35
+scan_time = 7.0
+radius = 3.5
+leads_to = &""
+codex_title = "Reef garden, northern flats"
+codex_text = "A garden of hard-shelled reef growth that only opens at low water. It feeds on the same Flux the vents give off."
+payoff = &"heal_field"
+payoff_radius = 14.0
+payoff_amount = 8.0
+payoff_seconds = 75.0
+color = Color(0.45, 0.95, 0.5, 1)

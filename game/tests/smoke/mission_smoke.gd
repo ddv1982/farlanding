@@ -32,7 +32,7 @@ func _run() -> void:
 			)
 			landings[route_node.mission] = LandingBuilder.build(campaign, plan)
 	for mission: MissionDef in missions:
-		var map: KesselProving = mission.map_scene.instantiate() as KesselProving
+		var map: LandingMap = mission.map_scene.instantiate() as LandingMap
 		map.mission = mission
 		map.modifiers = landings.get(mission, null)
 		add_child(map)
@@ -49,7 +49,7 @@ func _run() -> void:
 	get_tree().quit(0 if _failures.is_empty() else 1)
 
 
-func _check(mission: MissionDef, map: KesselProving) -> void:
+func _check(mission: MissionDef, map: LandingMap) -> void:
 	var runner: Mission = map.runner
 	_expect(runner != null, mission, "a running mission")
 	if runner == null:

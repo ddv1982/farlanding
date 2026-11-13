@@ -10,8 +10,9 @@ extends RefCounted
 ## resource it names) before anything in the running game is touched.
 
 ## Bump when anything in a save changes shape (any SAVE_VERSION below it), so an
-## older build refuses a newer save instead of misreading it.
-const FORMAT_VERSION: int = 1
+## older build refuses a newer save instead of misreading it. 2: the tide, carried
+## artefacts and units waiting for the sea (ADR 0014); format 1 saves still load.
+const FORMAT_VERSION: int = 2
 const KIND_CAMPAIGN: StringName = &"campaign"
 const KIND_MISSION: StringName = &"mission"
 

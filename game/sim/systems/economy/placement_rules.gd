@@ -5,7 +5,8 @@ extends RefCounted
 ##
 ## A spot is refused when the footprint (plus `rules.building_gap`) overlaps another
 ## building, overlaps a resource node, leaves the map, stands on unwalkable or too
-## steep ground, or — for a building that needs a vent — is not on a free Flux vent.
+## steep ground, stands on ground the sea covers at high water, or — for a building
+## that needs a vent — is not on a free Flux vent.
 
 const OK: StringName = &""
 const OUT_OF_BOUNDS: StringName = &"out_of_bounds"
@@ -15,6 +16,8 @@ const NEEDS_VENT: StringName = &"needs_vent"
 const VENT_TAKEN: StringName = &"vent_taken"
 const UNWALKABLE: StringName = &"unwalkable"
 const TOO_STEEP: StringName = &"too_steep"
+## Ground the sea covers at high water (a tidal map).
+const FLOODS: StringName = &"floods"
 ## Spacing of the ground samples over a footprint, in metres.
 const SAMPLE_STEP: float = 1.5
 ## A building that needs a vent must stand this close to the vent's centre.
@@ -29,6 +32,8 @@ var bounds: Rect2 = Rect2(-1.0e6, -1.0e6, 2.0e6, 2.0e6)
 var is_walkable: Callable = func(_point: Vector3) -> bool: return true
 ## `func(x: float, z: float) -> float`: ground height.
 var height_at: Callable = func(_x: float, _z: float) -> float: return 0.0
+## Ground lower than this floods at high water and takes no building; -INF = no sea.
+var floods_below: float = -INF
 var rules: EconomyRules = EconomyRules.new()
 
 
@@ -49,6 +54,8 @@ static func describe(reason: StringName) -> String:
 			return "The ground here is impassable"
 		TOO_STEEP:
 			return "The ground here is too steep"
+		FLOODS:
+			return "The tide floods this ground"
 	return ""
 
 
@@ -119,6 +126,7 @@ func _check_ground(area: Rect2) -> StringName:
 	var rows: int = maxi(ceili(area.size.y / SAMPLE_STEP), 1)
 	var lowest: float = INF
 	var highest: float = -INF
+	var floods: bool = false
 	for row: int in rows + 1:
 		for column: int in columns + 1:
 			var x: float = area.position.x + area.size.x * column / columns
@@ -130,6 +138,9 @@ func _check_ground(area: Rect2) -> StringName:
 			var height: float = height_at.call(x, z)
 			lowest = minf(lowest, height)
 			highest = maxf(highest, height)
+			floods = floods or height < floods_below
+	if floods:
+		return FLOODS
 	var span: float = maxf(minf(area.size.x, area.size.y), 0.1)
 	if rad_to_deg(atan((highest - lowest) / span)) > rules.max_slope:
 		return TOO_STEEP

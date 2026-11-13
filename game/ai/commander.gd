@@ -54,6 +54,8 @@ var defence_group: AttackGroup = null
 var scout: ScoutBehaviour = null
 ## The faction's own surveyors scanning sites for Intel (profiles with a surveyor).
 var survey: SurveyBehaviour = null
+## The squad taking an artefact home (profile `retrieves_cargo`), or null.
+var retrieval: RetrieveGroup = null
 ## Where the base is, and where new army units wait.
 var home: Vector3 = Vector3.ZERO
 var staging: Vector3 = Vector3.ZERO
@@ -146,6 +148,7 @@ func _decide(tick: int) -> void:
 	var started: int = Time.get_ticks_usec()
 	_update_home()
 	_staff_survey(tick)
+	_staff_retrieval(tick)
 	perceive(tick)
 	_view = build_view(tick)
 	var actions: Array[AiAction] = brain.decide(_view)
@@ -160,7 +163,7 @@ func _decide(tick: int) -> void:
 
 func _tick_behaviours(tick: int) -> void:
 	var started: int = Time.get_ticks_usec()
-	for group: AiGroup in [attack_group, defence_group, scout, survey]:
+	for group: AiGroup in [attack_group, defence_group, scout, survey, retrieval]:
 		if group != null:
 			group.tick(tick)
 	if attack_group != null and attack_group.finished:
@@ -172,6 +175,8 @@ func _tick_behaviours(tick: int) -> void:
 		defence_group = null
 	if scout != null and scout.finished:
 		scout = null
+	if retrieval != null and retrieval.finished:
+		retrieval = null
 	last_behaviour_usec = Time.get_ticks_usec() - started
 	max_behaviour_usec = maxi(max_behaviour_usec, last_behaviour_usec)
 
@@ -251,11 +256,13 @@ func build_view(tick: int) -> CommanderView:
 	view.storm_intensity = port.storm_intensity()
 	view.storm_eta_seconds = port.storm_eta_seconds()
 	view.storm_is_final = port.storm_is_final()
+	view.tide_level = port.tide_level()
+	view.shallows_close_seconds = port.shallows_close_seconds()
 	view.survey_open = _survey_open(tick)
 	if survey != null:
 		view.surveying = survey.members.size()
 	var grouped: Dictionary[Unit, bool] = {}
-	for group: AiGroup in [attack_group, defence_group, scout, survey]:
+	for group: AiGroup in [attack_group, defence_group, scout, survey, retrieval]:
 		if group != null:
 			for unit: Unit in group.members:
 				grouped[unit] = true
@@ -448,6 +455,7 @@ func to_dict() -> Dictionary:
 		"defence": _group_dict(defence_group),
 		"scout": _group_dict(scout),
 		"survey": _group_dict(survey),
+		"retrieval": _group_dict(retrieval),
 	}
 
 
@@ -492,6 +500,8 @@ func from_dict(data: Dictionary) -> void:
 		var ids: Array = survey_data.get("members", [])
 		survey = SurveyBehaviour.new(port, profile, AiGroup.units_from_ids(ids, world.entity))
 		survey.restore(survey_data, world.entity)
+	var retrieval_data: Dictionary = data.get("retrieval", {})
+	retrieval = _restore_retrieval(retrieval_data)
 
 
 static func _group_dict(group: AiGroup) -> Dictionary:
@@ -525,6 +535,55 @@ func _restore_scout(data: Dictionary) -> ScoutBehaviour:
 	if units.is_empty():
 		return null
 	var restored: ScoutBehaviour = _make_scout(units[0])
+	restored.from_dict(data)
+	return restored
+
+
+## Sends a squad of idle armed units for a carriable prop it knows of (Recovery),
+## once the profile's delay has passed; keeps the squad's home up to date.
+func _staff_retrieval(tick: int) -> void:
+	if not profile.retrieves_cargo:
+		return
+	if tick < CommanderDifficulty.ticks(profile.retrieve_after_seconds):
+		return
+	if retrieval != null:
+		retrieval.home = home
+		return
+	var wanted: Prop = null
+	for prop: Prop in port.known_cargo():
+		wanted = prop
+		break
+	if wanted == null:
+		return
+	var busy: Dictionary[Unit, bool] = {}
+	for group: AiGroup in [attack_group, defence_group, scout, survey]:
+		if group != null:
+			for unit: Unit in group.members:
+				busy[unit] = true
+	var squad: Array[Unit] = []
+	for unit: Unit in world.units_of(faction):
+		if squad.size() >= profile.retrieve_squad_size:
+			break
+		if unit.is_dead or unit.weapon == null or busy.has(unit) or unit.is_dormant:
+			continue
+		if unit.orders != null and unit.orders.is_idle():
+			squad.append(unit)
+	if squad.is_empty():
+		return
+	retrieval = RetrieveGroup.new(port, profile, squad, wanted)
+	retrieval.home = home
+	retrieval.start()
+	_log("retrieval squad of %d sent for %s" % [squad.size(), wanted.name])
+
+
+func _restore_retrieval(data: Dictionary) -> RetrieveGroup:
+	var ids: Array = data.get("members", [])
+	var units: Array[Unit] = AiGroup.units_from_ids(ids, world.entity)
+	var cargo_id: int = data.get("cargo", -1)
+	var cargo: Prop = world.entity(cargo_id) as Prop if cargo_id >= 0 else null
+	if units.is_empty() or cargo == null:
+		return null
+	var restored: RetrieveGroup = RetrieveGroup.new(port, profile, units, cargo)
 	restored.from_dict(data)
 	return restored
 
@@ -566,7 +625,7 @@ func _staff_survey(tick: int) -> void:
 func _known_deposits(from: Vector3, radius: float) -> Array[ResourceNode]:
 	var found: Array[ResourceNode] = []
 	for node: ResourceNode in _explored_nodes():
-		if not node.is_minable() or node.resource() != &"alloy":
+		if not node.is_minable() or node.is_flooded or node.resource() != &"alloy":
 			continue
 		if AiGroup.flat_distance(node.position, from) > radius:
 			continue

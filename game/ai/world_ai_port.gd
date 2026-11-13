@@ -4,6 +4,9 @@ extends AiPort
 ## comes from Combat's per-faction visibility query (the faction's vision grid).
 ## Custodians are left out of what it reports.
 
+## Spacing of the samples along a straight way checked for deep water, in metres.
+const DEEP_SAMPLE: float = 3.0
+
 var context: MissionContext
 var world: SimWorld
 
@@ -68,3 +71,49 @@ func open_sites() -> Array[Node3D]:
 		if site.can_be_scanned():
 			found.append(site)
 	return found
+
+
+func tide_level() -> float:
+	return world.conditions.tide_level
+
+
+func shallows_close_seconds() -> float:
+	return world.conditions.shallows_close_seconds
+
+
+func dry_crossing(from: Vector3, to: Vector3) -> Vector3:
+	var conditions: WorldConditions = world.conditions
+	if world.dry_crossings.is_empty() or not conditions.has_sea() or world.heights == null:
+		return Vector3.INF
+	if not _crosses_deep_water(from, to, conditions.low_water):
+		return Vector3.INF
+	var best: Vector3 = Vector3.INF
+	var best_length: float = INF
+	for crossing: Vector3 in world.dry_crossings:
+		var length: float = from.distance_to(crossing) + crossing.distance_to(to)
+		if length < best_length:
+			best = crossing
+			best_length = length
+	return best
+
+
+func known_cargo() -> Array[Prop]:
+	var found: Array[Prop] = []
+	for prop: Prop in world.props:
+		if not prop.is_carriable():
+			continue
+		var holder: int = prop.carrier_faction()
+		if holder < 0 or holder == faction or world.combat.can_target(faction, prop.carrier):
+			found.append(prop)
+	return found
+
+
+## True if the straight way from `from` to `to` crosses ground the sea never leaves.
+func _crosses_deep_water(from: Vector3, to: Vector3, low_water: float) -> bool:
+	var length: float = Vector2(to.x - from.x, to.z - from.z).length()
+	var steps: int = maxi(1, ceili(length / DEEP_SAMPLE))
+	for i: int in steps + 1:
+		var point: Vector3 = from.lerp(to, float(i) / steps)
+		if world.heights.sample(point.x, point.z) < low_water:
+			return true
+	return false

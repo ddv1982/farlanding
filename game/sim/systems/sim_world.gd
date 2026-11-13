@@ -32,6 +32,10 @@ var stealth: StealthSystem = null
 var conditions: WorldConditions = WorldConditions.new()
 ## The planet's rule in play (Kessel: dust storms), or null.
 var planet: PlanetRuleSystem = null
+## What a sea does to navigation, units and deposits (idle without a sea).
+var flood: FloodSystem = null
+## Crossings that stay dry at any tide (the map's causeway), for the enemy AI.
+var dry_crossings: PackedVector3Array = PackedVector3Array()
 ## Map dressing that blocks movement and (when tall) sight: crates, walls, boulders.
 var props: Array[Prop] = []
 var rules: EconomyRules = EconomyRules.new()
@@ -86,6 +90,7 @@ func setup(
 	discovery.setup(self, player_faction)
 	add_child(discovery)
 	context.set_service(Discovery.SERVICE_KEY, discovery)
+	flood = FloodSystem.new(self)
 	context.sim_clock.ticked.connect(_on_ticked)
 
 
@@ -109,7 +114,9 @@ func spawn_unit(def: UnitDef, faction: int, at: Vector3, yaw: float = 0.0) -> Un
 	unit.name = "%s_%d" % [def.id, unit.entity_id]
 	add_child(unit)
 	if unit.locomotion != null:
-		unit.locomotion.setup(def, at, yaw, paths, heights)
+		# Hovering units cross flooded shallows: they path with the sea ignored.
+		var unit_paths: PathService = paths.for_hover() if def.hovers else paths
+		unit.locomotion.setup(def, at, yaw, unit_paths, heights)
 		unit.locomotion.set_speed_scale(conditions.speed_factor(def.hovers))
 	units.append(unit)
 	unit.tree_exiting.connect(_on_unit_exiting.bind(unit))
@@ -289,18 +296,20 @@ func placement_rules() -> PlacementRules:
 	placement.is_walkable = paths.is_terrain_walkable
 	if heights != null:
 		placement.height_at = heights.sample
+	# Ground the sea covers at high water takes no buildings (ADR 0014).
+	placement.floods_below = conditions.high_water
 	return placement
 
 
 ## The nearest Alloy deposit with something left within `max_distance` of `from`,
-## other than `exclude`.
+## other than `exclude`. Deposits the sea covers now are passed over.
 func nearest_deposit(
 	from: Vector3, max_distance: float = INF, exclude: ResourceNode = null
 ) -> ResourceNode:
 	var best: ResourceNode = null
 	var best_distance: float = max_distance
 	for node: ResourceNode in resource_nodes:
-		if not node.is_minable() or node == exclude:
+		if not node.is_minable() or node.is_flooded or node == exclude:
 			continue
 		var distance: float = _flat_distance(node.position, from)
 		if distance <= best_distance:
@@ -372,6 +381,7 @@ func _on_ticked(tick: int) -> void:
 	if planet != null:
 		planet.tick(tick, dt)
 		_apply_conditions()
+	flood.tick(tick, dt)
 	economy.update_power(buildings)
 	mark = _section(&"planet_economy", mark)
 	combat.begin_tick(units, buildings)
@@ -711,6 +721,8 @@ func from_dict(data: Dictionary) -> void:
 	if planet != null and not planet_data.is_empty():
 		planet.from_dict(planet_data)
 		_apply_conditions(true)
+		# The sea closes the same ground it did, before orders ask for paths.
+		flood.sync()
 	var props_data: Dictionary = data.get("props", {})
 	if not props_data.is_empty():
 		_props_from_dict(props_data)

@@ -27,6 +27,31 @@ var storm_eta_seconds: float = INF
 var storm_is_final: bool = false
 ## Grows whenever a movement factor changes, so units re-apply their speed only then.
 var speed_version: int = 0
+## The sea on a tidal map (ADR 0014): its height in metres, -INF without a sea. Ground
+## deeper than `wading_depth` under it is closed to ground units; units in such water
+## wade at `wading_speed_factor` and take `wading_damage_per_second`. Public knowledge.
+var sea_level: float = -INF
+## The sea's height at low water: ground lower is never dry (the deep channel).
+var low_water: float = -INF
+## The sea's height at high water: ground lower floods at some point of the cycle.
+var high_water: float = -INF
+var wading_depth: float = 0.25
+var wading_speed_factor: float = 1.0
+var wading_damage_per_second: float = 0.0
+## The tide, 0 = low water .. 1 = high water (public knowledge, like the storm).
+var tide_level: float = 0.0
+## True while the sea rises, or is announced to rise next.
+var tide_rising: bool = false
+## Seconds until the announced turn of the tide starts; INF when none is announced.
+var tide_eta_seconds: float = INF
+## Seconds until the shallows next close (the next rise starts); 0 while rising or
+## high, INF without a sea.
+var shallows_close_seconds: float = INF
+
+
+## True on a map with a sea.
+func has_sea() -> bool:
+	return sea_level > -INF
 
 
 ## A unit's top-speed factor now (hovering units ride above the dust).
@@ -65,3 +90,12 @@ func reset() -> void:
 	storm_intensity = 0.0
 	storm_eta_seconds = INF
 	storm_is_final = false
+	sea_level = -INF
+	low_water = -INF
+	high_water = -INF
+	wading_speed_factor = 1.0
+	wading_damage_per_second = 0.0
+	tide_level = 0.0
+	tide_rising = false
+	tide_eta_seconds = INF
+	shallows_close_seconds = INF

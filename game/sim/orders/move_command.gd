@@ -48,7 +48,9 @@ func execute() -> void:
 		)
 	var walkable: Callable = Callable()
 	if units[0].locomotion != null:
-		walkable = units[0].locomotion.paths.is_walkable
+		# The sea is ignored here (a tidal map, ADR 0014): a slot on flooded ground
+		# stays where it was asked for, and the unit waits on the shore for low water.
+		walkable = units[0].locomotion.paths.for_hover().is_walkable
 	var formation: Formation = Formation.new(
 		units.size(), target_position, heading, Formation.spacing_for(radii), walkable
 	)
@@ -61,21 +63,26 @@ func execute() -> void:
 		units[i].orders.give(orders[i], queued)
 
 
-## Units that start this order now share one group path request; queued orders ask
-## for their own path when they start.
+## Units that start this order now share one group path request (one per path
+## service: hovering units path across flooded shallows); queued orders ask for their
+## own path when they start.
 func _plan_group_paths(units: Array[Unit], orders: Array[Order]) -> void:
-	if units[0].locomotion == null:
-		return
-	var now: Array[int] = []
-	var starts: PackedVector3Array = PackedVector3Array()
-	var goals: PackedVector3Array = PackedVector3Array()
+	var by_service: Dictionary[PathService, Array] = {}
 	for i: int in units.size():
 		if units[i].locomotion != null and (not queued or units[i].orders.is_idle()):
-			now.append(i)
+			var service: PathService = units[i].locomotion.paths
+			if not by_service.has(service):
+				by_service[service] = []
+			by_service[service].append(i)
+	for service: PathService in by_service:
+		var now: Array = by_service[service]
+		var starts: PackedVector3Array = PackedVector3Array()
+		var goals: PackedVector3Array = PackedVector3Array()
+		for index: Variant in now:
+			var i: int = index
 			starts.append(units[i].locomotion.mover.position)
 			goals.append(orders[i].target_position)
-	if now.is_empty():
-		return
-	var paths: Array[PackedVector3Array] = units[0].locomotion.paths.find_group_paths(starts, goals)
-	for k: int in now.size():
-		orders[now[k]].path = paths[k]
+		var paths: Array[PackedVector3Array] = service.find_group_paths(starts, goals)
+		for k: int in now.size():
+			var i: int = now[k]
+			orders[i].path = paths[k]

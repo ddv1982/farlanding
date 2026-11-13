@@ -19,6 +19,9 @@ extends EntityDef
 @export var armour_type: StringName = &"heavy"
 ## The prop's look (a model scene). Null or missing shows a placeholder box.
 @export var model: PackedScene
+## A unit can pick it up and carry it (an Antecedent artefact, ADR 0014). Carriable
+## props should neither block movement nor sight.
+@export var carriable: bool = false
 
 
 ## True if it can be destroyed.

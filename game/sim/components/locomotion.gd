@@ -10,7 +10,10 @@ signal motion_changed(speed: float)
 ## The destination was reached (or given up on after being stuck next to it).
 signal arrived
 
-const SAVE_VERSION: int = 1
+## 2: the wanted destination and the wait for the tide (ADR 0014).
+const SAVE_VERSION: int = 2
+## A path ending further than this from where the unit was sent falls short.
+const TIDE_SHORT: float = 3.0
 ## No progress toward the current corner for this long counts as stuck.
 const STUCK_SECONDS: float = 1.5
 ## Progress smaller than this does not reset the stuck timer.
@@ -49,6 +52,12 @@ var _agent_velocity: Vector3 = Vector3.INF
 var _base_speed: float = INF
 var _speed_limit: float = INF
 var _speed_scale: float = 1.0
+## Further top-speed factors by cause (wading, carrying), multiplied in.
+var _extra_scales: Dictionary[StringName, float] = {}
+## Where the unit was sent (its path may end short of it); INF = nowhere.
+var _wanted: Vector3 = Vector3.INF
+## True while the sea closes the way to `_wanted` but low water would open it.
+var _tide_wait: bool = false
 
 
 ## Configures the component from a definition and places it. Call once after the
@@ -86,15 +95,55 @@ func _exit_tree() -> void:
 func move_to(target: Vector3) -> bool:
 	_repaths = 0
 	_facing = false
+	_wanted = target
 	return _request_path(target)
 
 
-## Follows a path computed elsewhere (e.g. shared by a group). Returns false for an
-## empty path.
-func follow_path(path: PackedVector3Array) -> bool:
+## Follows a path computed elsewhere (e.g. shared by a group) toward `wanted` (INF:
+## the path's end). Returns false for an empty path.
+func follow_path(path: PackedVector3Array, wanted: Vector3 = Vector3.INF) -> bool:
 	_repaths = 0
 	_facing = false
+	_wanted = wanted
+	if wanted == Vector3.INF:
+		_wanted = path[path.size() - 1] if not path.is_empty() else mover.position
+	_note_tide(path)
 	return _start_path(path)
+
+
+## Asks for a new path to where the unit was sent (the sea closed or opened a way).
+## Returns false when it has nowhere to go or no path exists.
+func replan() -> bool:
+	if _wanted == Vector3.INF:
+		return false
+	_repaths = 0
+	return _request_path(_wanted)
+
+
+## True while the sea closes the only way to where the unit was sent and low water
+## would open it: the unit waits on the shore, its order still open.
+func is_waiting_for_tide() -> bool:
+	return _tide_wait
+
+
+## The rest of the route: where the unit is, then the corners still ahead.
+func remaining_route() -> PackedVector3Array:
+	var route: PackedVector3Array = PackedVector3Array([mover.position])
+	if mover.has_path():
+		route.append_array(mover.path.slice(mover.path_index))
+	return route
+
+
+## Multiplies the top speed by `scale` for `cause` (&"wading", &"carrying"); 1 ends it.
+func set_extra_scale(cause: StringName, scale: float) -> void:
+	var current: float = _extra_scales.get(cause, 1.0)
+	if is_equal_approx(current, scale):
+		return
+	if is_equal_approx(scale, 1.0):
+		_extra_scales.erase(cause)
+	else:
+		_extra_scales[cause] = scale
+	_apply_top_speed()
 
 
 ## Caps the top speed at `limit` m/s (INF = the definition's own speed), e.g. while
@@ -117,7 +166,10 @@ func get_speed_scale() -> float:
 
 
 func _top_speed() -> float:
-	return minf(_base_speed, _speed_limit) * _speed_scale
+	var speed: float = minf(_base_speed, _speed_limit) * _speed_scale
+	for scale: float in _extra_scales.values():
+		speed *= scale
+	return maxf(speed, 0.05)
 
 
 func _apply_top_speed() -> void:
@@ -131,6 +183,8 @@ func stop() -> void:
 	mover.clear_path()
 	_travelling = false
 	_facing = false
+	_tide_wait = false
+	_wanted = Vector3.INF
 
 
 ## While standing, turn the body toward `point` (until the next move or stop).
@@ -194,30 +248,57 @@ func to_dict() -> Dictionary:
 		"mover": mover.to_dict(),
 		"destination": var_to_str(_destination),
 		"travelling": _travelling,
+		"wanted": var_to_str(_wanted),
+		"tide_wait": _tide_wait,
 	}
 
 
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
-	assert(version == SAVE_VERSION, "Unsupported Locomotion save version")
+	assert(version >= 1 and version <= SAVE_VERSION, "Unsupported Locomotion save version")
 	var mover_data: Dictionary = data.get("mover", {})
 	mover.from_dict(mover_data)
 	var destination_text: String = data.get("destination", "Vector3(0, 0, 0)")
 	_destination = str_to_var(destination_text)
 	_travelling = data.get("travelling", false)
+	var wanted_text: String = data.get("wanted", "")
+	_wanted = str_to_var(wanted_text) if wanted_text != "" else _destination
+	_tide_wait = data.get("tide_wait", false)
 	_previous_position = mover.position
 	_previous_yaw = mover.yaw
 
 
 func _request_path(target: Vector3) -> bool:
-	return _start_path(paths.find_path(mover.position, target))
+	var path: PackedVector3Array = paths.find_path(mover.position, target)
+	_note_tide(path)
+	return _start_path(path)
+
+
+## Notes whether `path` falls short of `_wanted` only because of the sea: the way the
+## hovering units take (the sea ignored) gets there.
+func _note_tide(path: PackedVector3Array) -> void:
+	_tide_wait = false
+	if paths.closed_below <= -INF or _wanted == Vector3.INF:
+		return
+	var end: Vector3 = path[path.size() - 1] if not path.is_empty() else mover.position
+	if _flat_distance(end, _wanted) <= TIDE_SHORT:
+		return
+	var dry: PathService = paths.for_hover()
+	if dry == paths:
+		return
+	var low: PackedVector3Array = dry.find_path(mover.position, _wanted)
+	_tide_wait = not low.is_empty() and _flat_distance(low[low.size() - 1], _wanted) <= TIDE_SHORT
+
+
+static func _flat_distance(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
 
 
 func _start_path(path: PackedVector3Array) -> bool:
 	if path.is_empty():
 		mover.clear_path()
 		_travelling = false
-		return false
+		return _tide_wait
 	mover.set_path(path)
 	_destination = path[path.size() - 1]
 	_travelling = true
