@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs every local/CI check in order: format, lint, import, script errors, tests,
-# boot smoke test. Exits non-zero on the first failure. Works on macOS and Linux.
+# boot and mission smoke tests. Exits non-zero on the first failure. Works on macOS
+# and Linux.
 #
 # Env: GODOT (default: godot), GDTOOLKIT_VERSION (default: 4.5.0),
 #      CHECK_TIMEOUT seconds per Godot step (default: 300).
@@ -67,5 +68,8 @@ run_godot tests -s res://addons/gut/gut_cmdln.gd
 
 step "Boot smoke test (main scene)"
 run_godot boot --quit-after 30
+
+step "Mission smoke test (every mission on its real map)"
+run_godot mission_smoke res://tests/smoke/mission_smoke.tscn
 
 printf '\nAll checks passed.\n'

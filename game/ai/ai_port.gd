@@ -32,3 +32,23 @@ func alert_level() -> StringName:
 ## Where this faction last noticed an intruder; Vector3.INF if never.
 func alert_position() -> Vector3:
 	return Vector3.INF
+
+
+## The weather everyone sees: storm intensity 0..1.
+func storm_intensity() -> float:
+	return 0.0
+
+
+## Seconds until an announced storm starts; INF when none is announced.
+func storm_eta_seconds() -> float:
+	return INF
+
+
+## True while the storm will not lift again.
+func storm_is_final() -> bool:
+	return false
+
+
+## Discovery sites anyone may scan now (charted on the orbital scan, unresolved).
+func open_sites() -> Array[Node3D]:
+	return []

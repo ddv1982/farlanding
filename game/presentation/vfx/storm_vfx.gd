@@ -117,11 +117,12 @@ func _build_grit() -> GPUParticles3D:
 	quad.size = Vector2(0.05, 1.1)
 	quad.material = surface
 	var grit := GPUParticles3D.new()
-	grit.name = "Grit"
 	grit.amount = GRIT_COUNT
 	grit.lifetime = 1.6
 	grit.process_material = process
 	grit.draw_pass_1 = quad
+	# Named after the process material: the other order leaks a shader RID headless.
+	grit.name = "Grit"
 	grit.local_coords = false
 	grit.transform_align = GPUParticles3D.TRANSFORM_ALIGN_Z_BILLBOARD_Y_TO_VELOCITY
 	grit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

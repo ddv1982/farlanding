@@ -1,0 +1,79 @@
+[gd_resource type="Resource" script_class="HintCatalog" format=3]
+
+[ext_resource type="Script" path="res://core/defs/hint_def.gd" id="1_hint"]
+[ext_resource type="Script" path="res://core/defs/hint_catalog.gd" id="2_catalog"]
+
+[sub_resource type="Resource" id="h0"]
+script = ExtResource("1_hint")
+id = &"select_move"
+title = "Select and move"
+text = "{select} one of your units (or drag a box round several), then {command} the ground to move them there. Shift queues orders; X stops."
+trigger = &"mission_started"
+
+[sub_resource type="Resource" id="h1"]
+script = ExtResource("1_hint")
+id = &"build_reactor"
+title = "Build a Reactor"
+text = "A Fabricator builds. Pick a Reactor in the command panel and {command} the ground to place it: most buildings need its power. More Fabricators on one site build faster."
+trigger = &"selected"
+subject = &"builder"
+
+[sub_resource type="Resource" id="h2"]
+script = ExtResource("1_hint")
+id = &"harvest"
+title = "Harvest Alloy"
+text = "Haulers mine Alloy deposits and carry it to a Refinery (or the Lander). New Haulers go to work by themselves; {command} a deposit to send one somewhere else."
+trigger = &"selected"
+subject = &"harvester"
+
+[sub_resource type="Resource" id="h3"]
+script = ExtResource("1_hint")
+id = &"produce"
+title = "Produce units"
+text = "A selected production building shows what it can make: click a unit to queue it (Alloy is paid up front). With the building selected, {command} the ground to set where new units gather."
+trigger = &"selected"
+subject = &"producer"
+mission_types = Array[StringName]([&"conquest", &"survey"])
+
+[sub_resource type="Resource" id="h4"]
+script = ExtResource("1_hint")
+id = &"scan_site"
+title = "Scan a signal"
+text = "A \"?\" on the map is an unresolved signal from the orbital scan. {command} it with a Surveyor to walk over and scan it: Intel, a codex entry and sometimes more. Scans stop if the Surveyor leaves."
+trigger = &"selected"
+subject = &"scanner"
+
+[sub_resource type="Resource" id="h5"]
+script = ExtResource("1_hint")
+id = &"survey_lab"
+title = "The Survey Lab"
+text = "The Survey Lab spends Intel on field options: an orbital scan of an area, a supply drop, Antecedent power. Select it to see what you can afford. Spent Intel no longer counts as banked."
+trigger = &"construction_completed"
+subject = &"concord_survey_lab"
+
+[sub_resource type="Resource" id="h6"]
+script = ExtResource("1_hint")
+id = &"storm"
+title = "Dust storm"
+text = "A dust storm is coming (the gauge top right). While it blows, everyone sees half as far, ground units are slowed (hover units less) and long-range guns lose reach. Sight cones shrink too: a good time to slip past a guard."
+trigger = &"storm_incoming"
+
+[sub_resource type="Resource" id="h7"]
+script = ExtResource("1_hint")
+id = &"stealth"
+title = "Sight cones"
+text = "Guards notice what is inside their sight cones, close up first and not at once: their cone turns amber, then red. In stealth mode Wisps creep and cloak; walls and crates block a guard's view. Being seen raises the alert meter, top left."
+trigger = &"alert_meter"
+delay_seconds = 2.0
+
+[sub_resource type="Resource" id="h8"]
+script = ExtResource("1_hint")
+id = &"sabotage"
+title = "Sabotage"
+text = "Wisps sabotage enemy buildings: {command} a building with only Wisps selected. They must stay next to it for a while; a sabotaged building stops working for good, and the guards grow suspicious."
+trigger = &"selected"
+subject = &"saboteur"
+
+[resource]
+script = ExtResource("2_catalog")
+hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8")])

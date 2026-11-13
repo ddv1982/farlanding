@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PropDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/prop_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://assets/models/combine/combine_prop_barrier.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_def")
+size = Vector3(5.1, 2.2, 0.9)
+max_health = 500
+armour_type = &"heavy"
+model = ExtResource("2_model")
+id = &"combine_prop_barrier"
+display_name = "Barrier"
+description = "A Combine wall segment. Blocks movement and sight."
+faction = -1
+sound_set = &"prop_barrier"

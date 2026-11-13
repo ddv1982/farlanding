@@ -13,6 +13,28 @@ Open `game/` in Godot 4.7.2 and press Play, or:
 godot --path game
 ```
 
+## Play
+
+Pick a landing on Kessel Reach (Conquest, Survey or Infiltration), read the briefing
+and land. Dust storms sweep the basin every few minutes: everyone sees half as far,
+ground units slow down and long guns lose reach (the gauge under the top-right
+buttons counts the next one down). Field notes explain each new thing the first time
+you meet it.
+
+| Input | Does |
+|---|---|
+| Left click (classic scheme) | select, and command by context: move, attack, harvest, scan, build, rally |
+| Right click (classic scheme) | deselect, cancel placement or aiming |
+| Shift | add to selection, queue orders |
+| Ctrl+1–9 / 1–9 | store / recall a control group |
+| WASD, arrows, screen edge, middle drag | pan · wheel: zoom · Q/E: turn |
+| C | codex · F1: all controls · F3: debug overlay |
+| Esc | pause menu: resume, settings, restart, quit to missions |
+
+Settings (from the mission list or the pause menu): volumes, mouse scheme (classic or
+modern: left selects, right commands), edge-pan, pan speed, fullscreen, quality,
+resolution scale, and "Reset hints".
+
 ## Work on it
 
 | Read | For |
@@ -24,7 +46,8 @@ godot --path game
 | `docs/adr/` | Decisions that would be expensive to reverse |
 
 Before pushing, run `tools/check.sh` (format, lint, import, script check,
-tests, boot test). CI runs the same script.
+tests, boot test, mission smoke test). CI runs the same script. Performance numbers
+and how to measure them: `docs/PERFORMANCE.md`.
 
 Rebuild generated assets:
 

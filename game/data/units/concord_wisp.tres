@@ -12,6 +12,7 @@ move_speed = 7.5
 turn_speed = 540.0
 vision_range = 24.0
 radius = 0.7
+hovers = true
 acceleration = 16.0
 signature = 0.5
 sensor = 1.2

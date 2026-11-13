@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PropDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/prop_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://assets/models/kessel/kessel_prop_boulder.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_def")
+size = Vector3(5.0, 3.2, 4.2)
+max_health = 0
+armour_type = &"heavy"
+model = ExtResource("2_model")
+id = &"kessel_prop_boulder"
+display_name = "Boulder"
+description = "A basalt boulder. Natural cover that blocks movement and sight."
+faction = -1
+sound_set = &"prop_boulder"

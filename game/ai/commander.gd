@@ -51,6 +51,8 @@ var verbose: bool = false
 var attack_group: AttackGroup = null
 var defence_group: AttackGroup = null
 var scout: ScoutBehaviour = null
+## The faction's own surveyors scanning sites for Intel (profiles with a surveyor).
+var survey: SurveyBehaviour = null
 ## Where the base is, and where new army units wait.
 var home: Vector3 = Vector3.ZERO
 var staging: Vector3 = Vector3.ZERO
@@ -142,6 +144,7 @@ func _on_command_executed(command: Command) -> void:
 func _decide(tick: int) -> void:
 	var started: int = Time.get_ticks_usec()
 	_update_home()
+	_staff_survey(tick)
 	perceive(tick)
 	_view = build_view(tick)
 	var actions: Array[AiAction] = brain.decide(_view)
@@ -156,7 +159,7 @@ func _decide(tick: int) -> void:
 
 func _tick_behaviours(tick: int) -> void:
 	var started: int = Time.get_ticks_usec()
-	for group: AiGroup in [attack_group, defence_group, scout]:
+	for group: AiGroup in [attack_group, defence_group, scout, survey]:
 		if group != null:
 			group.tick(tick)
 	if attack_group != null and attack_group.finished:
@@ -244,8 +247,14 @@ func build_view(tick: int) -> CommanderView:
 			view.producers.append(building)
 			for queued: UnitDef in building.producer.queue:
 				view.unit_counts[queued.id] = view.unit_counts.get(queued.id, 0) + 1
+	view.storm_intensity = port.storm_intensity()
+	view.storm_eta_seconds = port.storm_eta_seconds()
+	view.storm_is_final = port.storm_is_final()
+	view.survey_open = _survey_open(tick)
+	if survey != null:
+		view.surveying = survey.members.size()
 	var grouped: Dictionary[Unit, bool] = {}
-	for group: AiGroup in [attack_group, defence_group, scout]:
+	for group: AiGroup in [attack_group, defence_group, scout, survey]:
 		if group != null:
 			for unit: Unit in group.members:
 				grouped[unit] = true
@@ -253,6 +262,10 @@ func build_view(tick: int) -> CommanderView:
 		if unit.is_dead or unit.def == null:
 			continue
 		view.unit_counts[unit.def.id] = view.unit_counts.get(unit.def.id, 0) + 1
+		if unit.def == profile.surveyor:
+			view.surveyor_count += 1
+		if grouped.has(unit) and survey != null and survey.has_member(unit):
+			continue
 		var idle: bool = unit.orders != null and unit.orders.is_idle()
 		var may_order: bool = (
 			tick - _last_ordered.get(unit.entity_id, -IDLE_RETRY_TICKS) >= IDLE_RETRY_TICKS
@@ -396,6 +409,39 @@ func _launch(action: AiAction) -> void:
 			]
 		)
 	)
+
+
+## True once the profile's survey may start (it has a surveyor and the delay passed).
+func _survey_open(tick: int) -> bool:
+	if profile.surveyor == null or profile.surveyors_wanted <= 0:
+		return false
+	return tick >= CommanderDifficulty.ticks(profile.survey_after_seconds)
+
+
+## Puts idle units of the surveyor kind to work scanning, keeping one as a builder.
+func _staff_survey(tick: int) -> void:
+	if not _survey_open(tick):
+		return
+	if survey == null:
+		survey = SurveyBehaviour.new(port, profile, [])
+		_log("survey started")
+	survey.home = home
+	var spare: Array[Unit] = []
+	var builders_left: int = 0
+	for unit: Unit in world.units_of(faction):
+		if unit.is_dead or unit.def != profile.surveyor or survey.has_member(unit):
+			continue
+		if unit.scanner == null:
+			continue
+		builders_left += 1
+		if unit.orders != null and unit.orders.is_idle():
+			spare.append(unit)
+	for unit: Unit in spare:
+		if survey.members.size() >= profile.surveyors_wanted or builders_left <= 1:
+			break
+		survey.add(unit)
+		builders_left -= 1
+		_log("surveyor out (%s)" % unit.def.id)
 
 
 ## Minable deposits the faction has explored within `radius` of `from`.

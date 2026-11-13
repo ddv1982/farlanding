@@ -16,6 +16,8 @@ var attacks_on_base: int = 0
 var threatened: bool = false
 ## True once the attack group was called home for the current attack on the base.
 var recalled: bool = false
+## True once the wave was called home for the current storm.
+var storm_recalled: bool = false
 ## The wave the "premature attack" mistake was rolled for, and the result.
 var wave_rolled: int = -1
 var wave_premature: bool = false

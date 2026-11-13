@@ -2,7 +2,9 @@ class_name ObjectivesPanel
 extends PanelContainer
 ## Top-left list of the mission's known objectives, following the objective events:
 ## a coloured mark per objective (primary amber, secondary cyan; green when done, red
-## when failed), its title, its progress line and any countdown. Below it, when the
+## when failed), its title, its progress line and any countdown, and a bar for
+## objectives with a share (Intel banked; in the Survey race the Combine's Intel in
+## the warning colour). Below it, when the
 ## mission has one, the enemy's alert meter (Unaware, Suspicious, Alerted). Reads
 ## only `Events` and the Objective it is handed.
 
@@ -135,9 +137,17 @@ func _add_row(objective: Objective) -> void:
 	text.add_child(title)
 	var progress: Label = HudStyle.make_label(11, HudStyle.MUTED_COLOR)
 	text.add_child(progress)
+	var bar: ProgressBar = HudStyle.make_progress_bar()
+	var rival: bool = objective.progress_side == ObjectiveDef.SIDE_ENEMY
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = HudStyle.WARNING_COLOR if rival else HudStyle.INTEL_COLOR
+	bar.add_theme_stylebox_override(&"fill", fill)
+	bar.custom_minimum_size = Vector2(220, 5)
+	bar.visible = false
+	text.add_child(bar)
 	row.add_child(text)
 	_rows.add_child(row)
-	_entries[objective] = {"mark": mark, "title": title, "progress": progress}
+	_entries[objective] = {"mark": mark, "title": title, "progress": progress, "bar": bar}
 
 
 func _show_progress(objective: Objective) -> void:
@@ -150,6 +160,9 @@ func _show_progress(objective: Objective) -> void:
 		parts.append(("%s left" if objective.countdown_fails else "hold %s") % left)
 	progress.text = "  ·  ".join(parts)
 	progress.visible = not parts.is_empty()
+	var bar: ProgressBar = _entries[objective]["bar"]
+	bar.visible = objective.progress_ratio >= 0.0 and objective.is_active()
+	bar.value = maxf(objective.progress_ratio, 0.0)
 
 
 func _on_alert_level_changed(faction: int, level: StringName, _previous: StringName) -> void:

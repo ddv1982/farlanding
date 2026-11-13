@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="PlanetDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/planet_def.gd" id="1_planet"]
+[ext_resource type="Script" path="res://core/defs/dust_storm_rule.gd" id="2_rule"]
+[ext_resource type="Script" path="res://sim/systems/planet/dust_storm_system.gd" id="3_system"]
+
+[sub_resource type="Resource" id="rule"]
+script = ExtResource("2_rule")
+id = &"kessel_dust_storms"
+summary = "Periodic dust storms cut vision and ground speed for everyone."
+system = ExtResource("3_system")
+random_seed = 11
+
+[resource]
+script = ExtResource("1_planet")
+id = &"kessel_reach"
+display_name = "Kessel Reach"
+rule = SubResource("rule")

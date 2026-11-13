@@ -16,6 +16,8 @@ const TYPE_INFILTRATION: StringName = &"infiltration"
 @export var summary: String = ""
 @export_multiline var briefing: String = ""
 @export var map_scene: PackedScene
+## The planet it is played on; its rule (Kessel: dust storms) runs in the mission.
+@export var planet: PlanetDef
 @export_group("Player")
 @export var player_faction: int = 0
 ## The player's HQ (the Lander); null = no base (and no production from it).
@@ -54,6 +56,11 @@ const TYPE_INFILTRATION: StringName = &"infiltration"
 @export var mission_script: Script
 ## Data for the script (its own Resource type), or null.
 @export var script_rules: Resource
+## The objective whose deadline is the planet's climax (Survey: the storm that does
+## not lift arrives when its countdown ends); empty = none.
+@export var climax_objective: StringName = &""
+## Props this mission adds to the map (an outpost's cover), or null.
+@export var props: PropLayout
 ## Where the camera looks first; Vector3.INF = near the player's start.
 @export var camera_start: Vector3 = Vector3.INF
 

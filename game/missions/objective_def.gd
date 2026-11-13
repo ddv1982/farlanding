@@ -13,6 +13,8 @@ const TYPE_SURVIVE: StringName = &"survive"
 const TYPE_STAY_UNDETECTED: StringName = &"stay_undetected"
 const TYPE_SCAN_SITES: StringName = &"scan_sites"
 const TYPE_SABOTAGE: StringName = &"sabotage"
+## Fails when the rival (`side`) banks `amount` Intel first (the Survey race).
+const TYPE_RIVAL_INTEL: StringName = &"rival_intel"
 ## Whose things an objective is about.
 const SIDE_PLAYER: StringName = &"player"
 const SIDE_ENEMY: StringName = &"enemy"

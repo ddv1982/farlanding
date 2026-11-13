@@ -54,6 +54,14 @@ func add(faction: int, alloy: int, flux: int) -> void:
 	_announce_resources(faction)
 
 
+## A hauler unloaded `amount` Alloy at a drop-off.
+func deliver(hauler: Unit, amount: int) -> void:
+	if amount <= 0:
+		return
+	add(hauler.faction, amount, 0)
+	Events.harvest_delivered.emit(hauler, amount)
+
+
 ## Adds Intel (discoveries) and announces the new total.
 func add_intel(faction: int, amount: int) -> void:
 	if amount == 0:

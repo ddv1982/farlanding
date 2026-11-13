@@ -44,6 +44,16 @@ var enemy_heavy_share: float = 0.0
 ## Share of the map seen at least once.
 var explored_share: float = 0.0
 var scout_active: bool = false
+## The weather (public): storm intensity 0..1, seconds until an announced storm (INF
+## if none), and whether it is the storm that never lifts.
+var storm_intensity: float = 0.0
+var storm_eta_seconds: float = INF
+var storm_is_final: bool = false
+## Own units of the profile's surveyor kind scanning for Intel, and all of that kind.
+var surveying: int = 0
+var surveyor_count: int = 0
+## True once the profile's survey delay has passed.
+var survey_open: bool = false
 var attack_active: bool = false
 var defence_active: bool = false
 

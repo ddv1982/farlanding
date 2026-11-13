@@ -87,10 +87,14 @@ var suspicion: float:
 var is_alerted: bool:
 	get:
 		return watcher != null and watcher.is_alerted
-## How far this unit notices intruders, in metres (its vision range).
+## How far this unit notices intruders, in metres (its vision range, shortened by a
+## dust storm's sight factor).
 var sight_range: float:
 	get:
-		return def.vision_range if def != null else 0.0
+		if def == null:
+			return 0.0
+		var factor: float = world.conditions.sight_factor if world != null else 1.0
+		return def.vision_range * factor
 ## Full width of its sight cone in degrees (360 = all round).
 var sight_angle: float:
 	get:
@@ -111,6 +115,8 @@ var is_sabotaging: bool:
 		return saboteur != null and saboteur.is_working()
 
 var _handlers: Array[OrderHandler] = []
+## The weapon reach the engagement distances were last set for.
+var _engage_reach: float = -1.0
 ## Who last hit this unit, answered once it can be seen (it may only be exposed by
 ## its own shot on the next vision update).
 var _attacker: Node3D = null
@@ -183,14 +189,22 @@ func sim_tick(dt: float) -> void:
 	if dormancy != null and dormancy.is_dormant:
 		dormancy.tick()
 		return
+	var profiling: bool = world != null and world.profiling_units
+	var mark: int = Time.get_ticks_usec() if profiling else 0
 	if orders != null:
 		orders.tick(dt)
+	if profiling:
+		mark = world._section(&"unit_orders", mark)
 	if locomotion != null:
 		locomotion.tick(dt)
+	if profiling:
+		mark = world._section(&"unit_movement", mark)
 	if cloak != null:
 		cloak.tick(dt, speed)
 	if weapon != null:
 		_tick_weapon(dt)
+	if profiling:
+		world._section(&"unit_weapon", mark)
 
 
 ## Simulation position (leads the drawn node by up to one tick).
@@ -276,11 +290,26 @@ func _add_combat_components() -> void:
 	weapon.setup(def.weapon, self, faction, world.combat if world != null else null)
 	weapon.aim_changed.connect(aim_changed.emit)
 	weapon.aim_cleared.connect(aim_cleared.emit)
-	if orders != null:
-		orders.engage_distance = maxf(def.weapon.max_range - UnitOrders.ENGAGE_MARGIN, 1.0)
+	_update_engage_distances()
+
+
+## Where attack orders stop and fire: just inside the weapon's reach now (a storm
+## shortens long ranges) and, for artillery, outside its minimum range.
+func _update_engage_distances() -> void:
+	if orders == null or weapon == null:
+		return
+	var reach: float = weapon.max_range()
+	if reach == _engage_reach:
+		return
+	_engage_reach = reach
+	orders.engage_distance = maxf(reach - UnitOrders.ENGAGE_MARGIN, 1.0)
+	orders.min_engage_distance = (
+		weapon.def.min_range + UnitOrders.ENGAGE_MARGIN if weapon.def.min_range > 0.0 else 0.0
+	)
 
 
 func _tick_weapon(dt: float) -> void:
+	_update_engage_distances()
 	var moving: bool = is_moving()
 	var idle: bool = orders == null or orders.is_idle()
 	var ordered: Node3D = orders.attack_target() if orders != null else null

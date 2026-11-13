@@ -9,7 +9,7 @@ extends Node3D
 ## `Combat.SERVICE_KEY`, Discovery as `Discovery.SERVICE_KEY`.
 
 const SERVICE_KEY: StringName = &"world"
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 ## Produced units without a rally point walk this far out of the door.
 const DOOR_CLEARANCE: float = 4.0
 
@@ -28,16 +28,30 @@ var combat: Combat = null
 var vision: VisionSystem = null
 ## Signatures, watchers' suspicion and alert meters (created with vision), or null.
 var stealth: StealthSystem = null
+## The weather everyone plays under (a planet rule sets it; calm without one).
+var conditions: WorldConditions = WorldConditions.new()
+## The planet's rule in play (Kessel: dust storms), or null.
+var planet: PlanetRuleSystem = null
+## Map dressing that blocks movement and (when tall) sight: crates, walls, boulders.
+var props: Array[Prop] = []
 var rules: EconomyRules = EconomyRules.new()
 var player_faction: int = 0
 ## Area buildings may be placed in (world X/Z).
 var build_bounds: Rect2 = Rect2(-1.0e6, -1.0e6, 2.0e6, 2.0e6)
 ## Wall-clock cost of the last sim tick for all units, in microseconds.
 var last_tick_usec: int = 0
+## When true, `section_usec` accumulates the wall-clock cost of each part of a tick
+## (benchmarks and the F3 overlay); off by default.
+var profiling: bool = false
+## Section name -> microseconds spent in it since profiling started.
+var section_usec: Dictionary[StringName, int] = {}
+## Also split the units' tick into orders, movement and weapon (costs a little).
+var profiling_units: bool = false
 
 var _next_id: int = 1
 var _entities: Dictionary[int, Node3D] = {}
 var _blocks: Dictionary[int, int] = {}  # entity id -> PathService block handle
+var _speed_version: int = 0
 
 
 ## Wires the world into a mission. Call before spawning.
@@ -92,6 +106,7 @@ func spawn_unit(def: UnitDef, faction: int, at: Vector3, yaw: float = 0.0) -> Un
 	add_child(unit)
 	if unit.locomotion != null:
 		unit.locomotion.setup(def, at, yaw, paths, heights)
+		unit.locomotion.set_speed_scale(conditions.speed_factor(def.hovers))
 	units.append(unit)
 	unit.tree_exiting.connect(_on_unit_exiting.bind(unit))
 	if unit.health != null:
@@ -176,6 +191,37 @@ func spawn_site(def: DiscoveryDef, at: Vector3, charted: bool = true) -> Discove
 	if def.blocks_movement:
 		_blocks[site.entity_id] = paths.block_area(site.blocked_area())
 	return site
+
+
+## Places a prop of `def` at `at`, turned by `quarter_turns`. It blocks movement
+## (navmesh cut) and, when tall enough, sight (vision grid and sight cones).
+func spawn_prop(def: PropDef, at: Vector3, quarter_turns: int = 0) -> Prop:
+	var prop: Prop = Prop.new()
+	prop.def = def
+	prop.world = self
+	prop.quarter_turns = posmod(quarter_turns, 4)
+	prop.entity_id = _register(prop)
+	prop.name = "%s_%d" % [def.id, prop.entity_id]
+	prop.position = _on_ground(at)
+	add_child(prop)
+	props.append(prop)
+	prop.tree_exiting.connect(_on_prop_exiting.bind(prop))
+	if def.blocks_movement:
+		_blocks[prop.entity_id] = paths.block_area(prop.footprint())
+		evacuate(prop.footprint())
+	if prop.health != null:
+		prop.health.died.connect(_on_prop_destroyed.bind(prop))
+	_refresh_sight_blockers()
+	return prop
+
+
+## Footprints of the props that block sight now.
+func _sight_blockers() -> Array[Rect2]:
+	var rects: Array[Rect2] = []
+	for prop: Prop in props:
+		if prop.blocks_sight and not prop.is_dead:
+			rects.append(prop.footprint())
+	return rects
 
 
 ## Something stirred at `at` (a scan began): dormant Custodians whose guard radius
@@ -279,14 +325,6 @@ func nearest_dropoff(faction: int, from: Vector3) -> Building:
 	return best
 
 
-## A hauler unloaded `amount` Alloy.
-func deliver(hauler: Unit, amount: int) -> void:
-	if amount <= 0:
-		return
-	economy.add(hauler.faction, amount, 0)
-	Events.harvest_delivered.emit(hauler, amount)
-
-
 ## `node` ran out (mined by `faction`): announce it and take it off the map.
 func deplete(node: ResourceNode, faction: int) -> void:
 	if not is_instance_valid(node) or node.is_queued_for_deletion():
@@ -323,20 +361,54 @@ func _process(_delta: float) -> void:
 
 func _on_ticked(tick: int) -> void:
 	var started: int = Time.get_ticks_usec()
+	var mark: int = started
 	var dt: float = context.sim_clock.get_tick_delta()
+	if planet != null:
+		planet.tick(tick, dt)
+		_apply_conditions()
 	economy.update_power(buildings)
+	mark = _section(&"planet_economy", mark)
 	combat.begin_tick(units, buildings)
+	mark = _section(&"combat_grid", mark)
 	if vision != null:
 		vision.tick(tick, units, buildings, resource_nodes)
+	mark = _section(&"vision", mark)
 	if stealth != null:
 		stealth.tick(tick, dt, units)
+	mark = _section(&"stealth", mark)
 	for unit: Unit in units:
 		unit.sim_tick(dt)
+	mark = _section(&"units", mark)
 	for building: Building in buildings.duplicate():
 		_tick_building(building, dt)
+	mark = _section(&"buildings", mark)
 	combat.tick_projectiles(dt)
+	mark = _section(&"projectiles", mark)
 	discovery.tick(tick, dt)
+	_section(&"discovery", mark)
 	last_tick_usec = Time.get_ticks_usec() - started
+
+
+## Adds the time since `mark` to `section` while profiling; returns the new mark.
+func _section(section: StringName, mark: int) -> int:
+	if not profiling:
+		return mark
+	var now: int = Time.get_ticks_usec()
+	section_usec[section] = section_usec.get(section, 0) + now - mark
+	return now
+
+
+## Hands the weather to the systems that read it: vision ranges now, unit top speeds
+## only when a movement factor changed (or `force`).
+func _apply_conditions(force: bool = false) -> void:
+	if vision != null:
+		vision.range_scale = conditions.vision_factor
+	if not force and conditions.speed_version == _speed_version:
+		return
+	_speed_version = conditions.speed_version
+	for unit: Unit in units:
+		if unit.locomotion != null and unit.def != null:
+			unit.locomotion.set_speed_scale(conditions.speed_factor(unit.def.hovers))
 
 
 func _tick_building(building: Building, dt: float) -> void:
@@ -479,6 +551,34 @@ func _on_entity_killed(_attacker: Node3D, entity: Node3D) -> void:
 	entity.queue_free()
 
 
+## A prop was blown apart: it stops blocking, is announced and leaves.
+func _on_prop_destroyed(_attacker: Node3D, prop: Prop) -> void:
+	if not is_instance_valid(prop) or prop.is_queued_for_deletion():
+		return
+	_unblock(prop.entity_id)
+	props.erase(prop)
+	_refresh_sight_blockers()
+	Events.entity_died.emit(prop)
+	prop.queue_free()
+
+
+func _on_prop_exiting(prop: Prop) -> void:
+	if props.has(prop):
+		props.erase(prop)
+		_refresh_sight_blockers()
+	_entities.erase(prop.entity_id)
+	_unblock(prop.entity_id)
+
+
+## Vision and stealth learn where sight is blocked.
+func _refresh_sight_blockers() -> void:
+	var rects: Array[Rect2] = _sight_blockers()
+	if vision != null:
+		vision.grid.set_occluders(rects)
+	if stealth != null:
+		stealth.set_occluders(rects)
+
+
 func _on_unit_exiting(unit: Unit) -> void:
 	units.erase(unit)
 	_entities.erase(unit.entity_id)
@@ -534,6 +634,8 @@ func to_dict() -> Dictionary:
 		"combat": combat.to_dict(),
 		"vision": vision.to_dict() if vision != null else {},
 		"stealth": stealth.to_dict() if stealth != null else {},
+		"planet": planet.to_dict() if planet != null else {},
+		"props": _props_to_dict(),
 	}
 
 
@@ -601,6 +703,37 @@ func from_dict(data: Dictionary) -> void:
 	var combat_data: Dictionary = data.get("combat", {})
 	if not combat_data.is_empty():
 		combat.from_dict(combat_data, entity)
+	var planet_data: Dictionary = data.get("planet", {})
+	if planet != null and not planet_data.is_empty():
+		planet.from_dict(planet_data)
+		_apply_conditions(true)
+	var props_data: Dictionary = data.get("props", {})
+	if not props_data.is_empty():
+		_props_from_dict(props_data)
+
+
+func _props_to_dict() -> Dictionary:
+	var saved: Array[Dictionary] = []
+	for prop: Prop in props:
+		saved.append(prop.to_dict())
+	return {"version": 1, "props": saved}
+
+
+## Props are map dressing the map places again on load: restore what changed (damage)
+## and remove the ones that were destroyed.
+func _props_from_dict(data: Dictionary) -> void:
+	var saved: Array = data.get("props", [])
+	var by_spot: Dictionary[String, Dictionary] = {}
+	for entry: Variant in saved:
+		var prop_data: Dictionary = entry
+		var spot: String = prop_data.get("position", "")
+		by_spot[spot] = prop_data
+	for prop: Prop in props.duplicate():
+		var key: String = var_to_str(prop.position)
+		if by_spot.has(key):
+			prop.from_dict(by_spot[key])
+		elif prop.def != null and prop.def.is_destructible():
+			prop.queue_free()
 
 
 func _restore_id(node: Node3D, current_id: int, data: Dictionary) -> void:

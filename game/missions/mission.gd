@@ -55,6 +55,8 @@ func setup(
 	context.set_service(SERVICE_KEY, self)
 	if def.enemy_alert_meter and world.stealth != null:
 		world.stealth.add_guard_faction(def.hostile_faction)
+	if def.planet != null and def.planet.rule != null:
+		PlanetRuleSystem.start(world, def.planet.rule)
 	var pile: Stockpile = world.economy.stockpile(player_faction)
 	if def.start_alloy >= 0 or def.start_flux >= 0:
 		pile.alloy = def.start_alloy if def.start_alloy >= 0 else pile.alloy
@@ -65,7 +67,7 @@ func setup(
 	_last_intel = pile.intel
 
 
-## Places the buildings: the player's HQ and the enemy base.
+## Places the buildings: the player's HQ and the enemy base; then the mission's props.
 func spawn_structures() -> void:
 	if def.player_hq != null:
 		player_hq = world.spawn_building(def.player_hq, player_faction, def.player_start, true)
@@ -75,6 +77,10 @@ func spawn_structures() -> void:
 		world.spawn_building(
 			def.hostile_buildings[i], def.hostile_faction, def.hostile_building_positions[i], true
 		)
+	if def.props != null:
+		for placement: PropPlacement in def.props.placements:
+			if placement != null and placement.def != null:
+				world.spawn_prop(placement.def, placement.position, placement.quarter_turns)
 
 
 ## Places the units: the player's crew or squad, the enemy crew and the guards.
@@ -136,6 +142,7 @@ func start() -> void:
 	Events.alert_level_changed.connect(_on_alert_level_changed)
 	for objective_def: ObjectiveDef in def.starting_objectives():
 		add_objective_def(objective_def)
+	_schedule_climax()
 	if def.mission_script != null:
 		var source: GDScript = def.mission_script as GDScript
 		var instance: Variant = source.new() if source != null else null
@@ -299,6 +306,15 @@ func _on_ticked(_tick: int) -> void:
 	if script_instance != null:
 		script_instance.on_tick(now())
 	_resolve()
+
+
+## The climax objective's deadline is when the planet's climax arrives.
+func _schedule_climax() -> void:
+	if def.climax_objective == &"" or world.planet == null:
+		return
+	var found: Objective = objective(def.climax_objective)
+	if found != null and found.countdown_tick >= 0:
+		world.planet.schedule_climax(found.countdown_tick)
 
 
 func _resolve() -> void:

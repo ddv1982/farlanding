@@ -13,6 +13,14 @@ const FACTORY_QUEUE: int = 2
 const WAVE_SLACK: float = 1.5
 ## Seconds before a building type whose spot could not be found is tried again.
 const BACKOFF_SECONDS: float = 20.0
+## A storm counts as blowing from this intensity, and as coming this many seconds
+## before it starts.
+const STORM_ACTIVE: float = 0.25
+const STORM_SOON_SECONDS: float = 25.0
+## A "hold" commander calls its wave home once a storm is this strong.
+const STORM_RECALL: float = 0.5
+## A "press" wave leaving in a storm needs at least this many units.
+const STORM_WAVE_MIN: int = 2
 
 var profile: CommanderProfile
 var difficulty: CommanderDifficulty
@@ -51,6 +59,8 @@ func decide(view: CommanderView) -> Array[AiAction]:
 		_last_stand(view, actions)
 		return actions
 	_answer_threat(view, actions)
+	_mind_the_weather(view, actions)
+	_keep_surveyors(view, actions)
 	if memory.opening_index < profile.opening.size():
 		_play_opening(view, actions)
 		return actions
@@ -140,6 +150,50 @@ func _answer_threat(view: CommanderView, actions: Array[AiAction]) -> void:
 	actions.append(defend)
 	view.guards = []
 	view.defence_active = true
+
+
+## True while a storm blows or is about to (it never counts once it will not lift:
+## waiting it out would be waiting for ever).
+static func is_stormy(view: CommanderView) -> bool:
+	if view.storm_is_final:
+		return false
+	return view.storm_intensity >= STORM_ACTIVE or view.storm_eta_seconds <= STORM_SOON_SECONDS
+
+
+## A "hold" commander calls its wave home when a storm hits it in the open.
+func _mind_the_weather(view: CommanderView, actions: Array[AiAction]) -> void:
+	if not is_stormy(view):
+		memory.storm_recalled = false
+		return
+	if profile.storm_tactic != "hold" or not view.attack_active or memory.storm_recalled:
+		return
+	if view.storm_intensity >= STORM_RECALL:
+		memory.storm_recalled = true
+		actions.append(AiAction.new(AiAction.RECALL, &"storm"))
+
+
+## Keeps the profile's surveyor count: makes another at a producer when one is short.
+func _keep_surveyors(view: CommanderView, actions: Array[AiAction]) -> void:
+	if profile.surveyor == null or profile.surveyors_wanted <= 0 or not view.survey_open:
+		return
+	if view.count_of(profile.surveyor) >= profile.surveyors_wanted + profile.max_builders:
+		return
+	if view.surveying + _queued_surveyors(view) >= profile.surveyors_wanted:
+		return
+	for maker: Building in view.producers_of(profile.surveyor):
+		if maker.producer.queue.has(profile.surveyor) or not can_afford(profile.surveyor):
+			continue
+		var action: AiAction = _produce(view, maker, profile.surveyor, &"survey")
+		if action != null:
+			actions.append(action)
+		return
+
+
+func _queued_surveyors(view: CommanderView) -> int:
+	var queued: int = 0
+	for maker: Building in view.producers_of(profile.surveyor):
+		queued += maker.producer.queue.count(profile.surveyor)
+	return queued
 
 
 ## Plays the opening in data order; stops at the first step that has to wait.
@@ -257,6 +311,11 @@ func _attack(view: CommanderView, actions: Array[AiAction]) -> void:
 	var size: int = difficulty.wave_size(memory.waves_launched)
 	if memory.wave_premature:
 		size = maxi(ceili(size * difficulty.early_wave_share), 1)
+	if is_stormy(view):
+		if profile.storm_tactic == "hold":
+			return
+		# Press: go now, under strength, while the defenders see half as far.
+		size = mini(size, maxi(ceili(size * difficulty.early_wave_share), STORM_WAVE_MIN))
 	var free: Array[Unit] = _free_army(view)
 	if free.size() < size:
 		return

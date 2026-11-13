@@ -48,11 +48,21 @@ func begin_tick(units: Array[Unit], buildings: Array[Building]) -> void:
 	_grid.clear()
 	for unit: Unit in units:
 		if not unit.is_dead:
-			_grid.insert(unit, unit.sim_position())
+			_grid.insert(unit, unit.sim_position(), unit.faction, 0.0)
 	for building: Building in buildings:
 		if not building.is_dead:
-			_grid.insert(building, building.position)
+			_grid.insert(
+				building, building.position, building.faction, building.def.footprint_radius()
+			)
 	last_tick_usec = Time.get_ticks_usec() - started
+
+
+## How far `def` reaches now: its range, shortened for long-range weapons while a
+## dust storm blows (WorldConditions).
+func weapon_range(def: WeaponDef) -> float:
+	if world == null:
+		return def.max_range
+	return world.conditions.weapon_range(def.max_range)
 
 
 ## True if `faction` may shoot `target` now: a living unit or building of another
@@ -73,18 +83,40 @@ func can_target(faction: int, target: Variant) -> bool:
 func find_target(faction: int, from: Vector3, reach: float, min_reach: float = 0.0) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
-	for candidate: Node3D in _grid.query(from, reach + MAX_BODY_RADIUS):
-		var candidate_faction: int = faction_of(candidate)
-		if candidate_faction == faction or candidate_faction < 0:
-			continue
-		var distance: float = reach_to(candidate, from)
-		if distance > reach or distance < min_reach or is_dormant(candidate):
-			continue
-		var score: float = distance + (0.0 if is_armed(candidate) else SOFT_TARGET_PENALTY)
-		if score >= best_score or not can_target(faction, candidate):
-			continue
-		best = candidate
-		best_score = score
+	var span: float = reach + MAX_BODY_RADIUS
+	var low: Vector2i = _grid.cell_of(from - Vector3(span, 0.0, span))
+	var high: Vector2i = _grid.cell_of(from + Vector3(span, 0.0, span))
+	var stride: int = SpatialGrid.STRIDE
+	for z: int in range(low.y, high.y + 1):
+		for x: int in range(low.x, high.x + 1):
+			var cell: Vector2i = Vector2i(x, z)
+			var entries: Array = _grid.bucket(cell)
+			if entries.is_empty():
+				continue
+			var data: Array = _grid.bucket_data(cell)
+			for i: int in entries.size():
+				# Plain numbers first: most candidates are friends or out of reach.
+				var base: int = i * stride
+				var faction_value: float = data[base + 3]
+				var candidate_faction: int = int(faction_value)
+				if candidate_faction == faction or candidate_faction < 0:
+					continue
+				var px: float = data[base]
+				var pz: float = data[base + 1]
+				var body: float = data[base + 2]
+				var dx: float = px - from.x
+				var dz: float = pz - from.z
+				var distance: float = maxf(sqrt(dx * dx + dz * dz) - body, 0.0)
+				if distance > reach or distance < min_reach:
+					continue
+				var candidate: Node3D = entries[i]
+				if is_dormant(candidate):
+					continue
+				var score: float = distance + (0.0 if is_armed(candidate) else SOFT_TARGET_PENALTY)
+				if score >= best_score or not can_target(faction, candidate):
+					continue
+				best = candidate
+				best_score = score
 	return best
 
 
@@ -94,13 +126,31 @@ func find_target(faction: int, from: Vector3, reach: float, min_reach: float = 0
 ## reads the world's unit or building lists.
 func seen_enemies_near(faction: int, center: Vector3, radius: float) -> Array[Node3D]:
 	var seen: Array[Node3D] = []
-	for candidate: Node3D in _grid.query(center, radius + MAX_BODY_RADIUS):
-		var candidate_faction: int = faction_of(candidate)
-		if candidate_faction == faction or candidate_faction < 0:
-			continue
-		if reach_to(candidate, center) > radius or not can_target(faction, candidate):
-			continue
-		seen.append(candidate)
+	var span: float = radius + MAX_BODY_RADIUS
+	var low: Vector2i = _grid.cell_of(center - Vector3(span, 0.0, span))
+	var high: Vector2i = _grid.cell_of(center + Vector3(span, 0.0, span))
+	var stride: int = SpatialGrid.STRIDE
+	for z: int in range(low.y, high.y + 1):
+		for x: int in range(low.x, high.x + 1):
+			var cell: Vector2i = Vector2i(x, z)
+			var entries: Array = _grid.bucket(cell)
+			if entries.is_empty():
+				continue
+			var data: Array = _grid.bucket_data(cell)
+			for i: int in entries.size():
+				var base: int = i * stride
+				var faction_value: float = data[base + 3]
+				var candidate_faction: int = int(faction_value)
+				if candidate_faction == faction or candidate_faction < 0:
+					continue
+				var px: float = data[base]
+				var pz: float = data[base + 1]
+				var body: float = data[base + 2]
+				if sqrt((px - center.x) ** 2 + (pz - center.z) ** 2) - body > radius:
+					continue
+				var candidate: Node3D = entries[i]
+				if can_target(faction, candidate):
+					seen.append(candidate)
 	return seen
 
 
@@ -238,6 +288,8 @@ static func health_of(entity: Node3D) -> Health:
 		return (entity as Unit).health
 	if entity is Building:
 		return (entity as Building).health
+	if entity is Prop:
+		return (entity as Prop).health
 	return null
 
 
@@ -285,6 +337,24 @@ func _impact(def: WeaponDef, shooter: Node3D, faction: int, point: Vector3, vict
 		hit.append(entity)
 		var falloff: float = lerpf(1.0, SPLASH_EDGE, distance / def.splash_radius)
 		damage(entity, def.damage * falloff, def.damage_type, shooter)
+	_splash_props(def, shooter, point)
+
+
+## Shells blow destructible props apart (crates, tanks): splash reaches their footprint.
+func _splash_props(def: WeaponDef, shooter: Node3D, point: Vector3) -> void:
+	if world == null or world.props.is_empty():
+		return
+	var at: Vector2 = Vector2(point.x, point.z)
+	for prop: Prop in world.props.duplicate():
+		if prop.health == null or prop.is_dead:
+			continue
+		var area: Rect2 = prop.footprint()
+		var nearest: Vector2 = at.clamp(area.position, area.end)
+		var distance: float = nearest.distance_to(at)
+		if distance > def.splash_radius:
+			continue
+		var falloff: float = lerpf(1.0, SPLASH_EDGE, distance / def.splash_radius)
+		damage(prop, def.damage * falloff, def.damage_type, shooter)
 
 
 func _update_seen(shot: Projectile) -> void:

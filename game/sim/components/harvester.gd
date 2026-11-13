@@ -158,7 +158,7 @@ func _step_unloading(order: Order, dt: float) -> bool:
 	if _timer > 0.0:
 		return false
 	if unit.world != null:
-		unit.world.deliver(unit, cargo)
+		unit.world.economy.deliver(unit, cargo)
 	cargo = 0
 	deliveries += 1
 	if _is_minable(deposit):

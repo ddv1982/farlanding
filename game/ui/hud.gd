@@ -3,11 +3,16 @@ extends CanvasLayer
 ## In-mission HUD: the resource bar (top), the command panel (bottom centre: build
 ## menu, production, field options, hints), a selection panel with one chip per
 ## type, the minimap (bottom right) with the controls panel (F1) above it, the codex
-## (button or C) and the mouse scheme toggle (top right), the mission's objectives
-## (top left, with the enemy alert meter when the mission has one) and a debug
-## overlay (F3). The end of a mission is shown by the debrief (ui/debrief_panel.gd).
+## (button or C) and the menu button (top right; the pause menu holds the settings,
+## including the mouse scheme), the planet indicator under them (Kessel: the dust
+## storm and its countdown), the mission's objectives (top left, with the enemy alert
+## meter when the mission has one) and a debug overlay (F3). The end of a mission is
+## shown by the debrief (ui/debrief_panel.gd).
 ## Built in code from HudStyle so every panel reads as the same survey-instrument
 ## family.
+
+## The MENU button was pressed (Main opens the pause menu).
+signal menu_requested
 
 ## Controls panel text per mouse scheme (Settings.control_scheme).
 const HINT_CLASSIC: String = (
@@ -21,7 +26,8 @@ const HINT_CLASSIC: String = (
 	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
 	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn\n"
 	+ "MAP      left: look there (drag)  ·  right: move selected units there\n"
-	+ "CODEX    C or the button top right  ·  COMBAT  armed units fire by themselves"
+	+ "CODEX    C or the button top right  ·  COMBAT  armed units fire by themselves\n"
+	+ "MENU     Esc: pause, settings (mouse scheme, audio, display), restart, quit"
 )
 const HINT_MODERN: String = (
 	"MOUSE    modern: left selects, right commands\n"
@@ -35,7 +41,8 @@ const HINT_MODERN: String = (
 	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
 	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn\n"
 	+ "MAP      left: look there (drag)  ·  right: move selected units there\n"
-	+ "CODEX    C or the button top right  ·  COMBAT  armed units fire by themselves"
+	+ "CODEX    C or the button top right  ·  COMBAT  armed units fire by themselves\n"
+	+ "MENU     Esc: pause, settings (mouse scheme, audio, display), restart, quit"
 )
 const MARGIN := HudStyle.MARGIN
 
@@ -66,7 +73,8 @@ var _objectives: ObjectivesPanel
 var _hint: Label
 var _codex: CodexPanel
 var _codex_button: Button
-var _scheme_button: Button
+var _menu_button: Button
+var _planet: PlanetIndicator
 
 
 func _ready() -> void:
@@ -139,6 +147,12 @@ func toggle_control_scheme() -> void:
 	Events.ui_feedback.emit(&"click")
 
 
+## Asks for the pause menu.
+func request_menu() -> void:
+	Events.ui_feedback.emit(&"click")
+	menu_requested.emit()
+
+
 func _process(_delta: float) -> void:
 	if not _debug_panel.visible:
 		return
@@ -153,6 +167,10 @@ func _process(_delta: float) -> void:
 		lines.append("Projectiles %d" % world.combat.projectiles.size())
 		if world.vision != null:
 			lines.append("Vision update %.2f ms" % (world.vision.last_update_usec / 1000.0))
+		if world.stealth != null:
+			lines.append("Stealth %.2f ms" % (world.stealth.last_tick_usec / 1000.0))
+		if world.planet != null:
+			lines.append("Storm %.2f" % world.conditions.storm_intensity)
 	_debug.text = "\n".join(lines)
 
 
@@ -201,6 +219,7 @@ func _on_selection_changed(entities: Array[Node3D]) -> void:
 
 func _build_economy_panels() -> void:
 	var economy: Economy = world.economy if world != null else null
+	_planet.world = world
 	_resource_bar = ResourceBar.new()
 	_resource_bar.setup(player_faction, economy)
 	add_child(_resource_bar)
@@ -256,29 +275,35 @@ func _build_hint() -> void:
 	_corner.add_child(_hint_toggle)
 
 
-## Top right: the codex button and the mouse scheme toggle.
+## Top right: the codex and menu buttons, the planet indicator below them.
 func _build_top_right() -> void:
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override(&"separation", 6)
+	column.alignment = BoxContainer.ALIGNMENT_BEGIN
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(column)
+	column.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 6)
+	column.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override(&"separation", 6)
-	add_child(row)
-	row.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 6)
-	row.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	row.alignment = BoxContainer.ALIGNMENT_END
+	column.add_child(row)
 	_codex_button = HudStyle.make_small_button("CODEX  (C)")
 	_codex_button.tooltip_text = "What the expedition has found on this landing."
 	_codex_button.pressed.connect(toggle_codex)
 	row.add_child(_codex_button)
-	_scheme_button = HudStyle.make_small_button("")
-	_scheme_button.pressed.connect(toggle_control_scheme)
-	row.add_child(_scheme_button)
+	_menu_button = HudStyle.make_small_button("MENU  (Esc)")
+	_menu_button.tooltip_text = "Pause: resume, settings (mouse, audio, display), restart, quit."
+	_menu_button.pressed.connect(request_menu)
+	row.add_child(_menu_button)
+	_planet = PlanetIndicator.new()
+	_planet.name = &"PlanetIndicator"
+	_planet.size_flags_horizontal = Control.SIZE_SHRINK_END
+	column.add_child(_planet)
 
 
 func _on_settings_changed() -> void:
 	var classic: bool = Settings.control_scheme == Settings.SCHEME_CLASSIC
-	_scheme_button.text = "MOUSE: %s" % ("CLASSIC" if classic else "MODERN")
-	_scheme_button.tooltip_text = (
-		"Classic: left click selects and commands, right click deselects.\n"
-		+ "Modern: left click selects, right click commands.\nClick to switch (saved)."
-	)
 	_hint.text = HINT_CLASSIC if classic else HINT_MODERN
 
 

@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="MissionDef" format=3]
 
+[ext_resource type="Resource" path="res://data/planets/kessel_reach.tres" id="planet"]
 [ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
 [ext_resource type="Script" path="res://missions/objective_def.gd" id="e1"]
 [ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
@@ -66,6 +67,7 @@ mission_type = &"conquest"
 summary = "Land, build a base and destroy the Combine operation across the basin."
 briefing = "The Combine has dug in on the far side of the Kessel basin, stripping the dust for anything the Antecedents left behind. The Meridian puts the Lander down in the south-west.\n\nBuild an economy, field an army and wipe their operation off the map. Their relay to the east would tell us how they think, if a Surveyor gets close enough to scan it. Keep the Lander standing: it is the expedition's only way home."
 map_scene = ExtResource("e5")
+planet = ExtResource("planet")
 player_hq = ExtResource("e2")
 player_start = Vector3(-80, 0, 85)
 player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8")])
