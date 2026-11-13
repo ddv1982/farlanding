@@ -168,8 +168,87 @@ loudness targets and the naming, and says how to add a sound.
   watch pulse joins, a trace of drive), `stealth_alerted` (watch, drive, drums, a little brass:
   full drive). Layer changes wait for the next beat (score `bpm` 80, `quantize_beats` 1) and
   fade at the state's own speed (4 s, 1.5 s, 0.5 s), so a joining layer lands in time.
+- **The dust storm is the planet speaking** (Phase 6, Kessel Reach's rule). Nothing in it is
+  tonal except its release; it lives on its own **Weather** bus:
+
+  | Event | Sound |
+  |---|---|
+  | `storm_front_rumble` | the warning (`storm_incoming`): a wall of low noise rolling in from the left, far thunder inside it, the dust hiss arriving last (8.5 s, −25) |
+  | `amb_storm_wind` / `_grit` / `_throb` | the bed: a surging wide wind body (40 s loop, −25); sand hissing on hulls with grain crackle and faint struck-panel rings (33 s, −29); a slow pressure throb on D2 (24 s, −31). Different lengths, so the surges never line up twice |
+  | `storm_gust_1..4` | flat stereo surges sweeping across the field (−26) |
+  | `storm_debris_1..5` | positional, 12–38 m around the listener: pebbles skittering, a loose panel rattling, a tumbling can, grit on armour, a scrape and thud (−26) |
+  | `storm_passed` | the release: the wind falling down a closing band, then chimes D A E rising as the air opens (−24) |
+  | `mus_sting_storm_final` | Survey's end: the Trail motif on the reed, each note further under a rising wall of noise; the hanging G# is swallowed, thunder, only wind left (−22) |
+  | `advisor_storm_passed` | a muffled B+F# opening and lifting into D+A, a high A+E answering (−21) |
+
+  While the storm is up the world is heard *through* it: a low-pass on the SFX and Ambience
+  buses closes from 20 kHz to 900 Hz and they dip (SFX −4 dB, Ambience −10 dB). Unit replies
+  (Barks), the Advisor, the interface, discovery and stealth stingers are on other buses and
+  stay clear.
+- **Kessel Reach's ambience is layered and never the same twice** (Phase 6). Two beds of
+  different lengths loop together (`amb_kessel_wind` 48 s, `amb_kessel_air` 37 s: high thin
+  air, a sand-sift, rock-edge whistles on G# and C#), each wandering to a new level every
+  7–15 s (wind −5..0 dB, air −9..−1 dB). Positional details (group `ambdetail`, −23..−25,
+  heard from 14–55 m) come every 6–14 s: `amb_rock_settle` (stone cooling and trickling),
+  `amb_dust_devil` (a whirl passing), `amb_flux_vent` (a far hiss with bubbles on G# B C# D, at
+  the nearest Flux node), `amb_combine_industry` (clanks, a drop hammer, a hydraulic sigh, a
+  flat shift horn: off the Concord key, at a Combine base the player has seen). Near an
+  Antecedent site `amb_kessel_hush` rises (a faint bell drone on D and G#, glass shimmer) and
+  the wind and the details step back.
 - **Restraint.** Interface sounds are short (≤ 0.3 s) and dry; replies carry a small room;
   only music and ambience are wide and wet.
+
+- **The complete Kessel score** (Phase 6). Six more synchronised layers of the explore clip:
+  `melody_b` (a second set of phrases on the chime-and-reed voice), `melody_c` (the motif
+  augmented, low, on marimba with a chime above), `pulse_b` (the pulse in a 3+3+2 figure),
+  `drums_b` (half-time taiko, tom runs, off-beat frame drum), `urgency` (base under attack: a
+  muted sixteenth ostinato of D against G#, a reed siren rising a fourth every two bars) and
+  `heavy` (heavy combat: low reed brass in half notes on root and fifth, doubled taiko, a
+  grinding sub). Layers sharing a *variant group* (`melody`, `melody_b`, `melody_c`; `pulse`,
+  `pulse_b`; `drums`, `drums_b`) take turns, one per 48 s loop, never the same twice running,
+  so fifteen minutes in one state passes through 12 different combinations of material.
+  States (dB per layer in `kessel_reach.tres`):
+
+  | State | Sounding | Fade |
+  |---|---|---|
+  | `explore` | pad, pulse*, melody*, trail, storm†, urgency −4‡ | 3 s |
+  | `calm` | pad, melody* −6, trail −3, storm†, urgency −6‡ | 3 s |
+  | `tension` | pad −2, pulse* −6, drive, trail −8, storm†, urgency‡ | 3 s |
+  | `combat` | pad −4, drive −3, drums*, brass, storm† −5, urgency −4‡ | 3 s |
+  | `combat_heavy` | pad −7, drive −5, drums* −2, brass −3, heavy −2, storm† −6, urgency −6‡ | 1.5 s |
+  | `aftermath` | pad, melody* −5, drive −14, trail −4, storm†, urgency −8‡ | 3 s |
+  | `victory` / `defeat` | quiet pads (defeat keeps storm† −6: the final storm outlasts it) | at once |
+  | `stealth_unaware` / `_suspicious` / `_alerted` | as in Phase 5, plus urgency‡ −6 / −5 when the base is hit | 4 / 1.5 / 0.5 s |
+
+  \* one variant of the group. † the `storm` layer only sounds with the storm (gain from the
+  weather: silent below 0.1, −14 → −3 dB up to 0.8; or 0 dB from the Survey deadline). ‡ the
+  `urgency` layer only sounds for 24 s after an `under_attack` phrase. Heavy combat is heat
+  ≥ 70 (a full battle; a skirmish settles at 25–50) and steps back to combat after 6 s below
+  35. Every change waits for the next beat. Two changes a fade cannot hide get a hit on that
+  beat (`ScoreTransitions`): into combat or heavy combat from anything not already fighting,
+  `mus_hit_combat` (air sucked in, two taiko strikes, a low reed D, −24); combat or heavy into
+  aftermath, `mus_hit_aftermath` (the reed falling D A F# D, a soft bell, −25). combat ↔
+  combat_heavy is a swell on the same drums; stealth_alerted already has its alarm and drums;
+  victory and defeat have their stings.
+- **The mission-select theme** `mus_menu_theme` (48 s loop, −26): the Trail motif stated in
+  full and broad on chime and reed, stepping up through the chords, finally answered by its
+  victory form rising to the high D, over the four chords and a slow marimba pulse.
+- **Endings.** A defeat inside a storm (intensity ≥ 0.5) plays `mus_sting_storm_final`; a defeat
+  within 45 s of the enemy banking Intel plays `mus_sting_outsurveyed` (the motif on the reed,
+  then the Combine's bent D A Bb on ring-modulated saws climbing over it into a tritone);
+  otherwise `mus_sting_defeat`. The score dips 6 dB under any ending sting.
+- **The Survey race.** Another faction's Intel rising plays `discovery_enemy_intel` (a
+  ring-modulated chirp falling a tritone, data ticks, a "bank" thunk: the Combine sound world,
+  −24, Discovery bus, 4 s cooldown); gameplay's `advisor_alert(&"enemy_intel")` is the Meridian
+  phrase `advisor_enemy_intel` (D+A answered by a bent Bb+F, twice, the second sagging; 25 s
+  throttle).
+- **Phase 6 interface and props.** `ui_pause_open` / `_close` (marimba A → D with a soft thump /
+  D → A), `ui_slider_tick` (a tiny wooden F#6, −34), `ui_toggle` (a latch click and a glass G#),
+  `ui_hint_show` (chime B5 → E6 with air), `ui_hint_dismiss` (glass E6 → B5). Props die as
+  `death_prop_<kind>` on the Explosions bus: `crates` (metal crash, buckling, lids rattling,
+  −23), `tank` (gas burst, boom, long venting hiss, −21), `barrier` (wire twang, a post snapping,
+  −24), `boulder` (crack, rockfall, dust, −22). Props never raise `under_attack` and never heat
+  the score.
 
 ## Loudness targets
 
@@ -206,10 +285,82 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `sting` (Phase 5) | Ogg stereo | launch −22, storm minute −22, countdown −21 (11.8 s) | flat, Music bus |
 | `music` stealth layers | Ogg stereo, loop | hush −31, watch −29, storm −29 | Kessel explore grid |
 | `movement` (Wisp) | WAV mono, loop | −28 | `move_phantom`, quieter than any chassis by design; −9 dB more while cloaked |
+| `weather` beds (Phase 6) | Ogg stereo, loop | wind −25, grit −29, throb −31 | 40 / 33 / 24 s (multiples of 64 samples), own players on the **Weather** bus |
+| `weather` one-shots | Ogg stereo / WAV mono | front −25, passed −24, gusts −26, debris −26 | gusts flat, debris positional |
+| `ambience` (Phase 6) | Ogg stereo, loop | air −33, hush −32 | 37 / 29 s, AmbienceDirector's own players |
+| `ambdetail` | WAV mono | rock, devils −24, vents −25, industry −23 | positional, priority 10 (first to lose a voice) |
+| `music` Phase 6 layers | Ogg stereo, loop | melody_b/c −27, pulse_b −29, drums_b −26, urgency −29, heavy −27 | Kessel explore grid |
+| `sting` Phase 6 | Ogg stereo | hits −24 / −25, storm final −22, out-surveyed −22 | flat, Music bus |
+| `bed` menu theme | Ogg stereo, loop | −26 | 48 s |
+| `ui` Phase 6 | WAV mono | −27 (slider tick −34, hint show −26, hint dismiss −29) | |
+| `explosion` props | WAV mono | crates −23, tank −21, barrier −24, boulder −22 | positional |
+| `advisor` Phase 6 | WAV mono | storm passed −21, enemy Intel −20 | flat, Advisor bus |
+| `discovery` enemy Intel | WAV mono | −24 | flat, Discovery bus |
 
 Also checked on every build: DC offset ≤ 0.002, energy below 25 Hz ≤ 3 %, duration within the
 recipe's bounds, and for loops the seam (no step, kink or level jump bigger than the loop's own
 most abrupt moment). Ogg files are decoded again and compared with the source (codec fidelity).
+
+## Final mix (Phase 6)
+
+**Buses.** `Master` ← `Music`, `Ambience`, `Weather`, `SFX` (`Weapons`, `Explosions`, `Units`,
+`Buildings`), `Voice` (`Barks`, `Advisor`), `UI`, `Discovery`, `Stealth`. Player settings:
+Master → `master_volume`, Music → `music_volume`, UI → `ui_volume`, everything else
+(Ambience, Weather, SFX, Voice, Discovery, Stealth) → `sfx_volume`.
+
+| Bus | Effects | Why |
+|---|---|---|
+| Master | HardLimiter, ceiling −1 dBFS | safety net; the measured worst case never reaches it |
+| Music | Compressor, sidechain Voice: −30 dB threshold, 3:1, 8 ms / 450 ms | the Advisor and unit replies duck the score |
+| Ambience | Compressor, sidechain Voice: −32 dB, 2.5:1; `StormMuffle` low-pass (off when clear) | ducks under voices; muffled in a storm |
+| Weather | Compressor, sidechain Voice: −32 dB, 2.5:1 | the storm ducks under voices too |
+| SFX | `StormMuffle` low-pass (off when clear) | the battle heard through dust |
+
+No compressor sits on SFX: the measurements below leave 5–8 dB of headroom before the limiter
+in the worst case, and a glue compressor would pump a battle without protecting anything.
+
+**Ducking and overlays** (all added to the bus faders by the AudioService):
+
+| Rule | Buses | Amount |
+|---|---|---|
+| Advisor / replies over music | Music, Ambience, Weather | sidechain compressors (above); measured: Music −30.4 LUFS while the Advisor speaks against −25.3 over the whole worst case |
+| Discovery resolve phrase | Music −8, Ambience −6, SFX −5 dB | 80 ms attack, held for the phrase, 1 s release (`BusDucker`) |
+| Stealth spotted | same as discovery, 0.5 s | |
+| Briefing / debrief / menu bed | the score (Music player) | −14 / −18 / −40 dB, 10 dB/s |
+| Ending sting over the score | the score | −6 dB for the sting's length |
+| Storm muffle (intensity 0.55 → 0.95) | SFX −4, Ambience −10 dB, low-pass 20 kHz → 900 Hz | lifts as the storm does; resets on `mission_started` |
+| Storm cover | the planet's ambience beds | down to −16.5 dB at full storm |
+| Pause menu open | Music −6, Ambience −8, Weather −8, SFX −10, Discovery −6, Stealth −6 dB | UI, Advisor, replies unchanged |
+| Mission-select menu | Ambience −10, Weather −10 dB | under the menu theme |
+| Camera zoom | Units +1.5 → −7, Buildings 0 → −4, Weapons 0 → −2, Music −3 → 0, Ambience −4 → 0 dB | close: detail; far: score |
+
+**Voice budget.** 16 flat and 32 positional players, priority stealing, per-event caps and
+cooldowns; the combat mixer admits at most 8 fire / 5 impact / 4 blast starts per 0.5 s.
+Lowest priorities, first to lose a voice under load: ambience details 10, storm debris 25,
+movement and base loops 30, storm gusts 35. Measured under the worst case below: 30–31
+voices busy at once (of 48).
+
+**Measured** (`tests/audio/test_final_mix.gd`, through the real buses, headless Godot at
+44.1 kHz, 5.5 s recorded after 2.5 s to settle, BS.1770 K-weighted and gated, zoom 0.5, default
+settings: master 1.0, music 0.8, effects 1.0):
+
+| Scene | Master integrated | Master peak (pre-limiter) |
+|---|---|---|
+| explore: the explore score and the planet ambience | −27.2 LUFS | −16.0 dBFS |
+| worst case: `combat_heavy` + urgency + storm layers, a full storm (beds, gusts, debris, muffle), 6 weapon and 6 impact starts per 50 ms frame within 35 m plus blasts, an Advisor or stealth alarm every 1.5 s, interface clicks | −19.4 LUFS | −5.7 dBFS (limiter never engaged) |
+
+Worst-case loudness per category (each bus before its fader, LUFS): Music −25.3, Weather −25.8,
+Weapons −24.7, Explosions −25.7, Advisor −21.4, Stealth −22.8, UI −36.4, Ambience −64.7
+(covered by the storm; −37 to −38 in clear air under the explore score at −24). While the
+Advisor speaks the Music bus sits at −30.4 against the Advisor's −20.9 (9.5 LU clear).
+The test asserts: Master below −0.9 dBFS, the mix below 0 dBFS before the limiter, the worst
+case within −24..−13 LUFS and explore within −36..−22 LUFS, the voice budget, and the Advisor
+at least 3 LU over the music while it speaks.
+
+The first measurement found one problem, fixed: heavy combat with the storm and urgency layers
+stacked integrated to −21.7 LUFS of music, louder than the weapons (−25) and level with the
+Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capped at −3 dB
+(the Weather beds carry the storm), and urgency set to −4..−6 under fighting states.
 
 ## Naming
 
@@ -222,6 +373,9 @@ most abrupt moment). Ogg files are decoded again and compared with the source (c
 - `world_order_ping`, `advisor_alert`, `amb_<planet>_<bed>`, `mus_<planet>_<state>_<layer>`
 
 - `building_<sound_set>_select`, `base_<what>`, `loop_<what>`, `advisor_<alert kind>`
+- `amb_storm_<layer>`, `storm_<what>[_<n>]` (group `weather`, Weather bus), `amb_<what>[_<n>]`
+  details (group `ambdetail`), `death_prop_<kind>` (a prop's `def.sound_set` is `prop_<kind>`),
+  `mus_hit_<state>` (transition hits)
 
 The event router looks events up by these names: a unit's `def.sound_set` picks
 `unit_<set>_select`; a selection of buildings only (group `buildings`) picks
@@ -296,6 +450,39 @@ deadline, checked on `sim_ticked`; 60 s left plays `mus_storm_minute` and brings
 layer in, 10 s left `mus_storm_countdown`; completing it takes the layer out. Without such an
 objective, `advisor_alert(storm_warning | objective_time_low)` starts the minute stage and a
 second one (≥ 20 s later) or `storm_final` the countdown.
+
+Storm (`StormSound`, pure rules in `StormCues`, Phase 6). `storm_incoming` plays
+`storm_front_rumble`. `storm_changed(intensity)` sets the target; the heard intensity follows at
+0.6 per second, and each frame drives the three bed layers (equal-power ramps: wind 0.05 → 0.7,
+grit 0.3 → 1, throb 0.5 → 1; each starts at a random point of its loop), the muffle, the score's
+`storm` layer (the higher of this and the Survey deadline's request) and the ambience cover.
+Gusts start at 0.25 (every 14 s → 3.5 s, ×0.6–1.4 random), debris at 0.45 (9 s → 1.6 s). A storm
+that peaked at ≥ 0.5 and falls below 0.08 plays `storm_passed`. `mission_ended` freezes the
+storm: it may still build but never lifts or passes (and picks the ending sting, above);
+`mission_started` resets everything at once. Gameplay's Advisor kinds `storm_warning` (110),
+`storm_passed` (88, 10 s throttle) and `enemy_intel` (66, 25 s) are ordinary `advisor_alert`s;
+since Phase 6 `storm_warning` no longer starts the Survey deadline stages (only
+`objective_time_low` and `storm_final` do, for missions without a deadline objective).
+
+Ambience (`AmbienceDirector`, pure rules in `AmbienceCues`, Phase 6). Every 1.5 s it reads the
+scene: the nearest node in `resource_nodes` whose `resource()` is `&"flux"` (near: 10 → 60 m),
+the nearest `discovery_sites` node whose `discovery_type` is `&"antecedent"` (15 → 70 m), the
+nearest building of another faction (`buildings`, `faction` ≥ 0) that has been
+`is_visible_to_player` at least once this mission (40 → 140 m). Nearness glides at 0.4/s. Detail
+weights: rock 1, dust devils 0.45 (none in a storm), vents 0.08 + 2.2 × near, industry
+2.6 × near (only with a seen base to put it at); everything × (1 − 0.75 × hush). The gap is
+6–14 s × (1 + hush) × (1 + 3 × storm). The same kind never plays twice running when another can.
+
+Score extras (Phase 6). `MusicClip.layer_groups` names variant groups and `loop_beats` the loop
+(64); the MusicDirector picks the next variant of each group at every loop boundary
+(`pick_variant`, no repeats). `AudioEventRouter.on_alert_played` tells the AudioService when a
+phrase starts; `under_attack` raises the `urgency` layer for 24 s. A state change that
+`ScoreTransitions.hit_for(before, after)` names plays its hit via `MusicDirector.at_next_beat`.
+`ui_feedback`: `menu_open` starts `mus_menu_theme` as a bed (score −40 dB) and the menu overlay,
+`menu_close` (or `briefing_open`, or `mission_started`) ends it; `pause_open` / `pause_close`
+apply and lift the pause overlay; `slider_tick`, `toggle`, `hint_show`, `hint_dismiss`,
+`pause_open`, `pause_close` play `ui_<kind>` by the naming rule. `Audio.stop_all_voices()`
+stops every one-shot and world loop (the score, ambience and storm go on).
 
 Stealth (`StealthSoundRouter`, `SuspicionTones`, pure rules in `StealthCues`, `StealthMood`).
 The most alarmed watching faction (`alert_level_changed`; the player's own faction ignored)

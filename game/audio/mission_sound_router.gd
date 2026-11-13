@@ -35,10 +35,15 @@ extends Node
 ## and the score's storm layer comes in; with COUNTDOWN_SECONDS left,
 ## `mus_storm_countdown` (ten ticks, the storm breaking on the tenth second).
 ## Completing the deadline objective takes the storm layer out again.
-## Fallbacks for a mission without such an objective: `advisor_alert` kinds
-## &"storm_warning" or &"objective_time_low" start the minute stage; a later
-## one (at least FINAL_MIN_GAP on) or &"storm_final" starts the countdown.
+## Fallbacks for a mission without such an objective: `advisor_alert` kind
+## &"objective_time_low" starts the minute stage; a later one (at least
+## FINAL_MIN_GAP on) or &"storm_final" starts the countdown. (Since Phase 6
+## &"storm_warning" is the weather's own warning, voiced by the Advisor and
+## heard through StormSound; it no longer starts the deadline stages.)
 ## mission_started resets all of it.
+##
+## Menu (Phase 6): `menu_open` (the mission select is shown) loops the menu
+## theme as a bed with the score dipped out of the way; `menu_close` stops it.
 
 const PRIMARY: StringName = &"primary"
 const HIDDEN: StringName = &"hidden"
@@ -55,6 +60,7 @@ const OBJECTIVE_ALERTS: Array[StringName] = [OBJECTIVE_NEW, OBJECTIVE_DONE, OBJE
 const OBJECTIVE_TICK: StringName = &"ui_objective_tick"
 const BRIEFING_BED: StringName = &"mus_briefing_bed"
 const DEBRIEF_BED: StringName = &"mus_debrief_bed"
+const MENU_THEME: StringName = &"mus_menu_theme"
 const LAUNCH: StringName = &"mus_sting_launch"
 const STORM_MINUTE: StringName = &"mus_storm_minute"
 const STORM_COUNTDOWN: StringName = &"mus_storm_countdown"
@@ -70,6 +76,8 @@ const COUNTDOWN_SECONDS: float = 10.0
 ## The score dips this far under the briefing and debrief beds.
 const BRIEFING_DUCK_DB: float = -14.0
 const DEBRIEF_DUCK_DB: float = -18.0
+## The menu theme stands alone: the score all but stops under it.
+const MENU_DUCK_DB: float = -40.0
 
 ## Plays the first existing event: `func(ids: Array[StringName], at: Vector3) -> StringName`.
 var play_first: Callable = func(_ids: Array[StringName], _at: Vector3) -> StringName: return &""
@@ -85,6 +93,7 @@ var set_layer_gain: Callable = func(_layer: StringName, _db: float) -> void: pas
 var _pending_kinds: Array[StringName] = []
 var _known: Dictionary[StringName, bool] = {}
 var _briefing_open: bool = false
+var _menu_open: bool = false
 var _launch_due: float = INF
 var _launch_pending: bool = false
 var _storm_stage: int = 0
@@ -177,6 +186,7 @@ func handle_ui_feedback(kind: StringName, now: float) -> void:
 	match kind:
 		&"briefing_open":
 			_briefing_open = true
+			_menu_open = false
 			play_bed.call(BRIEFING_BED, BRIEFING_DUCK_DB)
 		&"briefing_close":
 			if _briefing_open:
@@ -187,7 +197,15 @@ func handle_ui_feedback(kind: StringName, now: float) -> void:
 					update_launch(now)
 		&"debrief_open":
 			_briefing_open = false
+			_menu_open = false
 			play_bed.call(DEBRIEF_BED, DEBRIEF_DUCK_DB)
+		&"menu_open":
+			_menu_open = true
+			play_bed.call(MENU_THEME, MENU_DUCK_DB)
+		&"menu_close":
+			if _menu_open:
+				_menu_open = false
+				stop_bed.call()
 
 
 func handle_mission_started(now: float) -> void:
@@ -197,6 +215,7 @@ func handle_mission_started(now: float) -> void:
 	_storm_stage = 0
 	_storm_since = -INF
 	set_layer_gain.call(STORM_LAYER, AudioMix.SILENT_DB)
+	_menu_open = false
 	if not _briefing_open:
 		stop_bed.call()
 	_launch_pending = true
@@ -218,6 +237,10 @@ func is_briefing_open() -> bool:
 	return _briefing_open
 
 
+func is_menu_open() -> bool:
+	return _menu_open
+
+
 # --- Storm --------------------------------------------------------------------
 
 
@@ -226,7 +249,7 @@ func handle_advisor_alert(kind: StringName, now: float) -> StringName:
 	if kind in OBJECTIVE_ALERTS:
 		_pending_kinds.append(kind)
 		return &""
-	var warning: bool = kind == STORM_WARNING or kind == TIME_LOW
+	var warning: bool = kind == TIME_LOW
 	if kind == STORM_FINAL or (warning and _storm_stage >= 1):
 		if _storm_stage >= 2 or (warning and now - _storm_since < FINAL_MIN_GAP):
 			return &""

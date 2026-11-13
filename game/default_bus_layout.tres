@@ -12,6 +12,14 @@ attack_us = 8000.0
 release_ms = 450.0
 sidechain = &"Voice"
 
+[sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_wthr1"]
+resource_name = "DuckUnderVoice"
+threshold = -32.0
+ratio = 2.5
+attack_us = 8000.0
+release_ms = 450.0
+sidechain = &"Voice"
+
 [sub_resource type="AudioEffectCompressor" id="AudioEffectCompressor_n8wo2"]
 resource_name = "DuckUnderVoice"
 threshold = -32.0
@@ -19,6 +27,16 @@ ratio = 2.5
 attack_us = 8000.0
 release_ms = 450.0
 sidechain = &"Voice"
+
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_amb01"]
+resource_name = "StormMuffle"
+cutoff_hz = 20000.0
+resonance = 0.4
+
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_sfx01"]
+resource_name = "StormMuffle"
+cutoff_hz = 20000.0
+resonance = 0.4
 
 [resource]
 bus/0/effect/0/effect = SubResource("AudioEffectHardLimiter_j3pel")
@@ -39,12 +57,16 @@ bus/2/volume_db = 0.0
 bus/2/send = &"Master"
 bus/2/effect/0/effect = SubResource("AudioEffectCompressor_n8wo2")
 bus/2/effect/0/enabled = true
+bus/2/effect/1/effect = SubResource("AudioEffectLowPassFilter_amb01")
+bus/2/effect/1/enabled = false
 bus/3/name = &"SFX"
 bus/3/solo = false
 bus/3/mute = false
 bus/3/bypass_fx = false
 bus/3/volume_db = 0.0
 bus/3/send = &"Master"
+bus/3/effect/0/effect = SubResource("AudioEffectLowPassFilter_sfx01")
+bus/3/effect/0/enabled = false
 bus/4/name = &"Weapons"
 bus/4/solo = false
 bus/4/mute = false
@@ -105,3 +127,11 @@ bus/13/mute = false
 bus/13/bypass_fx = false
 bus/13/volume_db = 0.0
 bus/13/send = &"Master"
+bus/14/name = &"Weather"
+bus/14/solo = false
+bus/14/mute = false
+bus/14/bypass_fx = false
+bus/14/volume_db = 0.0
+bus/14/send = &"Master"
+bus/14/effect/0/effect = SubResource("AudioEffectCompressor_wthr1")
+bus/14/effect/0/enabled = true

@@ -79,6 +79,14 @@ EVENT_DEFAULTS = {
     # (MissionSoundRouter -> MusicDirector.play_bed); the event only names the stream.
     "bed": dict(bus="Music", priority=100, max_instances=1, cooldown=0.0, positional=False, max_distance=0.0),
     "stealth": dict(bus="Stealth", priority=96, max_instances=1, cooldown=0.4, positional=False, max_distance=0.0),
+    # Phase 6. The storm is on its own Weather bus (the muffle it puts on SFX and
+    # Ambience must not muffle the storm itself). Its beds loop on the
+    # StormSound's own players; gusts are flat one-shots, debris positional.
+    "weather": dict(bus="Weather", priority=30, max_instances=2, cooldown=0.4, positional=False, max_distance=0.0),
+    # Ambience details: quiet positional one-shots around the listener; lowest
+    # priority of all, so a fight steals their voices first.
+    "ambdetail": dict(bus="Ambience", priority=10, max_instances=2, cooldown=1.0, positional=True,
+                      max_distance=160.0),
 }
 EVENT_OVERRIDES = {
     "ui_hover": dict(priority=20, max_instances=1, cooldown=0.06),
@@ -146,6 +154,24 @@ EVENT_OVERRIDES = {
     "death_lancer": dict(priority=66, max_instances=2, cooldown=0.1),
     "death_arc": dict(priority=72, max_instances=2, cooldown=0.15, max_distance=140.0),
     "move_wisp": dict(max_instances=2, max_distance=30.0),
+    # Phase 6.
+    "storm_debris": dict(positional=True, max_distance=70.0, priority=25, max_instances=3, cooldown=0.3,
+                         pitch_variation=1.5),
+    "storm_gust": dict(priority=35, max_instances=2, cooldown=1.5),
+    "storm_front_rumble": dict(priority=60, max_instances=1, cooldown=10.0),
+    "storm_passed": dict(priority=60, max_instances=1, cooldown=10.0),
+    "ui_slider_tick": dict(priority=40, max_instances=1, cooldown=0.04),
+    "ui_toggle": dict(cooldown=0.06),
+    "ui_hint_show": dict(cooldown=0.3, max_instances=1),
+    "ui_hint_dismiss": dict(cooldown=0.2, max_instances=1),
+    "death_prop_crates": dict(priority=60, max_instances=2, cooldown=0.1),
+    "death_prop_tank": dict(priority=66, max_instances=1, cooldown=0.2, max_distance=140.0),
+    "death_prop_barrier": dict(priority=58, max_instances=2, cooldown=0.1),
+    "death_prop_boulder": dict(priority=60, max_instances=2, cooldown=0.15),
+    "discovery_enemy_intel": dict(priority=80, cooldown=4.0),
+    "advisor_enemy_intel": dict(cooldown=2.0),
+    "mus_hit_combat": dict(cooldown=6.0),
+    "mus_hit_aftermath": dict(cooldown=6.0),
 }
 
 

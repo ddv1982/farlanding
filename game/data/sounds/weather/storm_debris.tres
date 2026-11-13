@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_debris_1.wav" id="2_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_debris_2.wav" id="3_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_debris_3.wav" id="4_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_debris_4.wav" id="5_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/weather/storm_debris_5.wav" id="6_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"storm_debris"
+streams = Array[AudioStream]([ExtResource("2_stream"), ExtResource("3_stream"), ExtResource("4_stream"), ExtResource("5_stream"), ExtResource("6_stream")])
+bus = &"Weather"
+priority = 25
+max_instances = 3
+cooldown = 0.3
+positional = true
+max_distance = 70.0
+pitch_variation = 1.5

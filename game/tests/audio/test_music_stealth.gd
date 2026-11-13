@@ -68,7 +68,7 @@ func test_director_waits_for_the_beat_and_uses_the_state_fade() -> void:
 	var wait: float = director.seconds_to_pending_change()
 	assert_true(wait >= 0.0 and wait <= 60.0 / 80.0 + 0.01, "waits at most a beat (%.3f)" % wait)
 	var targets: PackedFloat32Array = director.layer_targets_db(&"stealth_alerted")
-	assert_eq(targets.size(), 10)
+	assert_eq(targets.size(), (load(SCORE) as MusicScore).clips[0].layers.size())
 	director.force_state(&"victory")
 	assert_eq(director.seconds_to_pending_change(), INF, "forced states do not wait")
 	director.stop()

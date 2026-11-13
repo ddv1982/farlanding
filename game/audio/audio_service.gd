@@ -16,7 +16,11 @@
 ## cloaks, the stealth music mood), SuspicionTones (the watchers' rising tone)
 ## and the MissionSoundRouter (objectives, briefing and debrief beds, launch,
 ## storm). The combat and stealth moods both ask for music states; a
-## MusicArbiter decides which one plays.
+## MusicArbiter decides which one plays. Phase 6 adds the StormSound (the dust
+## storm's beds, gusts, debris, the world muffle and its release), the
+## AmbienceDirector (layered, wandering planet beds and positional details),
+## the score's urgency layer while the base is under attack, transition hits
+## on the beat (ScoreTransitions) and the pause and menu mix overlays.
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -29,6 +33,14 @@ const ZOOM_EPSILON: float = 0.01
 const TRAIL_LAYER: StringName = &"trail"
 ## The music layer of the Survey storm (silent until the storm warning).
 const STORM_LAYER: StringName = &"storm"
+## The score layer that urges while the base is under attack.
+const URGENCY_LAYER: StringName = &"urgency"
+## How long the urgency layer stays after an under-attack alert (s).
+const URGENCY_HOLD: float = 24.0
+## The objective type whose failure means the rival won the Intel race.
+const RIVAL_INTEL_TYPE: StringName = &"rival_intel"
+## The score dips this far under an ending sting.
+const STING_DIP_DB: float = -6.0
 
 var _events: Dictionary[StringName, SoundEvent] = {}
 var _last_variation: Dictionary[StringName, int] = {}
@@ -56,6 +68,15 @@ var _ducker: BusDucker = BusDucker.new()
 var _ducking: bool = false
 var _combat_music: StringName = MusicMood.EXPLORE
 var _stealth_music: StringName = &""
+var _storm: StormSound
+var _ambience: AmbienceDirector
+var _paused: bool = false
+var _menu: bool = false
+var _muffle: float = 0.0
+var _storm_mission_db: float = AudioMix.SILENT_DB
+var _storm_weather_db: float = AudioMix.SILENT_DB
+var _urgency_until: float = -INF
+var _outsurveyed: bool = false
 
 
 func _ready() -> void:
@@ -80,7 +101,7 @@ func _ready() -> void:
 		_router.offer_advisor_alert(kind, _now(), at)
 	_combat.set_music_state = func(state: StringName) -> void:
 		_combat_music = state
-		_music.set_state(MusicArbiter.pick(_combat_music, _stealth_music))
+		_request_music()
 	_combat.end_music = _end_music
 	_router.alert_position = func(_kind: StringName) -> Vector3:
 		return _combat.last_hurt_position(_now())
@@ -98,6 +119,8 @@ func _ready() -> void:
 	_music.name = &"MusicDirector"
 	add_child(_music)
 	_music.set_layer_gain(STORM_LAYER, AudioMix.SILENT_DB)
+	_music.set_layer_gain(URGENCY_LAYER, AudioMix.SILENT_DB)
+	_router.on_alert_played = _on_alert_played
 	_pulses = SignalPulses.new()
 	_pulses.name = &"SignalPulses"
 	_pulses.resolve_event = get_event
@@ -117,7 +140,7 @@ func _ready() -> void:
 	_stealth.duck = duck_for
 	_stealth.set_music_state = func(state: StringName) -> void:
 		_stealth_music = state
-		_music.set_state(MusicArbiter.pick(_combat_music, _stealth_music))
+		_request_music()
 	add_child(_stealth)
 	_tones = SuspicionTones.new()
 	_tones.name = &"SuspicionTones"
@@ -130,8 +153,32 @@ func _ready() -> void:
 		_router.offer_advisor_alert(kind, _now())
 	_missions.play_bed = play_bed
 	_missions.stop_bed = _music.stop_bed
-	_missions.set_layer_gain = _music.set_layer_gain
+	_missions.set_layer_gain = func(layer: StringName, gain_db: float) -> void:
+		if layer == STORM_LAYER:
+			_storm_mission_db = gain_db
+			_apply_storm_layer()
+		else:
+			_music.set_layer_gain(layer, gain_db)
 	add_child(_missions)
+	_storm = StormSound.new()
+	_storm.name = &"Storm"
+	_storm.resolve_event = get_event
+	_storm.play_first = play_first
+	_storm.play_at = play_at
+	_storm.set_music_gain = func(gain_db: float) -> void:
+		_storm_weather_db = gain_db
+		_apply_storm_layer()
+	_storm.set_muffle = set_muffle
+	add_child(_storm)
+	_ambience = AmbienceDirector.new()
+	_ambience.name = &"Ambience"
+	_ambience.resolve_event = get_event
+	_ambience.play_at = play_at
+	add_child(_ambience)
+	_storm.set_ambience_cover = _ambience.set_storm_cover
+	Events.ui_feedback.connect(_on_ui_feedback)
+	Events.mission_started.connect(_on_mission_started)
+	Events.objective_failed.connect(_on_objective_failed)
 	Settings.changed.connect(_apply_volumes)
 	_apply_volumes()
 	if ResourceLoader.exists(DEFAULT_SCORE):
@@ -169,6 +216,8 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 	_pulses.focus = focus
 	_pulses.zoom = _zoom
 	_tones.focus = focus
+	_storm.focus = focus
+	_ambience.focus = focus
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 
@@ -187,7 +236,9 @@ func play_score(score: MusicScore) -> void:
 	var ambience: SoundEvent = get_event(score.ambience)
 	if ambience != null and not ambience.streams.is_empty():
 		bed = ambience.streams[0]
-	_music.play_score(score, bed)
+	# The ambience is the AmbienceDirector's (layered, wandering beds).
+	_music.play_score(score, null)
+	_ambience.start(bed)
 
 
 func has_event(event_id: StringName) -> bool:
@@ -240,6 +291,64 @@ func music_state() -> StringName:
 	return _music.current_state()
 
 
+## Applies the storm's world muffle (0 clear .. 1 full): a low-pass on the SFX
+## and Ambience buses and a level dip (StormCues). Unit replies, the Advisor,
+## the interface and the stingers are on other buses and stay clear.
+func set_muffle(amount: float) -> void:
+	var clamped: float = clampf(amount, 0.0, 1.0)
+	if is_equal_approx(clamped, _muffle):
+		return
+	_muffle = clamped
+	var cutoff: float = StormCues.muffle_cutoff_hz(_muffle)
+	for bus: StringName in AudioMix.MUFFLED_BUSES:
+		var index: int = AudioServer.get_bus_index(bus)
+		var effect: int = _effect_index(index, AudioMix.MUFFLE_EFFECT)
+		if effect < 0:
+			continue
+		var filter: AudioEffectLowPassFilter = AudioServer.get_bus_effect(index, effect)
+		filter.cutoff_hz = cutoff
+		AudioServer.set_bus_effect_enabled(index, effect, _muffle > 0.001)
+	_apply_volumes()
+
+
+func muffle() -> float:
+	return _muffle
+
+
+## The storm (for the mix test and tests): its node.
+func storm() -> StormSound:
+	return _storm
+
+
+func ambience() -> AmbienceDirector:
+	return _ambience
+
+
+func music() -> MusicDirector:
+	return _music
+
+
+func is_paused_mix() -> bool:
+	return _paused
+
+
+## Stops every one-shot and every world loop (movement, base, signal and
+## suspicion loops) at once; the score, the ambience and the storm go on. For
+## leaving a mission mid-sound and for tests that measure the mix.
+func stop_all_voices() -> void:
+	for i: int in _flat_players.size():
+		_flat_players[i].stop()
+		_flat_budget.release(i)
+	for i: int in _positional_players.size():
+		_positional_players[i].stop()
+		_positional_budget.release(i)
+	for node: Node in [_loops, _base_loops, _pulses, _tones]:
+		ShutdownGuard._stop_all(node)
+	_ducker = BusDucker.new()
+	_ducking = false
+	_apply_volumes()
+
+
 ## Voices in use (flat + positional), for the debug overlay and tests.
 func active_voices() -> int:
 	return _flat_budget.active_count() + _positional_budget.active_count()
@@ -252,6 +361,9 @@ func _process(_delta: float) -> void:
 	if _ducking:
 		_ducking = _ducker.is_active(_now())
 		_apply_volumes()
+	if _urgency_until != -INF and _now() >= _urgency_until:
+		_urgency_until = -INF
+		_music.set_layer_gain(URGENCY_LAYER, AudioMix.SILENT_DB)
 
 
 func _start(event_id: StringName, position: Vector3, volume_offset_db: float = 0.0) -> bool:
@@ -353,14 +465,87 @@ func _apply_volumes() -> void:
 		var volume: float = AudioMix.bus_volume_db(bus, setting, _zoom)
 		if volume > AudioMix.SILENT_DB:
 			volume += _ducker.offset_db(bus, now)
+			volume += AudioMix.overlay_db(bus, _paused, _menu, _muffle)
 		AudioServer.set_bus_volume_db(i, volume)
 
 
 ## Mission over: the music settles into its victory or defeat state (quieter
 ## layers, at once) and the matching sting plays over it.
 func _end_music(won: bool) -> void:
+	_storm.handle_mission_ended(won)
 	_music.force_state(MusicMood.VICTORY if won else MusicMood.DEFEAT)
-	play(&"mus_sting_victory" if won else &"mus_sting_defeat")
+	var storm_level: float = maxf(_storm.intensity(), _storm.cues.target)
+	var played: StringName = play_first(StormCues.ending_stings(won, storm_level, _outsurveyed))
+	if played != &"":
+		_music.dip_for(get_event(played).longest_seconds(), STING_DIP_DB)
+
+
+## Merges the combat and stealth moods and, when the state changes in a way a
+## fade cannot hide, plays a transition hit on the next beat.
+func _request_music() -> void:
+	var before: StringName = _music.current_state()
+	_music.set_state(MusicArbiter.pick(_combat_music, _stealth_music))
+	var after: StringName = _music.current_state()
+	var hit: StringName = ScoreTransitions.hit_for(before, after)
+	if hit != &"":
+		_music.at_next_beat(func() -> void: play(hit))
+
+
+## The storm layer follows whichever asks for more: the mission deadline
+## (Survey's minute warning) or the weather itself.
+func _apply_storm_layer() -> void:
+	_music.set_layer_gain(STORM_LAYER, maxf(_storm_mission_db, _storm_weather_db))
+
+
+func _on_alert_played(kind: StringName) -> void:
+	if kind == &"under_attack":
+		_urgency_until = _now() + URGENCY_HOLD
+		_music.set_layer_gain(URGENCY_LAYER, 0.0)
+
+
+func _on_ui_feedback(kind: StringName) -> void:
+	match kind:
+		&"pause_open":
+			_paused = true
+		&"pause_close":
+			_paused = false
+		&"menu_open":
+			_menu = true
+		&"menu_close", &"briefing_open":
+			_menu = false
+		_:
+			return
+	_apply_volumes()
+
+
+func _on_mission_started() -> void:
+	_paused = false
+	_menu = false
+	_urgency_until = -INF
+	_outsurveyed = false
+	_music.set_layer_gain(URGENCY_LAYER, AudioMix.SILENT_DB)
+	_apply_volumes()
+
+
+## The loss reason for the ending sting: the rival banked its Intel first. Read
+## by name so audio does not depend on the mission classes.
+func _on_objective_failed(objective: RefCounted) -> void:
+	if objective == null:
+		return
+	var def: Variant = objective.get(&"def")
+	if def is Resource:
+		var resource: Resource = def
+		if resource.get(&"type") == RIVAL_INTEL_TYPE:
+			_outsurveyed = true
+
+
+static func _effect_index(bus_index: int, effect_name: StringName) -> int:
+	if bus_index < 0:
+		return -1
+	for i: int in AudioServer.get_bus_effect_count(bus_index):
+		if AudioServer.get_bus_effect(bus_index, i).resource_name == effect_name:
+			return i
+	return -1
 
 
 func _now() -> float:

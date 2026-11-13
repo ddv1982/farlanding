@@ -13,6 +13,7 @@ const SETTING_FOR_BUS: Dictionary[StringName, StringName] = {
 	&"Stealth": &"sfx_volume",
 	&"Voice": &"sfx_volume",
 	&"UI": &"ui_volume",
+	&"Weather": &"sfx_volume",
 }
 
 ## Bus -> [offset dB when fully zoomed in, offset dB when fully zoomed out].
@@ -28,6 +29,39 @@ const ZOOM_OFFSETS_DB: Dictionary[StringName, Vector2] = {
 const LISTENER_HEIGHT: Vector2 = Vector2(6.0, 30.0)
 
 const SILENT_DB: float = -80.0
+
+## While the pause menu is open the game world steps back (dB); the interface,
+## the Advisor and unit replies stay as they are.
+const PAUSE_DB: Dictionary[StringName, float] = {
+	&"Music": -6.0,
+	&"Ambience": -8.0,
+	&"Weather": -8.0,
+	&"SFX": -10.0,
+	&"Discovery": -6.0,
+	&"Stealth": -6.0,
+}
+## Under the mission-select menu (its theme plays as a bed on Music) the world
+## behind it is quieter.
+const MENU_DB: Dictionary[StringName, float] = {
+	&"Ambience": -10.0,
+	&"Weather": -10.0,
+}
+
+## Buses the storm muffles (low-pass + level), see StormCues.
+const MUFFLED_BUSES: Array[StringName] = [&"SFX", &"Ambience"]
+## Name of the low-pass effect on those buses in default_bus_layout.tres.
+const MUFFLE_EFFECT: StringName = &"StormMuffle"
+
+
+## Extra dB on `bus` from the overlays: pause, menu, storm muffle (0..1).
+static func overlay_db(bus: StringName, paused: bool, menu: bool, muffle: float) -> float:
+	var offset: float = 0.0
+	if paused:
+		offset += PAUSE_DB.get(bus, 0.0)
+	if menu:
+		offset += MENU_DB.get(bus, 0.0)
+	offset += StormCues.muffle_db(bus, muffle)
+	return offset
 
 
 static func linear_to_db_safe(linear: float) -> float:

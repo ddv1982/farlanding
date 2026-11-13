@@ -10,6 +10,11 @@ extends Node
 ##   updates the music's trail layer from the share of resolved sites.
 ## - intel_changed (player faction): `ui_intel_tick` when Intel rises. The
 ##   first report only sets the baseline (the mission's starting Intel).
+## - intel_changed (any other faction, Phase 6): `discovery_enemy_intel` when
+##   its Intel rises (the Survey race: the Combine banking Intel should worry
+##   the player; the event's cooldown keeps it from chattering). The time of
+##   the last enemy gain is kept, so the ending can tell an out-surveyed
+##   defeat (`enemy_gained_within`).
 ## - field_option_used (player faction): the option's effect `field_<id>`.
 ## - codex_entry_added: `ui_codex_entry`.
 ## Codex open/close and the option button are interface feedback
@@ -32,6 +37,8 @@ var duck: Callable = func(_hold: float) -> void: pass
 var set_trail_gain: Callable = func(_db: float) -> void: pass
 
 var _intel: int = -1
+var _enemy_intel: Dictionary[int, int] = {}
+var _enemy_gain_at: float = -INF
 
 
 func _ready() -> void:
@@ -55,8 +62,9 @@ func handle_discovery_made(site: Node3D, discovery: Resource, faction: int) -> v
 	refresh_trail(site)
 
 
-func handle_intel_changed(faction: int, intel: int) -> void:
+func handle_intel_changed(faction: int, intel: int, now: float = -1.0) -> void:
 	if faction != player_faction:
+		_handle_enemy_intel(faction, intel, _now() if now < 0.0 else now)
 		return
 	var before: int = _intel
 	_intel = intel
@@ -87,8 +95,30 @@ func refresh_trail(just_resolved: Node = null) -> void:
 	set_trail_gain.call(DiscoveryCues.trail_gain_db(resolved, total))
 
 
+## True when another faction's Intel rose within `seconds` before `now`.
+func enemy_gained_within(seconds: float, now: float = -1.0) -> bool:
+	var at: float = _now() if now < 0.0 else now
+	return at - _enemy_gain_at <= seconds
+
+
+func _handle_enemy_intel(faction: int, intel: int, now: float) -> void:
+	if faction < 0:
+		return
+	var before: int = _enemy_intel.get(faction, -1)
+	_enemy_intel[faction] = intel
+	if before >= 0 and intel > before:
+		_enemy_gain_at = now
+		_play([DiscoveryCues.ENEMY_INTEL])
+
+
+func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
 func _on_mission_started() -> void:
 	_intel = -1
+	_enemy_intel.clear()
+	_enemy_gain_at = -INF
 	refresh_trail()
 
 

@@ -23,6 +23,7 @@ extends Node
 
 const FOG_GROUP: StringName = &"fog_of_war"
 const FOG_METHOD: StringName = &"is_point_visible_to_player"
+const PROPS_GROUP: StringName = &"props"
 const MOOD_INTERVAL: float = 0.25
 ## A Sentry silent for this long swings onto its next target audibly.
 const TRAVERSE_AFTER: float = 3.0
@@ -138,6 +139,8 @@ func handle_entity_damaged(entity: Node3D, amount: float, attacker: Node3D, now:
 	if entity == null or not is_instance_valid(entity) or amount <= 0.0:
 		return
 	_learn_vision(entity)
+	if entity.is_in_group(PROPS_GROUP):
+		return  # scenery: no alarm, no heat
 	var at: Vector3 = _position_of(entity)
 	var victim_is_player: bool = _is_player(entity)
 	var attacker_is_player: bool = attacker != null and _is_player(attacker)
@@ -153,7 +156,9 @@ func handle_entity_died(entity: Node3D, now: float) -> void:
 		return
 	var at: Vector3 = _position_of(entity)
 	var faction: int = AudioEventRouter.faction_of(entity)
-	if faction != -1:
+	# A destroyed prop (crates, a tank) is scenery, not a casualty: it makes its
+	# own sound (`death_prop_<kind>`) but does not heat up the score.
+	if faction != -1 and not entity.is_in_group(PROPS_GROUP):
 		mood.note_death(faction == player_faction, _distance(at), now)
 	if CombatCues.is_hidden(entity) or not at.is_finite():
 		return

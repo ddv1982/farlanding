@@ -43,6 +43,8 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"storm_final": 8.0,
 	&"objective_time_low": 10.0,
 	&"detected": 10.0,
+	&"storm_passed": 10.0,
+	&"enemy_intel": 25.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -65,6 +67,8 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"objective_hidden": 85,
 	&"objective_done_secondary": 75,
 	&"objective_new": 72,
+	&"storm_passed": 88,
+	&"enemy_intel": 66,
 }
 ## Kind -> the family whose throttle it shares (kinds not listed are their own).
 const FAMILY: Dictionary[StringName, StringName] = {

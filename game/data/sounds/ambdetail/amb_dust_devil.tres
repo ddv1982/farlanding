@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/ambience/details/amb_dust_devil_1.wav" id="2_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/ambience/details/amb_dust_devil_2.wav" id="3_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"amb_dust_devil"
+streams = Array[AudioStream]([ExtResource("2_stream"), ExtResource("3_stream")])
+bus = &"Ambience"
+priority = 10
+max_instances = 2
+cooldown = 1.0
+positional = true
+max_distance = 160.0
