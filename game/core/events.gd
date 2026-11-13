@@ -154,6 +154,20 @@ signal tide_changed(level: float)
 ## faction's ground units.
 signal canopy_cover_changed(unit: Node3D, covered: bool)
 
+## `faction` brought the Antecedent machine `machine` back to life (Hollow Meridian:
+## an engine that now gives that faction power).
+signal machine_reactivated(machine: Node3D, faction: int)
+
+## `machine` stopped working for `faction` (taken over by another faction or shut down).
+signal machine_lost(machine: Node3D, faction: int)
+
+## The Beacon Core's charge changed: 0 = dormant, 1 = awake. Emitted as it moves, a
+## few times a second at most.
+signal core_charge_changed(fraction: float)
+
+## The Beacon Core `core` is awake: the end of the Trail.
+signal core_awakened(core: Node3D)
+
 ## The campaign shows another screen: &"title", &"star_map", &"meridian",
 ## &"tech_web", &"loadout", or &"" when a landing (briefing, mission, debrief)
 ## takes over.
