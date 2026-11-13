@@ -71,8 +71,14 @@ static func write(slot: StringName, game: SaveGame) -> String:
 	var file: FileAccess = FileAccess.open(temporary, FileAccess.WRITE)
 	if file == null:
 		return _fail("Cannot write the save (%s)." % error_string(FileAccess.get_open_error()))
-	file.store_string(text)
+	var stored: bool = file.store_string(text)
+	var write_error: Error = file.get_error()
 	file.close()
+	# A full disk can fail the write and still leave a file: only a temporary file
+	# that reads back whole may replace the slot.
+	if not stored or write_error != OK or FileAccess.get_file_as_string(temporary) != text:
+		DirAccess.remove_absolute(temporary)
+		return _fail("Cannot write the save (the file is incomplete).")
 	var renamed: Error = DirAccess.rename_absolute(temporary, path)
 	if renamed != OK:
 		DirAccess.remove_absolute(temporary)
