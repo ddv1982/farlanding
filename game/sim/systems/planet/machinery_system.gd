@@ -186,7 +186,8 @@ func _work(engine: Building, dt: float) -> void:
 func _hand_over(engine: Building, faction: int) -> void:
 	var machine: Machine = engine.machine
 	var previous: int = engine.faction
-	var was_held: bool = not machine.is_dormant() and not Factions.is_custodian(previous)
+	# A shut-down engine was already reported lost when it stopped.
+	var was_held: bool = machine.is_running() and not Factions.is_custodian(previous)
 	machine.set_progress(0.0, -1)
 	machine.shutdown_left = 0.0
 	engine.faction = faction

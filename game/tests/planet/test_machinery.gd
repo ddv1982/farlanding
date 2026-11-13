@@ -263,6 +263,7 @@ func test_the_enemy_may_claim_an_engine_it_shut_down() -> void:
 	_seconds(4.6)
 	assert_eq(engine.faction, 1, "claimed at the reactivation pace before it restarted")
 	assert_true(engine.machine.is_running())
+	assert_eq(_lost, [[engine, 0]], "lost once, when it shut down")
 
 
 func test_waking_an_engine_wakes_its_guardians_and_they_go_for_the_worker() -> void:

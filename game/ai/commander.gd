@@ -63,6 +63,8 @@ var machines: MachineKeeper = null
 ## The faction's patrols when the mission has them (Verdance's Hornet watch), or null:
 ## their units are never taken into the army.
 var guards: GuardCommander = null
+## Units a mission script commands itself (entity ids): never given other work.
+var hands_off: Dictionary[int, bool] = {}
 ## Where the base is, and where new army units wait.
 var home: Vector3 = Vector3.ZERO
 var staging: Vector3 = Vector3.ZERO
@@ -302,6 +304,7 @@ func build_view(tick: int) -> CommanderView:
 		var may_order: bool = (
 			tick - _last_ordered.get(unit.entity_id, -IDLE_RETRY_TICKS) >= IDLE_RETRY_TICKS
 		)
+		may_order = may_order and not hands_off.has(unit.entity_id)
 		if unit.builder != null:
 			view.builders.append(unit)
 			if idle and may_order:

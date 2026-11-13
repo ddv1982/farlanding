@@ -180,6 +180,7 @@ func from_dict(data: Dictionary) -> void:
 	stages_woken = data.get("stages", 0)
 	awakened = data.get("awakened", false)
 	enemy_linker = data.get("linker", -1)
+	_reserve_linker()
 	enemy_warned = data.get("enemy_warned", false)
 	custodian_groups.clear()
 	var groups: Array = data.get("custodians", [])
@@ -273,6 +274,14 @@ func _command_enemy(_tick: int) -> void:
 			strike.start()
 
 
+## The commander leaves the linker alone: it may be a builder it would send elsewhere.
+func _reserve_linker() -> void:
+	if mission.commander != null:
+		mission.commander.hands_off.clear()
+		if enemy_linker >= 0:
+			mission.commander.hands_off[enemy_linker] = true
+
+
 func _send_linker(enemy: int) -> void:
 	var linker: Unit = mission.world.entity(enemy_linker) as Unit
 	var spot: Vector3 = _link_spot(enemy)
@@ -288,6 +297,7 @@ func _send_linker(enemy: int) -> void:
 		if linker == null:
 			return
 		enemy_linker = linker.entity_id
+		_reserve_linker()
 		var escort: Array[Unit] = _idle_army(enemy, rules.enemy_escort)
 		if not escort.is_empty():
 			_enemy_port.push(
