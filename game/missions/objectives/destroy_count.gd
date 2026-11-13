@@ -22,3 +22,14 @@ func on_entity_died(entity: Node3D) -> void:
 ## Like `matches`, for an entity that just died.
 func matches_dead(entity: Node3D) -> bool:
 	return matches(entity)
+
+
+func to_dict() -> Dictionary:
+	var data: Dictionary = super()
+	data["destroyed"] = destroyed
+	return data
+
+
+func from_dict(data: Dictionary) -> void:
+	super(data)
+	destroyed = data.get("destroyed", 0)

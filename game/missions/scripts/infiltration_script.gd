@@ -3,8 +3,9 @@ extends MissionScript
 ## Infiltration rules (PLAN 2.6): no base, a small squad, a guarded outpost. Being
 ## seen does not end the mission, it changes it: the first time the outpost goes
 ## Alerted, reinforcements arrive and hunt, the extraction point moves to the far
-## edge and a countdown to get out starts. The extraction objective appears once the
-## target (the uplink) is sabotaged.
+## edge and a countdown to get out starts: on the extraction if it is open, otherwise on
+## the target itself. The extraction objective appears once the target (the uplink)
+## is sabotaged.
 
 var rules: InfiltrationRules = null
 ## True once the outpost has been alerted.
@@ -56,6 +57,13 @@ func on_alert_changed(faction: int, level: StringName, _previous: StringName) ->
 		extraction.countdown_tick = _deadline_tick
 		extraction.countdown_fails = true
 		extraction.move_area(rules.alerted_extraction)
+		return
+	# Not out yet and not even done: the clock runs on the job itself, so the
+	# deadline holds whether or not the uplink is ever reached.
+	var target: Objective = mission.objective(rules.target_objective)
+	if target != null and target.is_active():
+		target.countdown_tick = _deadline_tick
+		target.countdown_fails = true
 
 
 func stop() -> void:

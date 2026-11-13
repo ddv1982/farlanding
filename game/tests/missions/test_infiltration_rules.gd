@@ -126,6 +126,17 @@ func test_after_an_alarm_the_extraction_moves_and_the_clock_runs() -> void:
 	assert_false(_f.mission.result.won)
 
 
+func test_the_alarm_clock_runs_even_if_the_uplink_is_never_sabotaged() -> void:
+	_f.spawn(_f.wisp, 0, Vector3(-60, 0, 60))
+	_start()
+	_alarm()
+	var target: Objective = _f.mission.objective(&"sabotage")
+	assert_gt(target.countdown_tick, 0, "the deadline sits on the job until the way out opens")
+	_f.tick(300)
+	assert_eq(target.state, Objective.STATE_FAILED, "too late")
+	assert_false(_f.mission.result.won)
+
+
 func test_an_alarm_after_the_sabotage_moves_an_open_extraction() -> void:
 	var wisp: Unit = _f.spawn(_f.wisp, 0, Vector3(0, 0, 40))
 	_start()

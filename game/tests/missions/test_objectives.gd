@@ -234,6 +234,14 @@ func test_destroy_count_counts_deaths() -> void:
 	assert_eq(objective.state, Objective.STATE_DONE)
 
 
+func test_destroy_count_keeps_its_count_through_a_save() -> void:
+	var saved: DestroyCountObjective = DestroyCountObjective.new()
+	saved.destroyed = 2
+	var copy: DestroyCountObjective = DestroyCountObjective.new()
+	copy.from_dict(saved.to_dict())
+	assert_eq(copy.destroyed, 2)
+
+
 func test_factory_makes_every_type() -> void:
 	for type: StringName in [
 		ObjectiveDef.TYPE_DESTROY_ALL,
