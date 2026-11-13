@@ -172,12 +172,33 @@ func test_a_fading_storm_turns_into_the_climax() -> void:
 	assert_eq(storms.state, DustStormSystem.STATE_FADING)
 	var now: int = _f.base.context.sim_clock.get_tick()
 	storms.schedule_climax(now + 30)
+	var warned: int = _incoming.size()
 	_f.tick(1)
 	assert_eq(storms.state, DustStormSystem.STATE_BUILDING, "it builds again")
-	_seconds(3.5)
+	assert_eq(_incoming.size(), warned + 1, "and is announced")
+	_seconds(2.0)
+	assert_lt(storms.intensity, 1.0, "not full before the deadline")
+	_seconds(1.5)
 	assert_eq(storms.intensity, 1.0)
 	_seconds(30.0)
 	assert_eq(storms.state, DustStormSystem.STATE_FULL)
+
+
+func test_a_building_storm_turns_into_the_climax() -> void:
+	var storms: DustStormSystem = _storms()
+	while storms.state != DustStormSystem.STATE_BUILDING:
+		_f.tick(1)
+	var now: int = _f.base.context.sim_clock.get_tick()
+	storms.schedule_climax(now + 80)
+	_f.tick(1)
+	assert_true(storms.is_final)
+	assert_true(_alerts.has(&"storm_final"), "the Advisor says which storm this is")
+	_seconds(6.0)
+	assert_lt(storms.intensity, 1.0, "it keeps building until the deadline")
+	_seconds(2.1)
+	assert_eq(storms.state, DustStormSystem.STATE_FULL)
+	_seconds(120.0)
+	assert_eq(storms.state, DustStormSystem.STATE_FULL, "and it stays")
 
 
 func test_saves_and_restores_mid_storm() -> void:

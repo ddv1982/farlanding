@@ -719,8 +719,9 @@ func _props_to_dict() -> Dictionary:
 	return {"version": 1, "props": saved}
 
 
-## Props are map dressing the map places again on load: restore what changed (damage)
-## and remove the ones that were destroyed.
+## Props are map dressing the map usually places again before a load: restore what
+## changed (damage), remove the ones that were destroyed, and spawn any saved prop
+## the world does not have yet (a load into an empty world).
 func _props_from_dict(data: Dictionary) -> void:
 	var saved: Array = data.get("props", [])
 	var by_spot: Dictionary[String, Dictionary] = {}
@@ -732,8 +733,17 @@ func _props_from_dict(data: Dictionary) -> void:
 		var key: String = var_to_str(prop.position)
 		if by_spot.has(key):
 			prop.from_dict(by_spot[key])
+			by_spot.erase(key)
 		elif prop.def != null and prop.def.is_destructible():
 			prop.queue_free()
+	for prop_data: Dictionary in by_spot.values():
+		var def: PropDef = _load_def(prop_data) as PropDef
+		if def == null:
+			continue
+		var turns: int = prop_data.get("turns", 0)
+		var prop: Prop = spawn_prop(def, _saved_position(prop_data), turns)
+		if prop != null:
+			prop.from_dict(prop_data)
 
 
 func _restore_id(node: Node3D, current_id: int, data: Dictionary) -> void:

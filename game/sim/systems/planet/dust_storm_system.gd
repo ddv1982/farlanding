@@ -149,18 +149,25 @@ func _check_climax() -> void:
 	match state:
 		STATE_CLEAR, STATE_WARNING:
 			_announce(start)
-		STATE_FADING:
-			# Turn back: it builds again from where it is, into the storm that stays.
+		STATE_FADING, STATE_BUILDING:
+			# A storm already blowing turns into the one that stays: it builds from
+			# where it is and is at full strength exactly at the deadline.
 			_begin_phase(STATE_BUILDING, maxi(_climax_tick - _now, 1))
-			_phase_from = intensity
+			_warn(_climax_tick)
 		STATE_FULL:
 			_phase_end = NEVER
+			_warn(_climax_tick)
 
 
 func _announce(start: int) -> void:
 	state = STATE_WARNING
 	_next_start = start
-	var seconds: float = maxf(float(start - _now) / SimClock.TICK_RATE, 0.0)
+	_warn(start)
+
+
+## Tells everyone a storm is `at - now` away (the climax in its own, sterner words).
+func _warn(at: int) -> void:
+	var seconds: float = maxf(float(at - _now) / SimClock.TICK_RATE, 0.0)
 	Events.storm_incoming.emit(seconds)
 	# The storm that ends the mission has its own, sterner warning.
 	Events.advisor_alert.emit(&"storm_final" if is_final else &"storm_warning")
