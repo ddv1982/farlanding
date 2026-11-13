@@ -627,6 +627,143 @@ loudness targets and the naming, and says how to add a sound.
     | `canopy_contact` | contact under the canopy: a muffled B+F# (heard through leaves), then the D+G# tritone uncovered, twice, the second leaning up (−19) | 101 / 20 s |
     | `air_lost` | one of ours down: a high D+A falling a fifth as it fades, a dull F#+C# where it lands (−20) | 90 / 12 s |
 
+- **Hollow Meridian is vast, cold, reverent and built** (Phase 8d, the last planet and the
+  campaign's finale). Kessel is dust and wind, Thalassa water and glass, Emberfall low, hot and
+  percussive, Verdance wood and breath; Hollow Meridian should be recognisable within seconds by
+  its *size* and its *stillness*: a hum felt more than heard, air moving in a space too big to
+  have walls, far machinery that has been turning over for ever, and a score of bowed metal,
+  struck stone and glass in a hall six to nine seconds long. Nothing on the deck is alive.
+
+  - **Key and grid.** G# Locrian (G# A B C# D E F#): the *same seven pitches* as the Concord's D
+    Lydian, centred on G#, the raised fourth the Trail motif has hung on all campaign: here the
+    question is the ground. 52.5 BPM in **5/4** (3 + 2: a mechanism, not a dance), 12 bars, 60
+    beats, 68.57 s (3 024 000 samples); `bar_beats` 5. Chords, three bars each: G#m7(b5) (the
+    tritone G#–D inside the chord), E6/9, C#m7(add11), Dmaj7(#11)/G# (the Concord's own chord over
+    the planet's note, never resolved).
+  - **Timbres.** No reed, marimba, taiko, forge or flute. *Bowed metal* (plate partials
+    1 : 2 : 2.76 : 5.4, each with a twin a few cents off, a slow swell, bow noise), *struck stone*
+    (short inharmonic knocks, a dull crack), *glass* (beating sine pairs, a struck edge), *deep
+    sub drones* (G#1 under everything), the *Antecedent bell*, and a very large room.
+  - **The Hollow motif** is the Trail motif read backwards: G# B A D (long, short, short, very
+    long): the place has the answer, but from the other end. The Trail motif itself rings on the
+    bell in the `trail` layer and hangs on G#, which here is home.
+  - **The score** (`res://data/sounds/music/hollow_meridian.tres`, layers in `music/hollow/`): the
+    same states, intensities and layer roles as the other planets (18 layers: Verdance's 15 plus
+    three **Core layers**). `pad` (bowed-metal chords, the sub, a glass halo), `pulse` (the
+    mechanism: glass ticks every three eighths across the 5/4 bar, a cycle of three bars, stone
+    knocks on 1 and 4), `melody` (the Hollow motif on bowed metal, glass on each onset), `drive`
+    (muted sub eighths 3+3+2+2, metal clanks on the accents, D as a shadow), `drums` (stone drums,
+    plates, glass grains), `brass` (bowed-metal sforzandi, the motif called low), `trail`, `hush`
+    (far glass, a stone drop), `watch` (a stone lub-dub, relay ticks, the D shadow), variants
+    `melody_b` (high glass, ending on G#), `melody_c` (the motif augmented low, bells above),
+    `pulse_b` (the bar the other way round, 2 + 3), `drums_b` (half time, one huge stone drum,
+    rolling plates), `urgency` (glass sixteenths of G# against the D–G# tritone, a bowed siren
+    G# → C#), `heavy` (low bowed metal, doubled stone drums, a grinding sub), and the Core layers,
+    silent until the Beacon Core charges:
+    - **`core_1`** (charge ≥ 0.25): the Core's heartbeat (a sub throb on D, lub-dub and a beat on 4)
+      and the Meridian's own dyad D6+A6 shimmering high above the planet's harmony;
+    - **`core_2`** (≥ 0.5): the Trail motif arpeggiated on bells in quarters, climbing an octave
+      in each block's last bar, bowed swells on the top note;
+    - **`core_3`** (≥ 0.75): the motif spinning as a mechanism (bell and glass eighths D A B G#)
+      and a band of light rising for ever (a Shepard figure, one cycle per block).
+
+    State levels are Verdance's plus the Core layers at explore, tension, aftermath 0; calm −2;
+    combat −3; heavy −5; victory −6; defeat silent; stealth −6/−5/−4.
+  - **Re-voiced hits and stings** (`<id>_hollow_meridian`): `mus_hit_combat_hollow_meridian` (air
+    drawn into the hall, two stone drums, a bowed G# and D; −24), `mus_hit_aftermath_hollow_meridian`
+    (the metal sighs A → G#, a bell, a far stone; −25), `mus_sting_victory_hollow_meridian` (G# B A
+    C# lifting to the high D over Dmaj7(#11): the planet's G# becomes the #11 of the Concord's D;
+    −22), `mus_sting_defeat_hollow_meridian` (the motif falling to the low G#, the hall swallowing
+    it as the filter closes; −22).
+  - **The finale.** `Events.core_charge_changed(fraction)` brings the Core layers in by threshold
+    (CoreSound / CoreCues): a layer comes in at 0.25, 0.5, 0.75 and leaves only 0.08 below its
+    threshold, so a contested Core wobbling around one half never flaps a layer; changes land on the
+    beat and fade like any layer gain. `Events.core_awakened(core)` (once per mission) silences the
+    Core layers and plays **`mus_core_awakened`** (34 s, −21, the campaign's peak) on the CoreSound's
+    own Music-bus player, the score dipped −24 dB under it until its calm tail (the last 8 s):
+
+    | Time | Heard |
+    |---|---|
+    | 0–4 s | the hall draws breath: rising air, a sub climbing, bells swelled backwards into… |
+    | 4 s | a great strike on the planet's tritone, G# and D (bells and stone) |
+    | 4.5–15 s | the Trail motif stated in full, broad, on bell, bowed metal and glass: D, A, B, and G# held over G#m7(b5): the question, as it has been all campaign |
+    | 15–19 s | the answer: G# rises to A, C#, the high D; the bass moves G# → A → D |
+    | 17.6–26 s | home: Dmaj9(#11) (the planet's G# is now the Lydian #11, consonant at last), the bells on D A D A, the **Meridian dyad** D+A and its octave as pure sines, glass falling like light (the peak, ≈ −23 dB RMS) |
+    | 26–34 s | the calm tail: one high bell, the dyad D+A alone, the hall |
+
+    While it rings (`CoreSound.is_peaking()`), a `mission_ended(true)` settles the score into
+    victory without the victory sting: the awakening *is* the victory. A new mission stops it.
+  - **The ending theme** (`res://data/sounds/music/ending.tres`, id `ending`, three layers in
+    `music/ending/`: `mus_ending_pad` −27, `mus_ending_melody` −28, `mus_ending_bells` −31; 60 BPM,
+    16 bars, 64 s, one state `ending`). Quiet and resolved, in D at last: Dmaj9 → Bm(add9) → E(add9)/D
+    → A(add9)/C#, and the A lands on D at every loop. The Meridian's glass pad, the Trail motif and
+    its answer on the Meridian lead (D A B G#, A C# D), Antecedent bells far off with the G#
+    consonant inside D. It is selected like the ship's screens: on
+    `Events.campaign_screen_changed(&"ending")` the AudioService looks for a **ScreenMusic** in
+    `res://data/sounds/screens/` whose `screen` is that id (`screens/ending.tres`: `screen = &"ending"`,
+    `score` = the ending score, `state = &"ending"`) and switches to its score (one player, fade
+    out and in) instead of the ship theme; the ship's ambience plays under it, as on any ship
+    screen. If the ending screen's id turns out different, that `screen = ...` line is the only
+    change. Any other screen without a file keeps the ship theme.
+  - **Ambience** (the `hollow_meridian` AmbienceSet). Beds: `amb_hollow_hum` (47 s, −32: a sub hum
+    on G#1 with its octave, a faint D, twins beating slowly, a pressure that surges; wanders
+    −3..0 dB), `amb_hollow_air` (41 s, −31: dark wide air in slow swells, a hollow resonance
+    wandering, a far whistle across a chasm twice a loop; −6..0), `amb_hollow_machinery` (34 s,
+    −33: something enormous turning over five times a loop: rumble, a grinding band, a far heavy
+    clank in a long hall; −9..−2) and the Antecedent hush. Details (one every 6–14 s):
+
+    | Detail | Sound | Weight |
+    |---|---|---|
+    | `amb_metal_groan` (3) | a far metallic groan: stick-slip through plate resonances, deep, in a 4.5 s hall (−26, to 220 m, one at a time, never twice in 4 s) | 0.45 |
+    | `amb_relay_click` (3) | a relay clicking, a short electrical buzz, its echo coming back across the deck (−28, to 90 m) | 0.5 |
+    | `amb_pebble_fall` (3) | a pebble into a chasm: it ticks off the wall, fainter, duller and further apart, a whistle of air after it, and never lands (−28, to 140 m, never twice in 3 s) | 0.3 |
+    | `amb_seam_tick` (3) | a glowing seam's electrical tick: a crackle, a glass ping on G#6, D6 or G#5, a blip of hum (−28, to 60 m) | 0.55 |
+    | `amb_flux_vent` | as on Kessel, only near Flux | 1.2 × near vent |
+    | `amb_combine_industry` | as on Kessel, at a seen base | 2.6 × near base |
+
+  - **The old engines** (`MachineSound` / `MachineCues`, positional on the Buildings bus, group
+    `machine`):
+
+    | Signal | Heard at the machine |
+    |---|---|
+    | `machine_reactivated(machine, player faction)` | `machine_spinup` (4.8 s, −20: stone grinding loose, a tone rising two octaves from D1 that lands on D3 with A above, the Meridian's dyad, a bell strike and a thump on the landing, the hum settling in), then `loop_engine_run` |
+    | `machine_reactivated(machine, other faction)` | `machine_seized` (3.8 s, −22: the same rise, colder, landing off the chord on the Combine's bent Bb and F with ring-modulated grit and a mistuned clank, no bell), only if the machine is not hidden (`is_visible_to_player`) and within 90 m of the camera's focus |
+    | `machine_lost(machine, player faction)` | `machine_winddown` (3.8 s, −22: the hum's D and A sag an octave as it slows, the grind drags to a stop, a last clunk, a sigh); its run loop fades |
+    | `machine_lost(machine, other faction)` | nothing (the new owner's reactivation speaks) |
+
+    `loop_engine_run` (6 s loop, −30: D2 and A2 turning over nine times a loop, a soft whoosh in
+    the turn, faint bell partials) hums on the MachineSound's own players at the player's running
+    engines, at most three, nearest the focus within 55 m, starting 2.5 s after the spin-up (whose
+    end already carries the hum) and fading over 1.2 s. A takeover of one of ours (lost, then the
+    enemy's reactivation) is one gesture: a seizure within 1 s of our loss of the same machine is
+    not played over the wind-down. Every machine the MachineSound has heard of is left alone by
+    BaseLoops, so an engine that is also a building is not hummed twice.
+  - **The Sentinel** (`custodian_sentinel`, a heavy ranged Custodian; its `def.sound_set` must be
+    **`sentinel`**, its weapon's `sound_set` **`sentinel`** or any name starting with `sentinel_`,
+    e.g. `sentinel_stone_bolt`, which falls back to the family by the first-word rule). A larger
+    Warden, its drone on G# with D above (the tritone frame) where the Warden's is on D:
+
+    | Event | Sound |
+    |---|---|
+    | `move_sentinel` | a deep bell drone on G#2 with D3 above, slower beating, a sub on G#1, heavier stone grinding, brass ticks (5 s loop, −23, to 60 m; the Warden's is −24, to 45 m) |
+    | `loop_hum_sentinel` | dormant: the drone alone, G# with a faint D, very slow (6 s, −31, to 55 m; BaseLoops, while `is_dormant`) |
+    | `unit_sentinel_wake` | stone grinding loose, two bell strikes G# then D, a lift rising a fifth, a sub thump (3.8 s, −20, to 140 m; when `is_dormant` turns false in view) |
+    | `weapon_sentinel_fire` (3) | a charged stone-and-light bolt: a quarter second of charge (a whine rising, crackle), then a stone crack, a beam of light dropping onto G#3 / D4 / A3, a bell clang, a sub thump (1.5 s, −22, priority 60, to 110 m) |
+    | `death_sentinel` | two cracked bells (G# and D) splitting and falling in pitch, a heavy stone collapse, rubble (4.6 s, −20) |
+
+  - **Advisor** (Meridian dyads, through the Advisor queue):
+
+    | Kind | Phrase | Priority / throttle |
+    |---|---|---|
+    | `core_contested` | D+A and the Combine's bent Bb+F pulling against each other, fast, twice, left hanging on the bent dyad (−19) | 110 / 15 s |
+    | `custodians_awake` | a struck G#+D bell in the ship channel, then three quick dyads climbing into the tritone (−19) | 107 / 25 s |
+    | `engine_lost` | D+A sagging into the planet's G#+D as a low hum winds down under it (−19) | 102 / 10 s |
+    | `core_charging` | three slow D+A pulses, each a step brighter, the last rising into the motif's B (−20) | 89 / 30 s |
+    | `engine_online` | a low hum swelling under dyads climbing to a held, bright D+A with its octave (−19) | 84 / 6 s |
+
+    An `engine_online` and an `engine_lost` that both wait unheard cancel (the state flapped), like
+    low power and power restored.
+
 ## Loudness targets
 
 Integrated loudness per ITU-R BS.1770 (gated; files shorter than 400 ms are one block). Every
@@ -704,6 +841,16 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `unit` aircraft | WAV mono | −21 | flat, Barks bus |
 | `explosion` aircraft deaths | WAV mono | −21 | positional, Explosions bus |
 | `advisor` Phase 8c | WAV mono | air contact, canopy contact −19; air lost −20 | flat, Advisor bus |
+| `music` Hollow Meridian layers (Phase 8d) | Ogg stereo, loop | as Kessel: pad −25, pulse/pulse_b −29, melodies −27, drive −28, drums −26, brass −27, trail −29, hush −31, watch −29, urgency −29, heavy −27; core_1 −30, core_2/core_3 −29 | 52.5 BPM in 5/4, 68.57 s (3 024 000 samples) |
+| `sting` Hollow Meridian (Phase 8d) | Ogg stereo | hits −24 / −25, victory and defeat −22 | `<id>_hollow_meridian` |
+| `sting` finale | Ogg stereo | `mus_core_awakened` −21 (34 s) | CoreSound's own player, Music bus |
+| `music` ending theme | Ogg stereo, loop | pad −27, melody −28, bells −31 | 60 BPM, 64 s (2 822 400 samples) |
+| `ambience` Hollow Meridian beds | Ogg stereo, loop | hum −32, air −31, machinery −33 | 47 / 41 / 34 s |
+| `ambdetail` Hollow Meridian | WAV mono | groan −26, relay, pebble, seam −28 | positional, priority 10 |
+| `machine` (Phase 8d) | WAV mono | spin-up −20, wind-down −22, seized −22; run loop −30 (6 s) | positional, Buildings bus; the loop on the MachineSound's players |
+| `movement` / `baseloop` Sentinel | WAV mono, loop | move −23 (5 s), dormant hum −31 (6 s) | positional |
+| `antecedent` / `weapon` / `explosion` Sentinel | WAV mono | wake −20, fire −22, death −20 | positional |
+| `advisor` Phase 8d | WAV mono | core contested, custodians awake, engine online, engine lost −19; core charging −20 | flat, Advisor bus |
 
 Also checked on every build: DC offset ≤ 0.002, energy below 25 Hz ≤ 3 %, duration within the
 recipe's bounds, and for loops the seam (no step, kink or level jump bigger than the loop's own
@@ -764,6 +911,8 @@ settings: master 1.0, music 0.8, effects 1.0):
 | Emberfall calm (Phase 8b): the Emberfall score in `calm`, its ambience | −29.0 LUFS | −15.5 dBFS |
 | Verdance calm (Phase 8c): the Verdance score in `calm`, its ambience, the camera under a crown (the Ambience high band shaded) | −29.9 LUFS | −19.7 dBFS |
 | Verdance air war (Phase 8c): `combat_heavy` + urgency layers, four aircraft engines overhead (two Talons, two Hornets), a Talon autocannon shot every 50 ms and a Hornet dart every 100 ms on top of the worst-case battle, an aircraft coming down every second, canopy rustles, an Advisor or stealth alarm every 1.5 s plus `advisor_air_contact` every 1.5 s, clicks | −17.1 LUFS | −4.4 dBFS (limiter never engaged) |
+| Hollow Meridian calm (Phase 8d): the Hollow score in `calm` with `core_1` (a quarter charged), its ambience, two of the player's engines running nearby | −27.0 LUFS | −14.9 dBFS |
+| Hollow Meridian finale (Phase 8d): the Core's awakening at its peak (19.5–25 s into the cue) over `combat_heavy` + urgency + all three Core layers (dipped −24 dB under it), the worst-case battle plus a Sentinel bolt every 150 ms, a Sentinel falling every 2 s and an engine spinning up every second, an Advisor or stealth alarm every 1.5 s plus `advisor_core_contested` every 1.5 s, clicks | −17.3 LUFS | −4.2 dBFS (limiter never engaged) |
 | Emberfall Holdout fight (Phase 8b): `combat_heavy` + urgency + pressure + holdout layers, the extraction engine in its last seconds, a vent 23 m away building up then erupting (blast and duck) by a player building, the worst-case battle, an Advisor or stealth alarm every 1.5 s plus `advisor_eruption_warning` every 1.5 s, clicks | −18.1 LUFS | −3.9 dBFS (limiter never engaged) |
 
 Worst-case loudness per category (each bus before its fader, LUFS): Music −25.3, Weather −25.8,
@@ -801,6 +950,15 @@ voices at most; while the Advisor speaks the score sits at −34.6 against its �
 Both Verdance scenes assert what the others do (no clipping, headroom, the loudness windows, the
 voice budget, the Advisor 3 LU over the music); calm also asserts the camera is shaded.
 
+Hollow Meridian finale (per bus before its fader): Music −31.7 (the awakening over the dipped score,
+held down by the Voice sidechain while the Advisor speaks every 0.75 s), Weapons −24.7, Explosions
+−25.3, Advisor −20.5, Stealth −22.9, UI −36.4, Ambience −40.4 LUFS, 35 voices at most; while the
+Advisor speaks the music sits at −33.8 against its −20.3 (13.5 LU clear). The campaign's peak never
+reaches the limiter: −4.2 dBFS before it, the same headroom as the other fights. Both Hollow scenes
+assert what the others do (no clipping, headroom, the loudness windows, the voice budget, the
+Advisor 3 LU over the music); calm also asserts the Core's first layer and the engines' hum, the
+finale that the recording is inside the awakening.
+
 The first measurement found one problem, fixed: heavy combat with the storm and urgency layers
 stacked integrated to −21.7 LUFS of music, louder than the weapons (−25) and level with the
 Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capped at −3 dB
@@ -834,6 +992,12 @@ Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capp
   `canopy_rustle_<in|out>_<n>` (group `canopy`), aircraft by sound set like any unit
   (`move_<chassis>` files `move_ducted` / `move_rotor` serving `move_talon` / `move_hornet`,
   `weapon_<set>_fire_<n>`, `unit_<set>_<kind>_<n>`, `death_<set>`), `advisor_<kind>`
+- Phase 8d: `mus_hollow_<layer>` (score `hollow_meridian.tres`), `mus_core_awakened` (the finale),
+  `mus_ending_<layer>` (score `ending.tres`), `amb_hollow_<bed>`, details `amb_<what>_<n>`,
+  `machine_<spinup|winddown|seized>`, `loop_engine_run` (group `machine`), the Sentinel by sound set
+  (`move_sentinel`, `loop_hum_sentinel`, `unit_sentinel_wake`, `weapon_sentinel_fire_<n>`,
+  `death_sentinel`), `advisor_<kind>`; screen music as data in `game/data/sounds/screens/<screen>.tres`
+  (ScreenMusic: screen id, score, state)
 
 The event router looks events up by these names: a unit's `def.sound_set` picks
 `unit_<set>_select`; a selection of buildings only (group `buildings`) picks
@@ -1054,6 +1218,28 @@ Verdance's PlanetDef, `sound_set` `talon` on `concord_talon` and `hornet` on `co
 weapon sound sets starting with `talon_`/`hornet_` (they do: `talon_autocannon`,
 `hornet_dartgun`), the three `advisor_alert` kinds above, and the CanopySystem in group `canopy`
 for the shade (optional: the fallback works without it, less exactly).
+
+Hollow Meridian routing (Phase 8d):
+
+| Signal or data | Sound |
+|---|---|
+| `core_charge_changed(fraction)` | the score's `core_1..3` layers by threshold with hysteresis (CoreSound) |
+| `core_awakened(core)` | once: `mus_core_awakened` on the CoreSound's player, Core layers out, the score dipped −24 dB until the calm tail; no victory sting while it rings |
+| `machine_reactivated(machine, faction)` / `machine_lost(machine, faction)` | spin-up, seizure, wind-down and the run loop (MachineSound, table above) |
+| `campaign_screen_changed(&"ending")` | the ending score (`screens/ending.tres` → `music/ending.tres`, state `ending`) over the ship ambience |
+| a unit whose `def.sound_set` is `sentinel` | `move_sentinel`, `loop_hum_sentinel` while `is_dormant`, `unit_sentinel_wake` when it wakes in view, `death_sentinel` |
+| `weapon_fired` with a weapon `sound_set` of `sentinel` / `sentinel_*` | `weapon_sentinel_fire` |
+| `advisor_alert(&"core_contested" / &"custodians_awake" / &"engine_lost" / &"core_charging" / &"engine_online")` | `advisor_<kind>` through the Advisor queue (table above) |
+| `mission_started` | the planet is read from the map (`play_planet(&"hollow_meridian")`); the Core and the engines reset |
+
+What gameplay needs to provide (as of this phase): the planet id `hollow_meridian` on Hollow
+Meridian's PlanetDef (the score and ambience are found by it), the four machine and Core signals
+(already in `Events`), `sound_set` `sentinel` on `custodian_sentinel` and a weapon `sound_set`
+starting with `sentinel`, an `is_dormant` bool on the Sentinel for the dormant hum and the wake
+(as the Warden), the five `advisor_alert` kinds above, and the ending screen emitting
+`campaign_screen_changed(&"ending")` (if it uses another id, change `screen` in
+`game/data/sounds/screens/ending.tres`). Optional: `is_visible_to_player` on the engines (without
+it, an enemy seizure within 90 m of the camera is always heard).
 
 ## Adding a sound
 

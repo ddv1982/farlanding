@@ -28,6 +28,10 @@ extends RefCounted
 ## - Verdance (Phase 8c): enemy aircraft sighted, units found under the canopy,
 ##   one of ours shot down. Aircraft sighted outranks a contact under the
 ##   crowns (it can reach the base); a loss is news, not a warning.
+## - Hollow Meridian (Phase 8d): someone else at the Beacon Core outranks the
+##   Custodians waking, which outranks an engine lost; the Core charging and an
+##   engine coming online are news. An engine online and an engine lost that
+##   both wait unheard cancel (the state flapped), like low and restored power.
 ##
 ## Use: `push(kind, now, position)` when an alert arrives (set `focus` first);
 ## every frame, `pop_ready(now)` and, if it returns a kind, play it and call
@@ -75,6 +79,11 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"air_contact": 25.0,
 	&"canopy_contact": 20.0,
 	&"air_lost": 12.0,
+	&"core_contested": 15.0,
+	&"custodians_awake": 25.0,
+	&"engine_lost": 10.0,
+	&"core_charging": 30.0,
+	&"engine_online": 6.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -118,6 +127,11 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"air_contact": 103,
 	&"canopy_contact": 101,
 	&"air_lost": 90,
+	&"core_contested": 110,
+	&"custodians_awake": 107,
+	&"engine_lost": 102,
+	&"core_charging": 89,
+	&"engine_online": 84,
 }
 ## Kind -> the family whose throttle it shares (kinds not listed are their own).
 const FAMILY: Dictionary[StringName, StringName] = {
@@ -131,6 +145,8 @@ const SUPERSEDES: Dictionary[StringName, StringName] = {
 	&"low_power": &"power_restored",
 	&"tide_falling": &"tide_rising",
 	&"tide_rising": &"tide_falling",
+	&"engine_online": &"engine_lost",
+	&"engine_lost": &"engine_online",
 }
 ## Kind -> the queued kind it replaces: the old one is dropped, the new one is
 ## still heard (unlike SUPERSEDES, where both go).

@@ -29,6 +29,15 @@ extends GutTest
 ##   four aircraft engines overhead (two Talons, two Hornets), their guns and
 ##   rockets on top of the worst-case battle, aircraft falling, canopy rustles,
 ##   Advisor alarms and an air-contact phrase every 1.5 s, clicks.
+## - Hollow Meridian calm (Phase 8d): the Hollow score in calm with the Core's
+##   first layer (a quarter charged), its ambience (the hum, the air, far
+##   machinery, details) and two of the player's engines running nearby.
+## - Hollow Meridian finale (Phase 8d): the Core's awakening at its peak (the
+##   motif's answer and the Meridian dyad, 19-25 s into the cue) over the Hollow
+##   score in heavy combat with the urgency and all three Core layers (dipped
+##   under the peak, as in the game), the worst-case battle plus Sentinel bolts
+##   and deaths, engines spinning up, Advisor alarms and a contested-Core phrase
+##   every 1.5 s, clicks: the campaign's loudest moment.
 ##
 ## Asserted: the Master output never clips (the limiter's ceiling holds), the mix
 ## itself has headroom before the limiter, and loudness stays in its window.
@@ -46,6 +55,10 @@ const KESSEL_SCORE: String = "res://data/sounds/music/kessel_reach.tres"
 const THALASSA: StringName = &"thalassa_low"
 const EMBERFALL: StringName = &"emberfall"
 const VERDANCE: StringName = &"verdance"
+const HOLLOW: StringName = &"hollow_meridian"
+## Seconds into the awakening where the finale scene starts settling: the
+## recording then covers its peak (about 19.5-25.5 s).
+const PEAK_FROM: float = 17.0
 const AIR_SETS: Array[StringName] = [&"talon", &"hornet", &"talon", &"hornet"]
 const SHIP_ALERTS: Array[StringName] = [
 	&"advisor_campaign_return_won",
@@ -92,6 +105,8 @@ func after_each() -> void:
 	_eruption().handle_mission_started()
 	_holdout().handle_mission_started()
 	_canopy().handle_mission_started()
+	_core().handle_mission_started()
+	_machines().handle_mission_started()
 	Audio.music().set_layer_gain(&"pressure", AudioMix.SILENT_DB)
 	Audio.music().set_layer_gain(&"holdout", AudioMix.SILENT_DB)
 	if Audio.music().target_score().id != (load(KESSEL_SCORE) as MusicScore).id:
@@ -112,6 +127,32 @@ func _holdout() -> HoldoutSound:
 
 func _canopy() -> CanopySound:
 	return Audio.get_node(^"Canopy") as CanopySound
+
+
+func _core() -> CoreSound:
+	return Audio.get_node(^"Core") as CoreSound
+
+
+func _machines() -> MachineSound:
+	return Audio.get_node(^"Machines") as MachineSound
+
+
+## Lands on Hollow Meridian (score and ambience).
+func _land_on_hollow() -> void:
+	Audio.play_planet(HOLLOW)
+	var arrived: Callable = func() -> bool:
+		return Audio.music().score != null and Audio.music().score.id == HOLLOW
+	await wait_until(arrived, 5.0)
+
+
+## Two of the player's engines running near the camera (their hums wait for
+## the spin-up to finish).
+func _run_engines() -> void:
+	for k: int in 2:
+		var engine: Node3D = Node3D.new()
+		add_child_autofree(engine)
+		engine.global_position = Vector3(-14.0 + 26.0 * k, 0.0, 9.0 - 15.0 * k)
+		_machines().handle_reactivated(engine, 0)
 
 
 ## Lands on Verdance (score and ambience).
@@ -181,7 +222,8 @@ func _record(scene: StringName) -> Array[float]:
 	var fight: bool = scene == &"thalassa_fight"
 	var ember: bool = scene == &"emberfall_fight"
 	var air: bool = scene == &"verdance_fight"
-	var worst: bool = scene == &"worst" or fight or ember or air
+	var finale: bool = scene == &"hollow_finale"
+	var worst: bool = scene == &"worst" or fight or ember or air or finale
 	var ship: bool = scene == &"ship"
 	Audio.stop_all_voices()  # nothing left over from earlier tests
 	await wait_seconds(SETTLE_SECONDS)
@@ -216,6 +258,8 @@ func _record(scene: StringName) -> Array[float]:
 			_holdout().handle_sim_ticked(int(i * FRAME * SimClock.TICK_RATE))
 		if air:  # the air war on top of the ground battle
 			_air_frame(i)
+		if finale:  # the Custodians fight on while the Core wakes
+			_finale_frame(i)
 		_mix.note_bus_peaks()
 		most_voices = maxi(most_voices, Audio.active_voices())
 		await wait_seconds(FRAME)
@@ -269,6 +313,21 @@ func _air_frame(i: int) -> void:
 		Audio.play_at(&"canopy_rustle_in", Vector3(6, 0, -4))
 	if i % 30 == 15:
 		Audio.play(&"advisor_air_contact")
+
+
+## One frame of the finale: Sentinel bolts, an engine spinning up now and then,
+## a Sentinel falling, someone else at the Core.
+func _finale_frame(i: int) -> void:
+	if i % 3 == 0:
+		Audio.play_at(
+			&"weapon_sentinel_fire", Vector3(cos(i * 0.9) * 20.0, 0.0, sin(i * 0.9) * 20.0)
+		)
+	if i % 20 == 5:
+		Audio.play_at(MachineCues.SPINUP, Vector3(15.0, 0.0, -10.0))
+	if i % 40 == 25:
+		Audio.play_at(&"death_sentinel", Vector3(-12.0, 0.0, 8.0))
+	if i % 30 == 15:
+		Audio.play(&"advisor_core_contested")
 
 
 ## One frame aboard: hovers sweep, a click now and then, a purchase, and a
@@ -456,3 +515,41 @@ func test_emberfall_holdout_fight_with_an_eruption_never_clips() -> void:
 	)
 	gut.p("  while the Advisor speaks: Music below 150 Hz %.1f dB RMS, Advisor %.1f dB RMS" % low)
 	assert_lt(low[0], low[1], "the score's low end stays under the Advisor too")
+
+
+func test_hollow_calm_sits_quietly() -> void:
+	await _land_on_hollow()
+	_core().handle_charge_changed(0.3)
+	_run_engines()
+	Audio.music().force_state(&"calm")
+	await wait_seconds(MachineCues.RUN_DELAY)
+	var result: Array[float] = await _record(&"hollow_calm")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_eq(_core().level(), 1, "the Core's heartbeat")
+	assert_gt(_machines().humming_count(), 0, "the engines hum")
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_between(result[2], EXPLORE_LUFS.x, EXPLORE_LUFS.y, "Hollow Meridian calm loudness")
+
+
+func test_hollow_finale_peak_never_drives_the_limiter() -> void:
+	await _land_on_hollow()
+	_core().handle_charge_changed(0.95)
+	Audio.music().set_layer_gain(&"urgency", 0.0)
+	Audio.music().force_state(&"combat_heavy")
+	assert_true(_core().handle_awakened(null, PEAK_FROM))
+	var result: Array[float] = await _record(&"hollow_finale")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_true(_core().is_peaking(), "recorded inside the awakening")
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_lt(result[0], PRE_LIMITER_MAX_DBFS, "the mix has headroom before the limiter")
+	assert_between(result[2], WORST_LUFS.x, WORST_LUFS.y, "finale loudness")
+	assert_lte(int(result[4]), 48, "the voice budget holds")
+	var speaking: Array[float] = MixScene.loudness_while(
+		_frames[&"Advisor"], _frames[&"Music"], AudioServer.get_mix_rate()
+	)
+	gut.p("  while the Advisor speaks over the peak: Advisor %.1f LUFS, Music %.1f LUFS" % speaking)
+	assert_gt(
+		speaking[0],
+		speaking[1] + ADVISOR_OVER_MUSIC_LU,
+		"the Advisor is heard over the campaign's peak"
+	)

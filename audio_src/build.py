@@ -96,6 +96,11 @@ EVENT_DEFAULTS = {
     # (CanopySound, which also rate-limits them into one gesture per group).
     "canopy": dict(bus="Units", priority=42, max_instances=2, cooldown=0.15, positional=True,
                    max_distance=70.0),
+    # Phase 8d. The old engines of Hollow Meridian: their spin-up, wind-down and
+    # the enemy's colder seizure (MachineSound, positional at the engine), and
+    # the running engine's loop (on the MachineSound's own players).
+    "machine": dict(bus="Buildings", priority=80, max_instances=2, cooldown=0.3, positional=True,
+                    max_distance=160.0),
 }
 EVENT_OVERRIDES = {
     "ui_hover": dict(priority=20, max_instances=1, cooldown=0.06),
@@ -230,6 +235,21 @@ EVENT_OVERRIDES = {
     "weapon_hornet_fire": dict(priority=40, max_instances=3, cooldown=0.06, max_distance=80.0, pitch_variation=1.0),
     "death_talon": dict(priority=72, max_instances=2, cooldown=0.15, max_distance=150.0),
     "death_hornet": dict(priority=72, max_instances=2, cooldown=0.15, max_distance=150.0, pitch_variation=0.6),
+    # Phase 8d, Hollow Meridian. A groan or a falling pebble carries across the
+    # deck; relays and seams are close-by things. The running engine loop is
+    # quiet and near. The Sentinel is heavier than the Warden and heard further.
+    "amb_metal_groan": dict(max_instances=1, cooldown=4.0, max_distance=220.0),
+    "amb_pebble_fall": dict(max_instances=1, cooldown=3.0, max_distance=140.0),
+    "amb_relay_click": dict(max_distance=90.0),
+    "amb_seam_tick": dict(max_distance=60.0),
+    "loop_engine_run": dict(priority=30, max_instances=3, cooldown=0.0, max_distance=55.0),
+    "machine_seized": dict(priority=76),
+    "move_sentinel": dict(max_instances=2, max_distance=60.0, priority=34),
+    "loop_hum_sentinel": dict(max_instances=2, max_distance=55.0),
+    "unit_sentinel_wake": dict(max_distance=140.0, priority=72),
+    "weapon_sentinel_fire": dict(priority=60, max_instances=2, cooldown=0.2, max_distance=110.0),
+    "death_sentinel": dict(priority=76, max_instances=1, cooldown=0.2, max_distance=160.0),
+    "mus_core_awakened": dict(cooldown=10.0),
 }
 
 

@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="AmbienceSet" format=3]
+
+[ext_resource type="Script" path="res://audio/ambience_set.gd" id="1_set"]
+[ext_resource type="Script" path="res://audio/ambience_bed.gd" id="2_bed"]
+[ext_resource type="Script" path="res://audio/ambience_detail.gd" id="3_detail"]
+
+[sub_resource type="Resource" id="Bed_amb_hollow_hum"]
+script = ExtResource("2_bed")
+event = &"amb_hollow_hum"
+wander_db = Vector2(-3, 0)
+
+[sub_resource type="Resource" id="Bed_amb_hollow_air"]
+script = ExtResource("2_bed")
+event = &"amb_hollow_air"
+wander_db = Vector2(-6, 0)
+
+[sub_resource type="Resource" id="Bed_amb_hollow_machinery"]
+script = ExtResource("2_bed")
+event = &"amb_hollow_machinery"
+wander_db = Vector2(-9, -2)
+
+[sub_resource type="Resource" id="Bed_amb_kessel_hush"]
+script = ExtResource("2_bed")
+event = &"amb_kessel_hush"
+hush = true
+
+[sub_resource type="Resource" id="Detail_amb_metal_groan"]
+script = ExtResource("3_detail")
+event = &"amb_metal_groan"
+weight = 0.45
+
+[sub_resource type="Resource" id="Detail_amb_relay_click"]
+script = ExtResource("3_detail")
+event = &"amb_relay_click"
+weight = 0.5
+
+[sub_resource type="Resource" id="Detail_amb_pebble_fall"]
+script = ExtResource("3_detail")
+event = &"amb_pebble_fall"
+weight = 0.3
+
+[sub_resource type="Resource" id="Detail_amb_seam_tick"]
+script = ExtResource("3_detail")
+event = &"amb_seam_tick"
+weight = 0.55
+
+[sub_resource type="Resource" id="Detail_amb_flux_vent"]
+script = ExtResource("3_detail")
+event = &"amb_flux_vent"
+weight = 0
+vent = 1.2
+anchor = &"vent"
+
+[sub_resource type="Resource" id="Detail_amb_combine_industry"]
+script = ExtResource("3_detail")
+event = &"amb_combine_industry"
+weight = 0
+base = 2.6
+anchor = &"base"
+
+[resource]
+script = ExtResource("1_set")
+id = &"hollow_meridian"
+beds = Array[ExtResource("2_bed")]([SubResource("Bed_amb_hollow_hum"), SubResource("Bed_amb_hollow_air"), SubResource("Bed_amb_hollow_machinery"), SubResource("Bed_amb_kessel_hush")])
+details = Array[ExtResource("3_detail")]([SubResource("Detail_amb_metal_groan"), SubResource("Detail_amb_relay_click"), SubResource("Detail_amb_pebble_fall"), SubResource("Detail_amb_seam_tick"), SubResource("Detail_amb_flux_vent"), SubResource("Detail_amb_combine_industry")])
