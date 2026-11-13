@@ -9,60 +9,61 @@
 [ext_resource type="AudioStream" path="res://assets/audio/music/kessel/mus_kessel_tension_drive.ogg" id="7_drive"]
 [ext_resource type="AudioStream" path="res://assets/audio/music/kessel/mus_kessel_combat_drums.ogg" id="8_drums"]
 [ext_resource type="AudioStream" path="res://assets/audio/music/kessel/mus_kessel_combat_brass.ogg" id="9_brass"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/kessel/mus_kessel_explore_trail.ogg" id="10_trail"]
 
 [sub_resource type="Resource" id="Resource_explore_clip"]
 script = ExtResource("2_clip")
 name = &"explore"
-layers = Array[AudioStream]([ExtResource("4_pad"), ExtResource("5_pulse"), ExtResource("6_melody"), ExtResource("7_drive"), ExtResource("8_drums"), ExtResource("9_brass")])
-layer_names = PackedStringArray("pad", "pulse", "melody", "drive", "drums", "brass")
+layers = Array[AudioStream]([ExtResource("4_pad"), ExtResource("5_pulse"), ExtResource("6_melody"), ExtResource("7_drive"), ExtResource("8_drums"), ExtResource("9_brass"), ExtResource("10_trail")])
+layer_names = PackedStringArray("pad", "pulse", "melody", "drive", "drums", "brass", "trail")
 
 [sub_resource type="Resource" id="Resource_explore"]
 script = ExtResource("3_state")
 name = &"explore"
 clip = &"explore"
-layer_volumes_db = PackedFloat32Array(0, 0, 0, -80, -80, -80)
+layer_volumes_db = PackedFloat32Array(0, 0, 0, -80, -80, -80, 0)
 intensity = 0
 
 [sub_resource type="Resource" id="Resource_calm"]
 script = ExtResource("3_state")
 name = &"calm"
 clip = &"explore"
-layer_volumes_db = PackedFloat32Array(0, -80, -6, -80, -80, -80)
+layer_volumes_db = PackedFloat32Array(0, -80, -6, -80, -80, -80, -3)
 intensity = 0
 
 [sub_resource type="Resource" id="Resource_tension"]
 script = ExtResource("3_state")
 name = &"tension"
 clip = &"explore"
-layer_volumes_db = PackedFloat32Array(-2, -6, -80, 0, -80, -80)
+layer_volumes_db = PackedFloat32Array(-2, -6, -80, 0, -80, -80, -8)
 intensity = 1
 
 [sub_resource type="Resource" id="Resource_combat"]
 script = ExtResource("3_state")
 name = &"combat"
 clip = &"explore"
-layer_volumes_db = PackedFloat32Array(-4, -80, -80, -3, 0, 0)
+layer_volumes_db = PackedFloat32Array(-4, -80, -80, -3, 0, 0, -80)
 intensity = 2
 
 [sub_resource type="Resource" id="Resource_aftermath"]
 script = ExtResource("3_state")
 name = &"aftermath"
 clip = &"explore"
-layer_volumes_db = PackedFloat32Array(0, -80, -5, -14, -80, -80)
+layer_volumes_db = PackedFloat32Array(0, -80, -5, -14, -80, -80, -4)
 intensity = 1
 
 [sub_resource type="Resource" id="Resource_victory"]
 script = ExtResource("3_state")
 name = &"victory"
 clip = &"explore"
-layer_volumes_db = PackedFloat32Array(-6, -80, -10, -80, -80, -80)
+layer_volumes_db = PackedFloat32Array(-6, -80, -10, -80, -80, -80, -6)
 intensity = 3
 
 [sub_resource type="Resource" id="Resource_defeat"]
 script = ExtResource("3_state")
 name = &"defeat"
 clip = &"explore"
-layer_volumes_db = PackedFloat32Array(-10, -80, -80, -20, -80, -80)
+layer_volumes_db = PackedFloat32Array(-10, -80, -80, -20, -80, -80, -80)
 intensity = 3
 
 [resource]

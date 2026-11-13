@@ -83,6 +83,41 @@ loudness targets and the naming, and says how to add a sound.
 - **The Trail motif** — D A B G# (scale degrees 1, 5, 6, #4), short-long-short-long — means
   *discovery*. It ends on the raised fourth so it hangs like a question. Music quotes it
   transposed through the scale; the stinger `mus_trail_motif` plays it alone.
+- **Discovery has a voice** (Phase 4), and every part of it is built on the Trail motif:
+
+  | Event | Sound |
+  |---|---|
+  | `signal_pulse` | an unresolved site: only the motif's first interval, D5 short, A5 long, then 2.5 s of air (3.2 s loop, −30, positional) |
+  | `scan_loop` | scanning: the same D–A pulsed eight times a second, a band of noise sweeping up, data ticks, the next note (B) barely there (2 s loop, −27) |
+  | `scan_interrupted` | the dyad sags a tritone while its filter closes, a dull tick |
+  | `discovery_resolve_geological` | stone bars D A B, then down onto the low D with an anvil ring and a rumble: it lands |
+  | `discovery_resolve_biological` | breathy reeds gliding D A B G#, the G# turning up to A in a trill, chirps around it: alive |
+  | `discovery_resolve_antecedent` | the whole motif on bells, chime and reed over a Lydian swell, then its answer A C# rising to the high D (−20, 6.2 s) |
+  | `discovery_resolve_enemy` | the motif bent: D A Bb on ring-modulated Combine saws, the last note sagging G# → G with a growl |
+  | `ui_codex_open` / `_close` / `_entry` | two marimba notes up / down; the motif's last step B → G# on glass with a paper flick |
+  | `ui_intel_tick`, `ui_option_button` | a tiny glass tick on A6; a click with a glass G# above it (spending Intel) |
+  | `field_orbital_scan`, `field_supply_drop`, `field_antecedent_power` | a sonar sweep from orbit with data rain; a falling pod, a landing thump and a D–A chime; reversed bells swelling into a strike on D and G# |
+  | `advisor_discovery`, `advisor_field_option_ready` | Meridian dyads D+A → A+D (the ship heard it too); G#+D twice, lifting into A+D |
+
+  Resolve phrases are stereo, −21 LUFS, flat on the **Discovery** bus, and briefly duck the
+  other buses (`BusDucker`: Music −8 dB, Ambience −6, SFX −5, 80 ms attack, held for the
+  phrase minus its 0.6 s tail, 1 s release). An antecedent find also plays
+  `mus_swell_antecedent` (a low Lydian chord that blooms under the phrase's last note) on the
+  Discovery bus, so the duck does not swallow it.
+- **The Custodians (Antecedent machines) are a third sound world**, neither Concord instrument
+  nor Combine machine: everything comes from the *Antecedent bell* (`instruments.bell`), a tuned
+  bell spectrum whose partials include a faint raised fourth, so D and G#, the frame of the
+  Trail motif, are literally in the metal. Warden: `loop_hum_warden` (dormant drone on D,
+  −32), `move_warden` (the drone with air, stone grind and brass ticks), `unit_warden_wake`
+  (stone grinding up into a great strike on D and G# and a lift), `weapon_warden_fire` (a
+  bell-bolt dropping onto G#/D/A, a clang and a short beam), `death_warden` (the bell cracks,
+  its partials split and fall, stone crumbles).
+- **Machines heard as identities.** `loop_hum_survey_lab` (Concord hum on D, the dish pinging
+  D then A once per loop, −33; select: a servo and three pings climbing D-A-B); Combine
+  `loop_hum_hub` (47 Hz transformer, mains buzz, pressure cycle), `loop_hum_forge` (furnace,
+  drop hammer, quench), `loop_hum_spire` (beating whine cluster, arcing, guy-wire drone),
+  all −30 and off the Concord key; `move_scrapper` (rough two-stroke, grinding treads, loose
+  scrap) and `move_rigger` (four hydraulic legs, detuned servo whines, a weld spit).
 - **Restraint.** Interface sounds are short (≤ 0.3 s) and dry; replies carry a small room;
   only music and ambience are wide and wet.
 
@@ -110,6 +145,11 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `ambience` | Ogg stereo, loop | −30 | ≥ 30 s, seamless |
 | `music` layers | Ogg stereo, loop | pad −25, pulse −29, melody −27 | one tempo, same length |
 | `music` stinger | Ogg stereo | −22 | |
+| `music` trail layer | Ogg stereo, loop | −29 | Kessel explore grid, Antecedent bell |
+| `signal` | WAV mono, loop / one-shot | pulse −30, scan −27, cut −26 | positional, Discovery bus |
+| `discovery` | WAV stereo | −21 (antecedent −20) | flat, Discovery bus, ducks other buses |
+| `field` | WAV stereo | −22 (antecedent −21) | flat, SFX bus |
+| `antecedent` | WAV mono | −21 | positional, Units bus (Warden wake) |
 
 Also checked on every build: DC offset ≤ 0.002, energy below 25 Hz ≤ 3 %, duration within the
 recipe's bounds, and for loops the seam (no step, kink or level jump bigger than the loop's own
@@ -150,11 +190,37 @@ The combat music (`MusicMood`) runs on *heat* from player-involved fire, damage 
 stepping down needs 6 s below 1 (tension) or 4 (combat); combat always passes through 20 s of
 aftermath. `mission_ended` forces victory/defeat and plays the sting.
 
+Exploration (`SignalPulses`, `DiscoverySoundRouter`, pure rules in `DiscoveryCues`). Sites
+are Node3D in group `discovery_sites`, read duck-typed: a site pulses while
+`is_signal_known_to_player` (fallback `is_visible_to_player`, else silent) and neither
+`is_resolved` nor `is_being_scanned`; at most three pulses (and the event's `max_instances`),
+nearest first, within 80 m; they fade over 1.2 s and drop up to 6 dB as the camera zooms out.
+`scan_started` starts one `scan_loop` per site (heard when the scanner is the player's or the
+site is visible), `scan_interrupted` from the last scanner stops it and plays
+`scan_interrupted`, `discovery_made` stops it silently. For the player's discoveries
+`discovery_resolve_<discovery_type>` plays (fallback geological) with the duck; any faction's
+discovery sets the Kessel **trail** layer from the share of resolved sites (silent before the
+first, −9 dB after it, 0 dB when all are found), via `MusicDirector.set_layer_gain`; states
+keep it at 0 (explore), −3 (calm), −8 (tension), −4 (aftermath), −6 (victory), silent in
+combat and defeat. `intel_changed` for the player plays `ui_intel_tick` when Intel rises (the
+first report is the baseline); `field_option_used` plays `field_<id>` (ids containing
+`antecedent`/`scan`/`supply`/`drop` fall back to the three effects); `codex_entry_added` plays
+`ui_codex_entry`. Codex open/close and the option button are `Events.ui_feedback(&"codex_open")`,
+`&"codex_close"`, `&"option_button"`. Advisor kinds `discovery` (priority 70, throttle 4 s) and
+`field_option_ready` (45, 20 s) are raised by gameplay as ordinary `advisor_alert`s.
+
 Base loops (`BaseLoops`) sit on the player's entities, at most six, nearest first, hums ranked
 last: `loop_construct` (`is_under_construction`, else building_placed → construction_completed),
 `loop_produce` (`is_producing`, else production_started/completed), `loop_mine`
 (`is_harvesting` on a unit), `loop_hum` (any other building unless `is_powered` is false).
-All four properties are optional bools; low power dims hum and production by 6 dB.
+All four properties are optional bools; low power dims the player's hums and production by 6 dB.
+Hums have identities: a sound set with an event `loop_hum_<set>` uses it (survey lab, hub,
+forge, spire, warden). Other factions' buildings hum only while `is_visible_to_player` is true.
+A unit with `loop_hum_<set>` hums while idle (`is_dormant`, else `speed` below 0.3), and when
+its `is_dormant` turns false where the player can see it, `unit_<set>_wake` plays once.
+Movement loops skip units whose `is_visible_to_player` is false. Deaths try `death_<set>` first
+(the Warden); weapon sets without an alias fall back to their first word
+(`warden_bell_bolt` → `weapon_warden_fire`).
 
 ## Adding a sound
 

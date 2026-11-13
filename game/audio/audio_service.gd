@@ -8,8 +8,11 @@
 ## cooldowns). An AudioListener3D sits above the camera's ground focus point;
 ## zoom moves it up and reshapes bus levels (AudioMix). Child nodes: the
 ## AudioEventRouter (Events -> sounds, Advisor alert queue), MovementLoops,
-## BaseLoops (construction, production, mining, building hum) and the
-## MusicDirector.
+## BaseLoops (construction, production, mining, building hum), the
+## MusicDirector, the SignalPulses (discovery-site pulses and scan loops) and
+## the DiscoverySoundRouter (resolve phrases, Intel, field options, codex).
+## While a discovery resolves, a BusDucker briefly lowers music, ambience and
+## effects.
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -18,6 +21,8 @@ const FLAT_VOICES: int = 16
 const POSITIONAL_VOICES: int = 32
 ## Zoom changes smaller than this do not touch the bus volumes.
 const ZOOM_EPSILON: float = 0.01
+## The music layer that surfaces as discovery sites are resolved.
+const TRAIL_LAYER: StringName = &"trail"
 
 var _events: Dictionary[StringName, SoundEvent] = {}
 var _last_variation: Dictionary[StringName, int] = {}
@@ -36,6 +41,10 @@ var _combat: CombatSoundRouter
 var _loops: MovementLoops
 var _base_loops: BaseLoops
 var _music: MusicDirector
+var _pulses: SignalPulses
+var _discovery: DiscoverySoundRouter
+var _ducker: BusDucker = BusDucker.new()
+var _ducking: bool = false
 
 
 func _ready() -> void:
@@ -70,10 +79,24 @@ func _ready() -> void:
 	_base_loops = BaseLoops.new()
 	_base_loops.name = &"BaseLoops"
 	_base_loops.resolve_event = get_event
+	_base_loops.play_at = play_at
 	add_child(_base_loops)
 	_music = MusicDirector.new()
 	_music.name = &"MusicDirector"
 	add_child(_music)
+	_pulses = SignalPulses.new()
+	_pulses.name = &"SignalPulses"
+	_pulses.resolve_event = get_event
+	_pulses.play_at = play_at
+	add_child(_pulses)
+	_discovery = DiscoverySoundRouter.new()
+	_discovery.name = &"DiscoveryRouter"
+	_discovery.play_first = play_first
+	_discovery.event_seconds = _router.event_seconds
+	_discovery.duck = duck_for
+	_discovery.set_trail_gain = func(gain_db: float) -> void:
+		_music.set_layer_gain(TRAIL_LAYER, gain_db)
+	add_child(_discovery)
 	Settings.changed.connect(_apply_volumes)
 	_apply_volumes()
 	if ResourceLoader.exists(DEFAULT_SCORE):
@@ -108,6 +131,8 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 	_base_loops.focus = focus
 	_router.focus = focus
 	_combat.focus = focus
+	_pulses.focus = focus
+	_pulses.zoom = _zoom
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 
@@ -153,12 +178,31 @@ func play_first(candidates: Array[StringName], position: Vector3 = Vector3.INF) 
 	return &""
 
 
+## Briefly lowers music, ambience and effects for `hold` seconds (plus a
+## release), so a discovery phrase stands out.
+func duck_for(hold: float) -> void:
+	_ducker.duck(_now(), hold)
+	_ducking = true
+	_apply_volumes()
+
+
+## Current duck offset of a bus in dB (0 when not ducked), for tests.
+func duck_offset_db(bus: StringName) -> float:
+	return _ducker.offset_db(bus, _now())
+
+
 ## Voices in use (flat + positional), for the debug overlay and tests.
 func active_voices() -> int:
 	return _flat_budget.active_count() + _positional_budget.active_count()
 
 
 # --- Internals ----------------------------------------------------------------
+
+
+func _process(_delta: float) -> void:
+	if _ducking:
+		_ducking = _ducker.is_active(_now())
+		_apply_volumes()
 
 
 func _start(event_id: StringName, position: Vector3, volume_offset_db: float = 0.0) -> bool:
@@ -249,6 +293,7 @@ func _build_pools() -> void:
 
 func _apply_volumes() -> void:
 	_applied_zoom = _zoom
+	var now: float = _now()
 	for i: int in AudioServer.bus_count:
 		var bus: StringName = AudioServer.get_bus_name(i)
 		var setting: float = 1.0
@@ -256,7 +301,10 @@ func _apply_volumes() -> void:
 			var value: Variant = Settings.get(AudioMix.SETTING_FOR_BUS[bus])
 			if value is float:
 				setting = value
-		AudioServer.set_bus_volume_db(i, AudioMix.bus_volume_db(bus, setting, _zoom))
+		var volume: float = AudioMix.bus_volume_db(bus, setting, _zoom)
+		if volume > AudioMix.SILENT_DB:
+			volume += _ducker.offset_db(bus, now)
+		AudioServer.set_bus_volume_db(i, volume)
 
 
 ## Mission over: the music settles into its victory or defeat state (quieter

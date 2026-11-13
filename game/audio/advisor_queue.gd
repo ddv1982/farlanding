@@ -29,6 +29,8 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"unit_ready": 4.0,
 	&"building_placed": 3.0,
 	&"under_attack": 20.0,
+	&"discovery": 4.0,
+	&"field_option_ready": 20.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -40,6 +42,8 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"deposit_depleted": 50,
 	&"insufficient_resources": 40,
 	&"building_placed": 20,
+	&"discovery": 70,
+	&"field_option_ready": 45,
 }
 ## Kind -> the queued kind it makes stale.
 const SUPERSEDES: Dictionary[StringName, StringName] = {

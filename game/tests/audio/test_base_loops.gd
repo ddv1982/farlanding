@@ -113,3 +113,77 @@ func test_out_of_range_is_silent_and_low_power_is_tracked() -> void:
 	assert_true(_loops.is_low_power(), "other factions do not count")
 	Events.power_changed.emit(0, 30, 20)
 	assert_false(_loops.is_low_power())
+
+
+class FakeSeen:
+	extends Bare
+	var is_visible_to_player: bool = true
+
+
+class FakeWarden:
+	extends Bare
+	var is_dormant: bool = true
+	var is_visible_to_player: bool = true
+
+
+func _hum_event(id: StringName) -> void:
+	var event: SoundEvent = SoundEvent.new()
+	event.id = id
+	event.streams = [load("res://assets/audio/base/loops/%s.wav" % id) as AudioStream]
+	event.max_instances = 2
+	event.max_distance = 60.0
+	_events[id] = event
+
+
+func _with_set(
+	node: Bare, group: StringName, at: Vector3, sound_set: StringName, faction: int
+) -> Bare:
+	_add(node, group, at, faction)
+	node.def.sound_set = sound_set
+	return node
+
+
+func test_hums_have_identities_and_visible_enemy_buildings_hum() -> void:
+	for id: StringName in [&"loop_hum_hub", &"loop_hum_survey_lab"]:
+		_hum_event(id)
+	var lab: Bare = _with_set(Bare.new(), &"buildings", Vector3(1, 0, 0), &"survey_lab", 0)
+	var hub: Bare = _with_set(FakeSeen.new(), &"buildings", Vector3(2, 0, 0), &"hub", 1)
+	var fogged: FakeSeen = (
+		_with_set(FakeSeen.new(), &"buildings", Vector3(3, 0, 0), &"hub", 1) as FakeSeen
+	)
+	fogged.is_visible_to_player = false
+	_with_set(Bare.new(), &"buildings", Vector3(4, 0, 0), &"hub", 1)  # says nothing: silent
+	_loops.rescan()
+	assert_eq(
+		_loops.chosen(), [[lab, &"loop_hum_survey_lab"], [hub, &"loop_hum_hub"]] as Array[Array]
+	)
+	assert_true(BaseLoops.is_hum(&"loop_hum_hub"))
+	assert_false(BaseLoops.is_hum(BaseLoops.PRODUCE))
+
+
+func test_a_dormant_warden_hums_and_waking_plays_once() -> void:
+	_hum_event(&"loop_hum_warden")
+	var woke: Array[Array] = []
+	_loops.play_at = func(id: StringName, at: Vector3) -> bool:
+		woke.append([id, at])
+		return true
+	var warden: FakeWarden = (
+		_with_set(FakeWarden.new(), &"units", Vector3(5, 0, 0), &"warden", 2) as FakeWarden
+	)
+	_loops.rescan()
+	assert_eq(_loops.chosen(), [[warden, &"loop_hum_warden"]] as Array[Array])
+	assert_eq(woke.size(), 0)
+	warden.is_dormant = false
+	_loops.rescan()
+	assert_eq(_loops.chosen().size(), 0, "awake: the movement loop takes over")
+	assert_eq(woke, [[&"unit_warden_wake", Vector3(5, 0, 0)]] as Array[Array])
+	_loops.rescan()
+	assert_eq(woke.size(), 1, "once")
+	var unseen: FakeWarden = (
+		_with_set(FakeWarden.new(), &"units", Vector3(6, 0, 0), &"warden", 2) as FakeWarden
+	)
+	unseen.is_visible_to_player = false
+	_loops.rescan()
+	unseen.is_dormant = false
+	_loops.rescan()
+	assert_eq(woke.size(), 1, "no wake heard through the fog")

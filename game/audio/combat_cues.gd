@@ -45,6 +45,13 @@ static func fire_events(weapon: Resource) -> Array[StringName]:
 	events.append(StringName("weapon_%s_fire" % sound_set))
 	if FIRE_ALIASES.has(sound_set):
 		events.append(StringName("weapon_%s_fire" % FIRE_ALIASES[sound_set]))
+	# An unaliased data name such as &"warden_bell_bolt" falls back to its
+	# owner's family (`weapon_warden_fire`).
+	var owner: String = String(sound_set).get_slice("_", 0)
+	if not FIRE_ALIASES.has(sound_set) and owner != String(sound_set):
+		var family: StringName = StringName("weapon_%s_fire" % owner)
+		if not events.has(family):
+			events.append(family)
 	return events
 
 
@@ -70,13 +77,24 @@ static func explosion_event(radius: float) -> StringName:
 	return &"explosion_small"
 
 
-## Death sound for an entity: building collapse, or the unit's weight class.
+## Death sound for an entity: its own `death_<sound_set>` if one exists (the
+## Warden), else building collapse or the unit's weight class.
 static func death_events(entity: Node) -> Array[StringName]:
+	var own: Array[StringName] = []
+	var def: Object = null
+	if entity != null and is_instance_valid(entity):
+		var value: Variant = entity.get(&"def")
+		if value is Resource:
+			def = value
+	if def != null:
+		var sound_set: StringName = string_name_of(def, &"sound_set")
+		if sound_set != &"":
+			own.append(StringName("death_%s" % sound_set))
 	if is_building(entity):
-		return [&"death_building", &"explosion_large"]
+		return own + ([&"death_building", &"explosion_large"] as Array[StringName])
 	if is_heavy(entity):
-		return [&"death_heavy", &"explosion_medium"]
-	return [&"death_light", &"explosion_small"]
+		return own + ([&"death_heavy", &"explosion_medium"] as Array[StringName])
+	return own + ([&"death_light", &"explosion_small"] as Array[StringName])
 
 
 static func is_building(entity: Node) -> bool:

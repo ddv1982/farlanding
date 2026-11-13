@@ -174,18 +174,31 @@ func test_ground_impacts_ask_the_fog() -> void:
 
 
 func test_deaths_by_weight_class() -> void:
-	assert_eq(CombatCues.death_events(_entity(&"ranger"))[0], &"death_light")
+	# [0] is always the entity's own death_<set>, played only if it exists.
+	assert_eq(CombatCues.death_events(_entity(&"ranger"))[0], &"death_ranger")
+	assert_eq(CombatCues.death_events(_entity(&"ranger"))[1], &"death_light")
 	var mauler: FakeEntity = _entity(&"mauler", 1, Vector3.ZERO, &"heavy")
-	assert_eq(CombatCues.death_events(mauler)[0], &"death_heavy")
+	assert_eq(CombatCues.death_events(mauler)[1], &"death_heavy")
 	var untyped: FakeEntity = _entity(&"x", 1)
 	untyped.def = EntityDef.new()
 	untyped.def.sound_set = &"mauler"
 	assert_eq(
-		CombatCues.death_events(untyped)[0], &"death_heavy", "no armour class: chassis decides"
+		CombatCues.death_events(untyped)[1], &"death_heavy", "no armour class: chassis decides"
 	)
 	var building: FakeEntity = _entity(&"sentry")
 	building.add_to_group(&"buildings")
-	assert_eq(CombatCues.death_events(building)[0], &"death_building")
+	assert_eq(CombatCues.death_events(building)[1], &"death_building")
+
+
+func test_the_warden_has_its_own_death_and_weapon() -> void:
+	var warden: FakeEntity = _entity(&"warden", 2)
+	assert_eq(CombatCues.death_events(warden)[0], &"death_warden")
+	assert_true(ResourceLoader.exists("res://data/sounds/explosion/death_warden.tres"))
+	var weapon: FakeWeapon = FakeWeapon.new()
+	weapon.sound_set = &"warden_bell_bolt"
+	var events: Array[StringName] = CombatCues.fire_events(weapon)
+	assert_eq(events[-1], &"weapon_warden_fire", "unaliased data name -> owner family")
+	assert_true(ResourceLoader.exists("res://data/sounds/weapon/weapon_warden_fire.tres"))
 
 
 func test_hidden_deaths_are_silent_but_still_count() -> void:

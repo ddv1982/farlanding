@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SoundEvent" format=3]
+
+[ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
+[ext_resource type="AudioStream" path="res://assets/audio/movement/move_scrapper.wav" id="2_stream"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"move_scrapper"
+streams = Array[AudioStream]([ExtResource("2_stream")])
+bus = &"Units"
+priority = 30
+max_instances = 3
+cooldown = 0.0
+positional = true
+max_distance = 45.0

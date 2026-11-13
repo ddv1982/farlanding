@@ -21,6 +21,15 @@ extends Node
 ## production_completed count a producer's work. Without `is_harvesting` there
 ## is simply no mining loop. `power_changed` for the player dims and lowers the
 ## hum and production loops while power is short.
+##
+## Hums have identities: a building or unit whose sound set has an event
+## `loop_hum_<set>` hums with it (Survey Lab, Combine hub/forge/spire, the
+## Warden), others with the generic `loop_hum`. Buildings of other factions
+## hum only while `is_visible_to_player` is true (absent: silent). A unit with
+## a `loop_hum_<set>` hums while idle: `is_dormant` true, or, without that
+## property, a `speed` below MovementLoops.MIN_SPEED (absent: idle). When a
+## unit's `is_dormant` turns from true to false where the player can see it,
+## `unit_<set>_wake` plays there once.
 
 const BUILDINGS_GROUP: StringName = &"buildings"
 const UNITS_GROUP: StringName = &"units"
@@ -35,6 +44,7 @@ const FADE_SECONDS: float = 0.5
 const RANK_PENALTY: Dictionary[StringName, float] = {
 	CONSTRUCT: 0.0, MINE: 0.0, PRODUCE: 4.0, HUM: 20.0
 }
+const HUM_PREFIX: String = "loop_hum"
 const LOW_POWER_DB: float = -6.0
 const LOW_POWER_PITCH: float = 0.94
 ## Event-derived production state is forgotten after this long without news
@@ -45,6 +55,8 @@ const PRODUCTION_STALE_SECONDS: float = 90.0
 var focus: Vector3 = Vector3.ZERO
 ## Looks up a SoundEvent by id; set by the AudioService.
 var resolve_event: Callable = func(_id: StringName) -> SoundEvent: return null
+## Plays a positional one-shot (the wake): `func(id: StringName, at: Vector3) -> bool`.
+var play_at: Callable = func(_id: StringName, _at: Vector3) -> bool: return false
 var player_faction: int = 0
 
 var _players: Array[AudioStreamPlayer3D] = []
@@ -59,6 +71,7 @@ var _sites: Dictionary[int, bool] = {}
 var _work: Dictionary[int, int] = {}  # producer instance id -> units in progress
 var _work_time: Dictionary[int, float] = {}
 var _low_power: bool = false
+var _dormant: Dictionary[int, bool] = {}  # unit instance id -> was dormant at last scan
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
@@ -103,6 +116,32 @@ static func loop_for(node: Node, is_building: bool, site: bool, producing: bool)
 	return HUM if flag(node, &"is_powered", true) else &""
 
 
+## The hum an entity carries: `loop_hum_<set>` if that event exists, else the
+## generic hum for buildings and none for units. `has_event` answers whether
+## an event id exists.
+static func hum_for(node: Node, is_building: bool, has_event: Callable) -> StringName:
+	var sound_set: StringName = MovementLoops.sound_set_of(node)
+	if sound_set != &"":
+		var own: StringName = StringName("%s_%s" % [HUM_PREFIX, sound_set])
+		if has_event.call(own):
+			return own
+	return HUM if is_building else &""
+
+
+## True for any hum, generic or with an identity.
+static func is_hum(loop_id: StringName) -> bool:
+	return String(loop_id).begins_with(HUM_PREFIX)
+
+
+## A unit at rest: `is_dormant` if it has one, else a low or absent `speed`.
+static func is_idle(unit: Node) -> bool:
+	var dormant: Variant = unit.get(&"is_dormant")
+	if dormant is bool:
+		var result: bool = dormant
+		return result
+	return MovementLoops.speed_property(unit) < MovementLoops.MIN_SPEED
+
+
 ## A bool property of `node`, or `fallback` if it has none (or not a bool).
 static func flag(node: Node, property: StringName, fallback: bool) -> bool:
 	var value: Variant = node.get(property)
@@ -137,13 +176,23 @@ func rescan() -> void:
 			var entity: Node3D = node as Node3D
 			if entity == null or not entity.is_inside_tree():
 				continue
-			if AudioEventRouter.faction_of(entity) != player_faction:
+			var is_building: bool = group == BUILDINGS_GROUP
+			var own: bool = AudioEventRouter.faction_of(entity) == player_faction
+			if not is_building:
+				_watch_wake(entity, own)
+			if not own and not flag(entity, &"is_visible_to_player", false):
 				continue
 			var key: int = entity.get_instance_id()
-			var in_progress: int = _work.get(key, 0)
-			var loop_id: StringName = loop_for(
-				entity, group == BUILDINGS_GROUP, _sites.has(key), in_progress > 0
-			)
+			var loop_id: StringName = &""
+			if own:
+				var in_progress: int = _work.get(key, 0)
+				loop_id = loop_for(entity, is_building, _sites.has(key), in_progress > 0)
+			elif is_building:
+				loop_id = HUM
+			if loop_id == &"" and not is_building and is_idle(entity):
+				loop_id = HUM
+			if loop_id == HUM:
+				loop_id = hum_for(entity, is_building, _has_event)
 			if loop_id == &"":
 				continue
 			var event: SoundEvent = resolve_event.call(loop_id)
@@ -158,7 +207,9 @@ func rescan() -> void:
 			nodes.append(entity)
 			positions.append(entity.global_position)
 			ids.append(loop_id)
-			var penalty: float = RANK_PENALTY.get(loop_id, 0.0)
+			var penalty: float = (
+				RANK_PENALTY[HUM] if is_hum(loop_id) else RANK_PENALTY.get(loop_id, 0.0)
+			)
 			penalties.append(penalty)
 			caps[loop_id] = event.max_instances
 	var picked: PackedInt32Array = MovementLoopPicker.pick(
@@ -237,13 +288,38 @@ func _update_player(i: int, delta: float) -> void:
 	var event: SoundEvent = resolve_event.call(_loop_ids[i])
 	if event != null:
 		base_db = event.volume_db
-	var dims: bool = _low_power and (_loop_ids[i] == HUM or _loop_ids[i] == PRODUCE)
+	var dims: bool = (
+		_low_power
+		and (is_hum(_loop_ids[i]) or _loop_ids[i] == PRODUCE)
+		and alive
+		and AudioEventRouter.faction_of(owner) == player_faction
+	)
 	if alive:
 		player.global_position = owner.global_position
 	player.volume_db = (
 		base_db + (LOW_POWER_DB if dims else 0.0) + AudioMix.linear_to_db_safe(_levels[i])
 	)
 	player.pitch_scale = LOW_POWER_PITCH if dims else 1.0
+
+
+func _has_event(event_id: StringName) -> bool:
+	var event: SoundEvent = resolve_event.call(event_id)
+	return event != null and not event.streams.is_empty()
+
+
+## Plays `unit_<set>_wake` when a dormant unit wakes where the player can see it.
+func _watch_wake(unit: Node3D, own: bool) -> void:
+	var value: Variant = unit.get(&"is_dormant")
+	if not value is bool:
+		return
+	var dormant: bool = value
+	var key: int = unit.get_instance_id()
+	var was: bool = _dormant.get(key, false)
+	_dormant[key] = dormant
+	if was and not dormant and (own or not CombatCues.is_hidden(unit)):
+		var sound_set: StringName = MovementLoops.sound_set_of(unit)
+		if sound_set != &"":
+			play_at.call(AudioCueSelector.unit_event(sound_set, &"wake"), unit.global_position)
 
 
 func _forget_stale_work(now: float) -> void:
@@ -288,6 +364,7 @@ func _on_entity_died(entity: Node3D) -> void:
 	if is_instance_valid(entity):
 		var key: int = entity.get_instance_id()
 		_sites.erase(key)
+		_dormant.erase(key)
 		_work.erase(key)
 		_work_time.erase(key)
 

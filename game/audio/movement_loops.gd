@@ -9,6 +9,7 @@ extends Node
 ## A unit moving faster than MIN_SPEED with a SoundEvent named
 ## `move_<sound_set>` is a candidate. Loops follow their unit, fade in and out,
 ## and rise in level and pitch with speed (relative to `UnitDef.move_speed`).
+## A unit whose `is_visible_to_player` is false (fog of war) is not heard.
 
 const UNITS_GROUP: StringName = &"units"
 const MAX_LOOPS: int = 6
@@ -75,6 +76,8 @@ func _rescan() -> void:
 	for node: Node in get_tree().get_nodes_in_group(UNITS_GROUP):
 		var unit: Node3D = node as Node3D
 		if unit == null or not unit.is_inside_tree() or current_speed(unit) < MIN_SPEED:
+			continue
+		if CombatCues.is_hidden(unit):
 			continue
 		var event_id: StringName = StringName("move_%s" % sound_set_of(unit))
 		var event: SoundEvent = resolve_event.call(event_id)
