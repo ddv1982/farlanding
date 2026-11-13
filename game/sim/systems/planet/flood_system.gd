@@ -49,6 +49,8 @@ var _next_alert_tick: int = 0
 ## False until the first tick: a new world (also one restored from a save) checks
 ## its routes against the sea once, whatever stage it starts in.
 var _started: bool = false
+## Units (by entity id) sent toward dry ground and not out of the water yet.
+var _escaping: Dictionary[int, bool] = {}
 
 
 func _init(p_world: SimWorld) -> void:
@@ -158,6 +160,7 @@ func _check_units(tick_number: int, step_seconds: float) -> void:
 			&"wading", conditions.wading_speed_factor if wading else 1.0
 		)
 		if not wading:
+			_escaping.erase(unit.entity_id)
 			continue
 		wading_count += 1
 		player_wading = player_wading or unit.faction == world.player_faction
@@ -173,9 +176,13 @@ func _check_units(tick_number: int, step_seconds: float) -> void:
 			# On its way: fine if the route leaves the water soon, else get out.
 			if _reaches_dry_soon(unit.locomotion.remaining_route()):
 				continue
+			# Already sent out of the water and still walking there: leave it be.
+			if _escaping.get(unit.entity_id, false):
+				continue
 		var dry: Vector3 = nearest_dry(at)
 		if dry == Vector3.INF:
 			continue
+		_escaping[unit.entity_id] = true
 		if idle:
 			unit.orders.give(Order.new(MoveCommand.KIND_MOVE, dry))
 		else:

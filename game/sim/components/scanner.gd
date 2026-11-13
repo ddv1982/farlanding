@@ -88,6 +88,8 @@ func _step_approach() -> bool:
 	if _in_reach():
 		_start_scanning()
 		return false
+	if unit.locomotion.is_waiting_for_tide():
+		return false  # the way is under water: hold until the sea falls
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
 		if _attempts > MAX_ATTEMPTS:

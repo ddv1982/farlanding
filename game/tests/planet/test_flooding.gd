@@ -156,6 +156,7 @@ func test_a_unit_with_an_order_caught_in_the_water_gets_out_and_keeps_the_order(
 	assert_false(unit.is_dead)
 	assert_gt(absf(unit.sim_position().x), BAND_HALF_WIDTH, "it left the water")
 	assert_false(unit.orders.is_idle(), "and still means to go there")
+	assert_lte(unit.orders.queue.size(), 1, "one way out, not a pile of them")
 	var health: float = unit.health.current
 	_seconds(5.0)
 	assert_almost_eq(unit.health.current, health, 0.01, "no more damage while it waits")

@@ -139,6 +139,8 @@ func _step_to_deposit(order: Order) -> bool:
 		state = STATE_MINING
 		_timer = unit.mine_time
 		return false
+	if unit.locomotion.is_waiting_for_tide():
+		return false  # the way is under water: hold until the sea falls
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
 		if _attempts > MAX_ATTEMPTS:
@@ -171,6 +173,8 @@ func _step_to_dock() -> bool:
 		state = STATE_UNLOADING
 		_timer = unit.def.unload_time
 		return false
+	if unit.locomotion.is_waiting_for_tide():
+		return false  # the way is under water: hold until the sea falls
 	if not unit.locomotion.is_travelling():
 		_attempts += 1
 		if _attempts > MAX_ATTEMPTS:
