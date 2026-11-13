@@ -17,6 +17,12 @@ extends GutTest
 ## - Thalassa fight (Phase 8a): heavy combat score with the urgency layer and
 ##   the tide layer at high water, the tide still rising (water bed and rush),
 ##   the worst-case battle, Advisor alarms and a tide warning, clicks.
+## - Emberfall calm (Phase 8b): the Emberfall score in calm and its ambience
+##   (the rumble, lava, hot wind, details): the planet's low end at rest.
+## - Emberfall Holdout fight (Phase 8b): heavy combat score with the urgency,
+##   pressure and holdout layers at full, the extraction engine approaching, a
+##   vent near the listener building up and then erupting (the blast ducks the
+##   mix), the worst-case battle, Advisor alarms and eruption warnings, clicks.
 ##
 ## Asserted: the Master output never clips (the limiter's ceiling holds), the mix
 ## itself has headroom before the limiter, and loudness stays in its window.
@@ -32,6 +38,7 @@ const SHIP_LUFS: Vector2 = Vector2(-36.0, -22.0)
 const SHIP_SCORE: String = "res://data/sounds/music/meridian.tres"
 const KESSEL_SCORE: String = "res://data/sounds/music/kessel_reach.tres"
 const THALASSA: StringName = &"thalassa_low"
+const EMBERFALL: StringName = &"emberfall"
 const SHIP_ALERTS: Array[StringName] = [
 	&"advisor_campaign_return_won",
 	&"advisor_campaign_intel_banked",
@@ -52,6 +59,8 @@ const ADVISOR_OVER_MUSIC_LU: float = 3.0
 var _mix: MixScene
 ## Bus -> what its capture recorded in the last scene.
 var _frames: Dictionary[StringName, PackedVector2Array] = {}
+## The erupting vent of the Emberfall fight.
+var _vent: Node3D
 
 
 func before_each() -> void:
@@ -72,12 +81,48 @@ func after_each() -> void:
 	Audio.music().set_layer_gain(&"urgency", AudioMix.SILENT_DB)
 	Audio.music().force_state(&"explore")
 	_tide().handle_mission_started()
+	_eruption().handle_mission_started()
+	_holdout().handle_mission_started()
+	Audio.music().set_layer_gain(&"pressure", AudioMix.SILENT_DB)
+	Audio.music().set_layer_gain(&"holdout", AudioMix.SILENT_DB)
 	if Audio.music().target_score().id != (load(KESSEL_SCORE) as MusicScore).id:
 		Audio.play_score(load(KESSEL_SCORE) as MusicScore)  # back to Kessel at once for the next test
 
 
 func _tide() -> TideSound:
 	return Audio.get_node(^"Tide") as TideSound
+
+
+func _eruption() -> EruptionSound:
+	return Audio.get_node(^"Eruption") as EruptionSound
+
+
+func _holdout() -> HoldoutSound:
+	return Audio.get_node(^"Holdout") as HoldoutSound
+
+
+## Lands on Emberfall (score and ambience).
+func _land_on_emberfall() -> void:
+	Audio.play_planet(EMBERFALL)
+	var arrived: Callable = func() -> bool:
+		return Audio.music().score != null and Audio.music().score.id == EMBERFALL
+	await wait_until(arrived, 5.0)
+
+
+## A survival objective with `seconds` left at tick 0 (the Holdout's timer).
+class SurviveTimer:
+	extends RefCounted
+	var id: StringName = &"hold"
+	var kind: StringName = &"primary"
+	var state: StringName = &"active"
+	var countdown_tick: int = -1
+	var countdown_fails: bool = false
+
+
+## One of the player's buildings, by the vent.
+class BaseBuilding:
+	extends Node3D
+	var faction: int = 0
 
 
 ## Lands on Thalassa (score and ambience) with the sea at `level`, rising at
@@ -97,7 +142,8 @@ func _land_on_thalassa(level: float, rate: float) -> void:
 
 func _record(scene: StringName) -> Array[float]:
 	var fight: bool = scene == &"thalassa_fight"
-	var worst: bool = scene == &"worst" or fight
+	var ember: bool = scene == &"emberfall_fight"
+	var worst: bool = scene == &"worst" or fight or ember
 	var ship: bool = scene == &"ship"
 	Audio.stop_all_voices()  # nothing left over from earlier tests
 	await wait_seconds(SETTLE_SECONDS)
@@ -124,6 +170,12 @@ func _record(scene: StringName) -> Array[float]:
 				Audio.play(&"advisor_tide_rising")
 			if i == 40:
 				Events.tide_turning.emit(20.0, false)
+		if ember:  # eruption warnings from the Advisor; the vent blows mid-way
+			if i % 30 == 15:
+				Audio.play(&"advisor_eruption_warning")
+			if i == 50:
+				Events.eruption.emit(_vent, 16.0)
+			_holdout().handle_sim_ticked(int(i * FRAME * SimClock.TICK_RATE))
 		_mix.note_bus_peaks()
 		most_voices = maxi(most_voices, Audio.active_voices())
 		await wait_seconds(FRAME)
@@ -257,3 +309,52 @@ func test_thalassa_fight_at_high_tide_never_clips() -> void:
 		speaking[1] + ADVISOR_OVER_MUSIC_LU,
 		"the Advisor is heard over the Thalassa battle score"
 	)
+
+
+func test_emberfall_calm_sits_quietly() -> void:
+	await _land_on_emberfall()
+	Audio.music().force_state(&"calm")
+	var result: Array[float] = await _record(&"emberfall_calm")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_between(result[2], EXPLORE_LUFS.x, EXPLORE_LUFS.y, "Emberfall calm loudness")
+
+
+func test_emberfall_holdout_fight_with_an_eruption_never_clips() -> void:
+	await _land_on_emberfall()
+	_vent = Node3D.new()
+	add_child_autofree(_vent)
+	_vent.global_position = Vector3(22.0, 0.0, 8.0)
+	var base: BaseBuilding = BaseBuilding.new()
+	base.add_to_group(EruptionSound.BUILDINGS_GROUP)
+	add_child_autofree(base)
+	base.global_position = Vector3(26.0, 0.0, 14.0)
+	_eruption().rescan_base()
+	Events.eruption_warning.emit(_vent, 4.0, 16.0)
+	var timer: SurviveTimer = SurviveTimer.new()
+	timer.countdown_tick = 6 * SimClock.TICK_RATE  # the last seconds of the Holdout
+	_holdout().handle_objective(timer)
+	_holdout().handle_sim_ticked(0)
+	Audio.music().set_layer_gain(&"urgency", 0.0)
+	Audio.music().force_state(&"combat_heavy")
+	var result: Array[float] = await _record(&"emberfall_fight")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_gt(Audio.music().layer_gain_db(&"holdout"), AudioMix.SILENT_DB, "the holdout layer")
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_lt(result[0], PRE_LIMITER_MAX_DBFS, "the mix has headroom before the limiter")
+	assert_between(result[2], WORST_LUFS.x, WORST_LUFS.y, "Emberfall fight loudness")
+	assert_lte(int(result[4]), 48, "the voice budget holds")
+	var speaking: Array[float] = MixScene.loudness_while(
+		_frames[&"Advisor"], _frames[&"Music"], AudioServer.get_mix_rate()
+	)
+	gut.p("  while the Advisor speaks on Emberfall: Advisor %.1f LUFS, Music %.1f LUFS" % speaking)
+	assert_gt(
+		speaking[0],
+		speaking[1] + ADVISOR_OVER_MUSIC_LU,
+		"the Advisor is heard over the Emberfall battle score and its low end"
+	)
+	var low: Array[float] = MixScene.low_band_while(
+		_frames[&"Advisor"], _frames[&"Music"], AudioServer.get_mix_rate()
+	)
+	gut.p("  while the Advisor speaks: Music below 150 Hz %.1f dB RMS, Advisor %.1f dB RMS" % low)
+	assert_lt(low[0], low[1], "the score's low end stays under the Advisor too")
