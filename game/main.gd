@@ -205,8 +205,9 @@ func continue_campaign() -> void:
 			landing_newer = not _campaign_has_resolved(game)
 		if landing_newer:
 			var slot: StringName = newest[0]
-			load_game(slot)
-			return
+			if load_game(slot):
+				return
+			# That landing cannot be loaded: fall back to the campaign itself.
 	if campaign_def == null:
 		return
 	var loaded: CampaignSession = CampaignSession.new(campaign_def)

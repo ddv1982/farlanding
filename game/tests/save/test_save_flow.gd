@@ -239,6 +239,23 @@ func test_continue_picks_the_newest_of_campaign_and_landing() -> void:
 	assert_true(_main._star_map.visible)
 
 
+func test_continue_falls_back_to_the_campaign_when_the_landing_cannot_load() -> void:
+	_main.new_campaign()
+	_main.launch(&"kessel_proving")
+	_main._briefing._on_start()
+	await wait_frames(3)
+	_main.show_title()
+	# The newest save names a campaign this build cannot read.
+	var data: Dictionary = SaveSlots.read_data(SaveSlots.AUTOSAVE)
+	data["campaign"] = {"version": 9999}
+	_write_raw(SaveSlots.AUTOSAVE, var_to_str(data))
+	_main._title.continue_pressed.emit()
+	await wait_frames(2)
+	assert_null(_main.map, "no landing")
+	assert_not_null(_main.campaign, "the campaign itself still continues")
+	assert_true(_main._star_map.visible)
+
+
 func test_single_missions_continue_too() -> void:
 	await _start(&"conquest")
 	assert_true(_main.save_game(SaveSlots.MANUAL[0]))

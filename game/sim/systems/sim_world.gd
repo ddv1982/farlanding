@@ -55,6 +55,7 @@ var _next_id: int = 1
 var _entities: Dictionary[int, Node3D] = {}
 var _blocks: Dictionary[int, int] = {}  # entity id -> PathService block handle
 var _speed_version: int = 0
+var _restoring_props: bool = false
 
 
 ## Wires the world into a mission. Call before spawning.
@@ -211,7 +212,9 @@ func spawn_prop(def: PropDef, at: Vector3, quarter_turns: int = 0) -> Prop:
 	prop.tree_exiting.connect(_on_prop_exiting.bind(prop))
 	if def.blocks_movement:
 		_blocks[prop.entity_id] = paths.block_area(prop.footprint())
-		evacuate(prop.footprint())
+		# A prop coming back from a save was already there: nobody has to make room.
+		if not _restoring_props:
+			evacuate(prop.footprint())
 	if prop.health != null:
 		prop.health.died.connect(_on_prop_destroyed.bind(prop))
 	_refresh_sight_blockers()
@@ -752,7 +755,9 @@ func _props_from_dict(data: Dictionary) -> void:
 		if def == null:
 			continue
 		var turns: int = prop_data.get("turns", 0)
+		_restoring_props = true
 		var prop: Prop = spawn_prop(def, _saved_position(prop_data), turns)
+		_restoring_props = false
 		if prop != null:
 			_restore_id(prop, prop.entity_id, prop_data)
 			prop.entity_id = prop_data.get("entity_id", prop.entity_id)
