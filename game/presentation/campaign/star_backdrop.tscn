@@ -51,7 +51,7 @@ shadow_enabled = true
 directional_shadow_max_distance = 200.0
 
 [node name="Meridian" parent="." instance=ExtResource("2")]
-transform = Transform3D(0.77, -0.1, 0.63, 0.14, 0.99, -0.02, -0.62, 0.1, 0.77, 34, 58, -40)
+transform = Transform3D(0.77, -0.1, 0.63, 0.14, 0.99, -0.02, -0.62, 0.1, 0.77, -6, 66, -40)
 
 [node name="Planet" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.94, 0.34, 0, -0.34, 0.94, -170, -250, -200)

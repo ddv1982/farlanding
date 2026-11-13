@@ -8,8 +8,8 @@ extends HBoxContainer
 ## A tech was bought.
 signal tech_bought(tech_id: StringName)
 
-const CELL: Vector2 = Vector2(236, 88)
-const CARD: Vector2 = Vector2(212, 80)
+const CELL: Vector2 = Vector2(236, 64)
+const CARD: Vector2 = Vector2(212, 58)
 const ICON_PATH: String = "res://assets/icons/tech_%s.png"
 const STATE_NAMES: Dictionary[StringName, String] = {
 	&"locked": "LOCKED",
