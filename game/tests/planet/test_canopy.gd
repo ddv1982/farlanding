@@ -244,3 +244,18 @@ func test_reveals_and_cover_save_and_load() -> void:
 	assert_eq(_covers.size(), 0, "no cover news for units already under the crown")
 	_f.tick(30)
 	assert_false(restored.is_revealed(shooter), "until it runs out")
+
+
+func test_the_player_hears_when_a_hidden_unit_is_found_by_something_in_view() -> void:
+	var alerts: Array[StringName] = []
+	var listen: Callable = func(kind: StringName) -> void: alerts.append(kind)
+	Events.advisor_alert.connect(listen)
+	_start()
+	_scout(0, Vector3(0, 0, 0))
+	_scout(1, Vector3(0, 0, 30))
+	_f.tick(4)
+	assert_false(alerts.has(&"canopy_contact"), "nothing is close")
+	_scout(1, Vector3(0, 0, 7))
+	_f.tick(4)
+	Events.advisor_alert.disconnect(listen)
+	assert_eq(alerts.count(&"canopy_contact"), 1, "found once, said once")

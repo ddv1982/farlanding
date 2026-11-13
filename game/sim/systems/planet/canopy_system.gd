@@ -227,6 +227,7 @@ func _update_cover() -> void:
 func _update_observers() -> void:
 	var before: Dictionary[Node3D, Dictionary] = _seen_by
 	_seen_by = {}
+	var newly_found: Array[Node3D] = []
 	if world.combat == null:
 		return
 	for key: Variant in _covered:
@@ -235,6 +236,7 @@ func _update_observers() -> void:
 		var body: float = AttackCommand.body_radius(entity)
 		var own: int = Combat.faction_of(entity)
 		var seen: Dictionary = {}
+		var finders: Array[Node3D] = []
 		for observer: Node3D in world.combat.entities_near(at, _reach + body):
 			var faction: int = Combat.faction_of(observer)
 			if faction < 0 or faction == own or seen.has(faction) or not _observes(observer):
@@ -244,11 +246,23 @@ func _update_observers() -> void:
 			distance -= body + AttackCommand.body_radius(observer)
 			if distance <= _close_sight(observer):
 				seen[faction] = true
+				finders.append(observer)
 		if not seen.is_empty():
 			_seen_by[entity] = seen
-			# The player hears it when one of their hidden units is found.
 			if own == world.player_faction and not before.has(entity):
-				Events.advisor_alert.emit(&"canopy_contact")
+				newly_found.append_array(finders)
+	# The player hears it when one of their hidden units is found, but only by
+	# something they can see: an unseen finder is not given away. Asked once every
+	# covered entity's observers are known, since a finder may stand under a crown too.
+	for finder: Node3D in newly_found:
+		if _in_view(world.player_faction, finder):
+			Events.advisor_alert.emit(&"canopy_contact")
+			break
+
+
+## True when `faction` sees `entity` now (always, without fog).
+func _in_view(faction: int, entity: Node3D) -> bool:
+	return world.vision == null or world.vision.can_see(faction, entity)
 
 
 ## True for a living ground unit or building that can look (flyers never see under a
