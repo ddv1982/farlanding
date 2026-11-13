@@ -70,7 +70,7 @@ func can_target(faction: int, target: Variant) -> bool:
 ## The best target for `faction` whose body is within `reach` of `from`: the
 ## nearest visible enemy, armed units before unarmed ones and buildings. Dormant
 ## Custodians are left alone (only an explicit attack order wakes them). Null if none.
-func find_target(faction: int, from: Vector3, reach: float) -> Node3D:
+func find_target(faction: int, from: Vector3, reach: float, min_reach: float = 0.0) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
 	for candidate: Node3D in _grid.query(from, reach + MAX_BODY_RADIUS):
@@ -78,7 +78,7 @@ func find_target(faction: int, from: Vector3, reach: float) -> Node3D:
 		if candidate_faction == faction or candidate_faction < 0:
 			continue
 		var distance: float = reach_to(candidate, from)
-		if distance > reach or is_dormant(candidate):
+		if distance > reach or distance < min_reach or is_dormant(candidate):
 			continue
 		var score: float = distance + (0.0 if is_armed(candidate) else SOFT_TARGET_PENALTY)
 		if score >= best_score or not can_target(faction, candidate):
@@ -178,6 +178,8 @@ func damage(entity: Node3D, amount: float, damage_type: StringName, attacker: No
 	)
 	if taken > 0.0 and source != null and world != null and world.vision != null:
 		world.vision.expose(source, faction_of(entity))
+	if taken > 0.0 and source != null and world != null and world.stealth != null:
+		world.stealth.notice_attack(faction_of(entity), source)
 	if taken > 0.0 and faction_of(entity) == player_faction:
 		if tick_count - _last_alert_tick >= ALERT_TICKS:
 			_last_alert_tick = tick_count

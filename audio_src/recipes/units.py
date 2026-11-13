@@ -10,6 +10,9 @@ but each unit type owns a register, a rhythm and an interval:
   kite      upper-middle (E5-B5), gliding swoops with air, slides of a fifth/sixth
   hauler    low-middle (D3-B3), dotted short-long reed 'horn' dyads with a knock, steps
   fabricator upper (F#5-F#6), busy marimba grace-note flicks with tool ticks, seconds/fourths
+  wisp      middle-high (D5-E6), a whisper: breathy reed swelling in, faint glass, a ghost echo, the raised fourth
+  lancer    middle (A3-E5), short-short-LONG spear strokes: each note scoops up into pitch, bright reed and tine
+  arc       low-middle (D3-D4), lobbed glides that arch over a third and land with a wooden knock
 
 The three kinds of reply follow one grammar for every unit, so players learn it
 once: select rises (a question), move falls and resolves (an answer), attack
@@ -221,6 +224,109 @@ FABRICATOR = {
 }
 
 
+# --------------------------------------------------------------------------- wisp
+
+
+def wisp(rng: np.random.Generator, midi: list[int], step: float, accent: bool = False) -> np.ndarray:
+    """Stealth infiltrator: a whisper. Breath dominates a soft reed that swells
+    in, a faint glass octave, and a quieter ghost of the last note an octave up
+    a moment later. Built on the raised fourth (D-G#) and fourths."""
+    total = step * len(midi) + 1.2
+    buf = np.zeros(dsp.samples(total))
+    for i, m in enumerate(midi):
+        last = i == len(midi) - 1
+        f = dsp.midi_hz(m)
+        dur = 0.17 if last else 0.05
+        hard = 1.5 if accent and not last else 1.0
+        body = reed(f, dur, rng, brightness=1.8 * hard, attack=0.03 if last else 0.012, release=0.2,
+                    breath=0.4, vibrato_hz=5.5, vibrato_cents=8.0)
+        glass = 0.22 * hard * chime(f * 2.0, 0.03, rng, brightness=0.35, decay=0.14 if last else 0.05,
+                                    attack=0.008, tail=0.4)
+        note = dsp.mix(body, glass)
+        dsp.place(buf, note, dsp.samples(i * step))
+        if last:
+            ghost = 0.18 * reed(f * 2.0, 0.1, rng, brightness=1.4, attack=0.03, release=0.2, breath=0.6,
+                                vibrato_cents=0.0)
+            dsp.place(buf, ghost, dsp.samples(i * step + 0.12))
+    return _finish(dsp.highpass(buf, 260.0), rng, dict(seconds=0.9, mix=0.22, predelay_ms=14.0, damp=0.5))
+
+
+WISP = {
+    "select": [([74, 80], 0.07), ([76, 81], 0.07), ([80, 86], 0.065)],
+    "move": [([80, 74], 0.07), ([81, 76], 0.07), ([86, 81], 0.065)],
+    "attack": [([80, 80, 86], 0.06), ([81, 81, 88], 0.06), ([76, 76, 83], 0.06)],
+}
+
+# --------------------------------------------------------------------------- lancer
+
+
+def lancer(rng: np.random.Generator, midi: list[int], step: float, accent: bool = False) -> np.ndarray:
+    """Anti-armour walker: short-short-LONG strokes like a spear thrust. Every
+    note scoops up into its pitch, a bright reed doubled by a chime tine an
+    octave up, with a hard marimba knock on the onset. Fifths and octaves."""
+    total = step * (len(midi) - 1) + 1.3
+    buf = np.zeros(dsp.samples(total))
+    for i, m in enumerate(midi):
+        last = i == len(midi) - 1
+        f0 = dsp.midi_hz(m)
+        dur = 0.24 if last else 0.05
+        hard = 1.5 if accent and not last else 1.0
+        n = dsp.samples(dur + 0.15)
+        scoop = f0 * 2.0 ** (-0.6 * np.exp(-dsp.time_axis(n) / 0.02) / 12.0)
+        body = reed(scoop, dur, rng, brightness=10.0 * hard, attack=0.006, release=0.12, breath=0.03,
+                    vibrato_hz=5.0, vibrato_cents=3.0)
+        tine = 0.4 * chime(f0 * 2.0, 0.05, rng, brightness=0.8 * hard, decay=0.2 if last else 0.06, tail=0.5)
+        knock = 0.5 * hard * marimba(f0, 0.03, rng, hardness=1.4, decay=0.05, tail=0.2)
+        note = dsp.mix(dsp.saturate(body * 1.3, 1.3), tine, knock)
+        dsp.place(buf, note, dsp.samples(i * step))
+    buf = dsp.biquad(buf, "peak", 1500.0, 0.8, 3.0)
+    return _finish(dsp.highpass(buf, 110.0), rng)
+
+
+LANCER = {
+    "select": [([62, 69, 74], 0.075), ([64, 71, 76], 0.075), ([57, 64, 69], 0.08)],
+    "move": [([74, 69, 62], 0.075), ([76, 71, 64], 0.075), ([69, 64, 57], 0.08)],
+    "attack": [([62, 62, 74], 0.065), ([64, 64, 76], 0.065), ([57, 57, 69], 0.07)],
+}
+
+# --------------------------------------------------------------------------- arc
+
+
+def arc(rng: np.random.Generator, glides: list[tuple[int, int, float]], gap: float) -> np.ndarray:
+    """Artillery: each note is lobbed. A warm reed-and-sine voice glides from
+    one note to the next along an arch that overshoots by a third, then lands
+    with a low wooden knock and a soft thump. glides = [(from, to, seconds)]."""
+    total = sum(g[2] for g in glides) + gap * len(glides) + 1.2
+    buf = np.zeros(dsp.samples(total))
+    at = 0.0
+    for a, b, dur in glides:
+        n = dsp.samples(dur + 0.1)
+        u = np.clip(dsp.time_axis(n) / dur, 0, 1)
+        semis = (b - a) * u + 4.0 * np.sin(np.pi * u)  # the arch
+        f = dsp.midi_hz(a) * 2.0 ** (semis / 12.0)
+        tone = reed(f, dur, rng, brightness=4.0, attack=0.015, release=0.08, breath=0.02, vibrato_cents=0.0)[:n]
+        sine = 0.6 * soft_sine(f[: dsp.samples(dur + 0.08)], dur, attack=0.015, release=0.08, harmonics=(1.0, 0.3))
+        dsp.place(buf, dsp.mix(tone, sine), dsp.samples(at))
+        fb = dsp.midi_hz(b)
+        knock = marimba(fb, 0.05, rng, hardness=1.2, decay=0.16, tail=0.4)
+        m = dsp.samples(0.2)
+        thump = 0.5 * dsp.sine(fb * 0.5 * (1.0 + 0.3 * np.exp(-dsp.time_axis(m) / 0.015)), m) * dsp.perc(m, 0.002, 0.05)
+        # Two octaves up, a glassy landing: lets the low voice read on small speakers.
+        top = 0.35 * chime(fb * 4.0, 0.05, rng, brightness=0.5, decay=0.2, tail=0.5)
+        dsp.place(buf, dsp.mix(0.8 * knock, thump, top), dsp.samples(at + dur * 0.95))
+        at += dur + gap
+    buf = dsp.biquad(buf, "peak", 800.0, 0.8, 3.0)
+    return _finish(dsp.highpass(buf, 60.0), rng, dict(seconds=0.8, mix=0.15, predelay_ms=10.0, damp=0.65))
+
+
+ARC = {
+    "select": [[(50, 57, 0.18)], [(52, 59, 0.18)], [(54, 62, 0.18)]],
+    "move": [[(57, 50, 0.2)], [(59, 52, 0.2)], [(62, 54, 0.2)]],
+    "attack": [[(50, 50, 0.07), (50, 50, 0.07), (50, 57, 0.16)], [(52, 52, 0.07), (52, 52, 0.07), (52, 59, 0.16)],
+               [(45, 45, 0.07), (45, 45, 0.07), (45, 52, 0.16)]],
+}
+
+
 # --------------------------------------------------------------------------- registry
 
 
@@ -255,6 +361,21 @@ def _register() -> None:
             sound(f"unit_fabricator_{kind}_{i}", "unit", UNIT_LUFS, folder="units/fabricator", max_seconds=1.4,
                   params={"recipe": f"fabricator({notes})"})(
                 lambda rng, n=notes, k=kind: fabricator(rng, n, accent=k == "attack"))
+    for kind, variants in WISP.items():
+        for i, (notes, step) in enumerate(variants, start=1):
+            sound(f"unit_wisp_{kind}_{i}", "unit", UNIT_LUFS, folder="units/wisp", max_seconds=1.6,
+                  params={"recipe": f"wisp({notes}, step={step})"})(
+                lambda rng, n=notes, s=step, k=kind: wisp(rng, n, s, accent=k == "attack"))
+    for kind, variants in LANCER.items():
+        for i, (notes, step) in enumerate(variants, start=1):
+            sound(f"unit_lancer_{kind}_{i}", "unit", UNIT_LUFS, folder="units/lancer", max_seconds=1.6,
+                  params={"recipe": f"lancer({notes}, step={step})"})(
+                lambda rng, n=notes, s=step, k=kind: lancer(rng, n, s, accent=k == "attack"))
+    for kind, variants in ARC.items():
+        for i, glides in enumerate(variants, start=1):
+            sound(f"unit_arc_{kind}_{i}", "unit", UNIT_LUFS, folder="units/arc", max_seconds=2.0,
+                  params={"recipe": f"arc({glides}, gap=0.03)"})(
+                lambda rng, g=glides: arc(rng, g, 0.03))
 
 
 _register()

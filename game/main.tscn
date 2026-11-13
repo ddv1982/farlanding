@@ -1,7 +1,8 @@
 [gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://maps/kessel_proving/kessel_proving.tscn" id="1_map"]
+[ext_resource type="Script" path="res://main.gd" id="1_main"]
+[ext_resource type="Resource" path="res://data/missions/catalog.tres" id="2_catalog"]
 
 [node name="Main" type="Node"]
-
-[node name="KesselProving" parent="." instance=ExtResource("1_map")]
+script = ExtResource("1_main")
+catalog = ExtResource("2_catalog")

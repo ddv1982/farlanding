@@ -24,6 +24,9 @@ loudness targets and the naming, and says how to add a sound.
   | `kite` | upper middle, E5–B5 | one or two swoops | glides of a fifth or sixth, airy reed |
   | `hauler` | low middle, D3–B3 (+ octave knock) | dotted short-long | steps and thirds, reed "horn" dyad + marimba knock |
   | `fabricator` | upper, F#5–F#6 | grace-note flick into a landing note | seconds and fourths, busy marimba + tool tick |
+  | `wisp` | middle-high, D5–E6 | a breath: grace into a swelled note, a ghost echo an octave up | the raised fourth (D–G#) and fourths, breathy reed + faint glass |
+  | `lancer` | middle, A3–E5 | short-short-LONG spear strokes, each scooping up into pitch | fifths and octaves, bright reed + chime tine + marimba knock |
+  | `arc` | low-middle, A2–D4 (+ two-octave chime) | lobbed glides that arch a third over the target note, then land | fifths, reed + sine, wooden knock and thump on landing |
 
 - **Buildings are machines, not musicians.** Selecting a building plays its *machine identity*
   (`building_<set>_select`, −22 LUFS, quieter than a unit reply), the sound its machinery
@@ -68,6 +71,9 @@ loudness targets and the naming, and says how to add a sound.
   | `skitter_gun` | Combine drone | buzzy ring-modulated snap with decimated grit |
   | `lance` | Combine Stinger | 0.3 s beam: beating saw cluster, rising whine, crackle, sizzle cut-off |
   | `siege` | Combine Mauler | two saturated booms, a mistuned clang, loose rattle |
+  | `wisp` | Wisp | a suppressed glass "pff": a short FM bolt onto D6/E6/C#6 under a breath of air (−27) |
+  | `lancer` | Lancer | a 0.1 s charge whine rising into a long FM spear onto D5/E5/A4, crack and sub knock (−23) |
+  | `arc` | Arc | the tube's deep "thoonk" ringing on D3/A2/E3, a propellant puff, the shell's whistle climbing away |
 
   Impacts say what was hit (`impact_spark` light target, `impact_armour` heavy armour or
   structure, `impact_ground` a miss; lances always spark); an `impact_size` of 1 m or more plays
@@ -118,6 +124,50 @@ loudness targets and the naming, and says how to add a sound.
   drop hammer, quench), `loop_hum_spire` (beating whine cluster, arcing, guy-wire drone),
   all −30 and off the Concord key; `move_scrapper` (rough two-stroke, grinding treads, loose
   scrap) and `move_rigger` (four hydraulic legs, detuned servo whines, a weld spit).
+- **Missions have the Advisor's voice** (Phase 5). Objectives are Meridian phrases
+  (`advisor_<kind>`, through the Advisor queue, so the Advisor bus ducks the music):
+
+  | Kind | Phrase |
+  |---|---|
+  | `objective_new` | a three-dyad pickup climbing into a held D+A, a high ping |
+  | `objective_hidden` | a muffled tritone G#+D that opens up and settles on A+E, a faint G# above: a secret |
+  | `objective_done` | primary: A+E, B+F#, then D+A held with its octave, answered by a high D+A (−19) |
+  | `objective_done_secondary` | the same idea, smaller: two dyads up a fourth, short-long (−22) |
+  | `objective_failed` | D+A bending down three semitones as its filter closes, over a beating low D |
+  | `objective_time_low` | a clock: tick-tock dyads (A+E, G#+D), the last falling a tone |
+  | `storm_warning` | three dyads stepping down a whole tone each (out of key) over a rising gust (−19) |
+  | `detected` | six staccato dyads climbing in semitones into a held, trembling tritone (−19) |
+
+  `ui_objective_tick` (A6 → D7 glass ticks) marks progress. There are no spoken words: the
+  *briefing voice* is `mus_briefing_bed` (the Meridian's sine dyads slowed into a pad, a low D,
+  telemetry pings every 3.2 s, the ship channel's carrier; 32 s loop) under the panel with
+  `ui_briefing_tick` (E7/F#7/A7, −34) on each text reveal, `ui_briefing_open`/`_close` (two soft
+  dyads up/down). `mus_sting_launch` starts the mission (a Meridian dyad lifting off, the
+  Concord answering with a rising D F# A D, a drum on the downbeat, the motif's opening leap
+  D → A over Dmaj9). `mus_debrief_bed` (Dmaj9 → Bm pad, the Trail motif slowed and far away,
+  32 s loop) sits under the debrief; the victory and defeat stings say who won.
+  Survey's storm: `mus_storm_minute` (thunder rolls in, a low reed D → A sagging to G#) with
+  one minute left, then the score's `storm` layer; `mus_storm_countdown` (ten ticks a second
+  apart, each a semitone higher, the wind rising, the storm breaking on the tenth second).
+- **Stealth is the Combine listening.** Watching and alarms are in the Combine sound world;
+  the Wisp's cloak is Concord glass:
+
+  | Event | Sound |
+  |---|---|
+  | `stealth_suspicion` | a beating detuned-saw cluster throbbing 4×/s with a radar tick (2 s loop, −26, positional); its level (−14 → 0 dB) and pitch (0.85 → 1.3) follow the watcher's suspicion, so the beat speeds up: it tightens |
+  | `stealth_spotted` | two ring-modulated chirps snapping up into a hard tritone stab with a crack (−19, flat) |
+  | `stealth_alert_suspicious` | a radio squelch, a buzzy two-tone query rising a fourth ("hm?"), squelch off (−23) |
+  | `stealth_alert_alarm` | a saturated, decimated klaxon wailing up a fourth and back, twice, a thump under each (−21) |
+  | `stealth_all_clear` | squelch, the query falling (stand down), squelch off, then a soft Concord chime D+A (−24) |
+  | `stealth_cloak_engage` / `_disengage` | chimes D A E swelled backwards, air rising through a closing comb, folding to nothing / an air pop sweeping down, chimes A → D ringing out (−24, positional) |
+
+  Stealth music: three more synchronised layers of the Kessel explore clip, `hush` (sparse:
+  high air on chord tones, a muted marimba drop every other bar), `watch` (a low lub-dub on
+  beats 1 and 3, off-beat ticks, a G# shadow) and `storm` (rumble, gusts, a half-time throb on
+  D, distant thunder). States: `stealth_unaware` (pad −9, hush), `stealth_suspicious` (the
+  watch pulse joins, a trace of drive), `stealth_alerted` (watch, drive, drums, a little brass:
+  full drive). Layer changes wait for the next beat (score `bpm` 80, `quantize_beats` 1) and
+  fade at the state's own speed (4 s, 1.5 s, 0.5 s), so a joining layer lands in time.
 - **Restraint.** Interface sounds are short (≤ 0.3 s) and dry; replies carry a small room;
   only music and ambience are wide and wet.
 
@@ -150,6 +200,12 @@ ceiling −1 dBTP, a look-ahead limiter catches transients).
 | `discovery` | WAV stereo | −21 (antecedent −20) | flat, Discovery bus, ducks other buses |
 | `field` | WAV stereo | −22 (antecedent −21) | flat, SFX bus |
 | `antecedent` | WAV mono | −21 | positional, Units bus (Warden wake) |
+| `stealth` | WAV mono | spotted −19, alarm −21, suspicious −23, all-clear −24, cloak −24, suspicion loop −26 | flat on the **Stealth** bus (not ducked); suspicion loop and cloak positional |
+| `advisor` (Phase 5) | WAV mono | objectives −20 (done −19, secondary −22), storm −19, detected −19 | flat, Advisor bus |
+| `bed` | Ogg stereo, loop | −28 | 32 s (a multiple of 64 samples: the native encoder pads), own player on the Music bus |
+| `sting` (Phase 5) | Ogg stereo | launch −22, storm minute −22, countdown −21 (11.8 s) | flat, Music bus |
+| `music` stealth layers | Ogg stereo, loop | hush −31, watch −29, storm −29 | Kessel explore grid |
+| `movement` (Wisp) | WAV mono, loop | −28 | `move_phantom`, quieter than any chassis by design; −9 dB more while cloaked |
 
 Also checked on every build: DC offset ≤ 0.002, energy below 25 Hz ≤ 3 %, duration within the
 recipe's bounds, and for loops the seam (no step, kink or level jump bigger than the loop's own
@@ -221,6 +277,42 @@ its `is_dormant` turns false where the player can see it, `unit_<set>_wake` play
 Movement loops skip units whose `is_visible_to_player` is false. Deaths try `death_<set>` first
 (the Warden); weapon sets without an alias fall back to their first word
 (`warden_bell_bolt` → `weapon_warden_fire`).
+
+Missions (`MissionSoundRouter`, Phase 5). `objective_added` offers `objective_hidden` for a
+hidden objective, else `objective_new`; `objective_completed` offers `objective_done` for a
+primary objective, else `objective_done_secondary`; `objective_failed` offers
+`objective_failed`; several in one frame make one phrase, the most important. Gameplay's own
+`advisor_alert(objective_new | objective_done | objective_failed)` joins that frame's choice
+(the AudioEventRouter leaves those kinds alone), and the AdvisorQueue's families
+(`objective_hidden` → `objective_new`, `objective_done_secondary` → `objective_done`) share a
+throttle, so a signal and an alert for the same moment speak once. `objective_updated` plays
+`ui_objective_tick` (not for a hidden objective before it is revealed). Priorities: detected
+115, storm 110–112, objective failed 105, time low 100, done 90, hidden 85, secondary done 75,
+new 72. `ui_feedback`: `briefing_open` starts the briefing bed (score dips −14 dB),
+`briefing_close` stops it, `debrief_open` starts the debrief bed (−18 dB); the launch phrase
+plays when the briefing closes, or 0.3 s after `mission_started` if none is open. Storm: the
+soonest known, active objective with `countdown_tick` ≥ 0 and `countdown_fails` is the
+deadline, checked on `sim_ticked`; 60 s left plays `mus_storm_minute` and brings the `storm`
+layer in, 10 s left `mus_storm_countdown`; completing it takes the layer out. Without such an
+objective, `advisor_alert(storm_warning | objective_time_low)` starts the minute stage and a
+second one (≥ 20 s later) or `storm_final` the countdown.
+
+Stealth (`StealthSoundRouter`, `SuspicionTones`, pure rules in `StealthCues`, `StealthMood`).
+The most alarmed watching faction (`alert_level_changed`; the player's own faction ignored)
+decides: rising to Suspicious plays `stealth_alert_suspicious`, to Alerted
+`stealth_alert_alarm`, back to Unaware `stealth_all_clear`; Alerted decaying to Suspicious is
+left to the music. `intruder_spotted` plays `stealth_spotted` once per target per 4 s (silent
+when the target belongs to another faction than the player's) and ducks the other buses for
+0.5 s. Units in group `units` with `is_cloaked` play the cloak sounds when it changes (their
+first reading is the baseline), if the unit is the player's or visible. Suspicion tones:
+watchers learnt from `suspicion_raised`/`intruder_spotted` (or group `watchers`) that are
+visible to the player, not `is_alerted` and above 0.02 suspicion, ranked by suspicion − 0.5 ×
+distance / 70 m, at most two. Stealth music starts once an alert level is reported (an initial
+`alert_level_changed(faction, &"unaware", &"unaware")` starts the Unaware score silently) or a
+node is in group `watchers`; a watcher's suspicion alone does not (a Wisp in Conquest keeps the
+combat score). It rises at once and falls after the lower level has held 6 s (from Alerted) or
+4 s (from Suspicious). `MusicArbiter`: with stealth active its state plays, except that combat
+always wins and tension or aftermath win over Unaware. `mission_started` resets all of it.
 
 ## Adding a sound
 

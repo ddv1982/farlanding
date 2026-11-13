@@ -9,7 +9,8 @@ extends Node
 ## A unit moving faster than MIN_SPEED with a SoundEvent named
 ## `move_<sound_set>` is a candidate. Loops follow their unit, fade in and out,
 ## and rise in level and pitch with speed (relative to `UnitDef.move_speed`).
-## A unit whose `is_visible_to_player` is false (fog of war) is not heard.
+## A unit whose `is_visible_to_player` is false (fog of war) is not heard; one
+## whose `is_cloaked` is true (a Wisp) is heard CLOAKED_DB quieter.
 
 const UNITS_GROUP: StringName = &"units"
 const MAX_LOOPS: int = 6
@@ -19,6 +20,7 @@ const FADE_SECONDS: float = 0.3
 const DEFAULT_MOVE_SPEED: float = 5.0
 ## Weight of the newest measurement when speed is measured from positions.
 const SPEED_SMOOTHING: float = 0.5
+const CLOAKED_DB: float = -9.0
 
 ## Ground point the listener is centred on.
 var focus: Vector3 = Vector3.ZERO
@@ -147,6 +149,8 @@ func _update_player(i: int, delta: float) -> void:
 		var event: SoundEvent = resolve_event.call(StringName("move_%s" % sound_set_of(unit)))
 		if event != null:
 			base_db = event.volume_db
+		if StealthCues.flag(unit, &"is_cloaked", false):
+			base_db += CLOAKED_DB
 	player.volume_db = base_db + AudioMix.linear_to_db_safe(_levels[i] * lerpf(0.4, 1.0, ratio))
 	player.pitch_scale = lerpf(0.9, 1.08, ratio)
 

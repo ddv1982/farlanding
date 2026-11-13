@@ -10,6 +10,9 @@ const SITE_COLOR := Color(0.25, 0.95, 1.0, 0.22)
 ## Share of the model already showing when construction starts, so a new site
 ## is never invisible.
 const SITE_START := 0.07
+## How wrecked a sabotaged building looks at least (lights out).
+const SABOTAGED_DAMAGE := 0.85
+const SPARK_COLOR := Color(2.4, 1.5, 0.5)
 
 @export var model_scene: PackedScene
 ## Radius of the selection ring in metres.
@@ -24,6 +27,9 @@ var _ring: MeshInstance3D
 var _health_bar: HealthBar
 var _site: MeshInstance3D
 var _height: float = 1.0
+var _damage: float = 0.0
+var _sabotaged: bool = false
+var _sparks: GPUParticles3D
 
 
 func _ready() -> void:
@@ -73,8 +79,22 @@ func set_build_progress(progress: float) -> void:
 
 ## 0 = pristine, 1 = wrecked.
 func set_damage(amount: float) -> void:
+	_damage = clampf(amount, 0.0, 1.0)
+	# A sabotaged building is dead inside whatever its hull looks like.
+	var shown := maxf(_damage, SABOTAGED_DAMAGE) if _sabotaged else _damage
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"damage", clampf(amount, 0.0, 1.0))
+		mesh.set_instance_shader_parameter(&"damage", shown)
+
+
+## A sabotaged building goes dark and throws sparks from its roof.
+func set_sabotaged(sabotaged: bool) -> void:
+	_sabotaged = sabotaged
+	set_damage(_damage)
+	if sabotaged and _sparks == null:
+		_sparks = _build_sparks()
+		add_child(_sparks)
+	if _sparks != null:
+		_sparks.emitting = sabotaged
 
 
 func set_selected(selected: bool) -> void:
@@ -143,3 +163,34 @@ func _build_site_plate() -> MeshInstance3D:
 	plate.visible = false
 	plate.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return plate
+
+
+func _build_sparks() -> GPUParticles3D:
+	var process := ParticleProcessMaterial.new()
+	process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	process.emission_box_extents = Vector3(footprint_radius * 0.35, 0.2, footprint_radius * 0.35)
+	process.direction = Vector3.UP
+	process.spread = 70.0
+	process.initial_velocity_min = 2.0
+	process.initial_velocity_max = 5.0
+	process.gravity = Vector3(0.0, -9.0, 0.0)
+	var surface := StandardMaterial3D.new()
+	surface.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	surface.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	surface.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	surface.albedo_color = SPARK_COLOR
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.09, 0.09)
+	quad.material = surface
+	var sparks := GPUParticles3D.new()
+	sparks.name = "SabotageSparks"
+	sparks.amount = 14
+	sparks.lifetime = 0.7
+	# Bursts with dead time between them read as shorting, not as a fountain.
+	sparks.explosiveness = 0.85
+	sparks.randomness = 0.6
+	sparks.process_material = process
+	sparks.draw_pass_1 = quad
+	sparks.position.y = _height * 0.8
+	sparks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return sparks

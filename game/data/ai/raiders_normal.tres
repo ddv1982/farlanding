@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CommanderDifficulty" format=3]
+
+[ext_resource type="Script" path="res://ai/commander_difficulty.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"normal"
+display_name = "Normal"
+decision_interval_ticks = 20
+first_attack_seconds = 150.0
+attack_interval_seconds = 80.0
+first_wave_size = 3
+wave_growth = 1
+max_wave_size = 6
+mistake_chance = 0.1
+early_wave_share = 0.6
+first_scout_seconds = 40.0

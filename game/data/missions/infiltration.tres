@@ -1,0 +1,157 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e1"]
+[ext_resource type="Script" path="res://core/defs/patrol_route.gd" id="e2"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="e3"]
+[ext_resource type="Script" path="res://missions/objective_def.gd" id="e4"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="e5"]
+[ext_resource type="Script" path="res://missions/scripts/infiltration_rules.gd" id="e6"]
+[ext_resource type="Resource" path="res://data/buildings/combine_hub.tres" id="e7"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="e8"]
+[ext_resource type="PackedScene" path="res://maps/kessel_proving/kessel_proving.tscn" id="e9"]
+[ext_resource type="Resource" path="res://data/units/concord_wisp.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e11"]
+[ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="e12"]
+[ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="e13"]
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="e14"]
+[ext_resource type="Script" path="res://missions/scripts/infiltration_script.gd" id="e15"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e2")
+id = &"gate"
+unit = ExtResource("e1")
+count = 1
+waypoints = PackedVector3Array(38, 0, -58, 48, 0, -58, 48, 0, -72, 38, 0, -72)
+default_pause = 2.5
+loop = true
+facing = Vector3(0, 0, 1)
+pauses = PackedFloat32Array(3, 2, 3, 2)
+
+[sub_resource type="Resource" id="s1"]
+script = ExtResource("e2")
+id = &"west_flank"
+unit = ExtResource("e1")
+count = 1
+waypoints = PackedVector3Array(34, 0, -98, 34, 0, -84)
+default_pause = 3
+loop = false
+facing = Vector3(0, 0, 1)
+
+[sub_resource type="Resource" id="s2"]
+script = ExtResource("e2")
+id = &"hub_ring"
+unit = ExtResource("e1")
+count = 1
+waypoints = PackedVector3Array(56, 0, -86, 78, 0, -86, 78, 0, -100, 56, 0, -100)
+default_pause = 2.5
+loop = true
+facing = Vector3(0, 0, 1)
+pauses = PackedFloat32Array(2, 3, 2, 3)
+
+[sub_resource type="Resource" id="s3"]
+script = ExtResource("e2")
+id = &"east_corridor"
+unit = ExtResource("e1")
+count = 1
+waypoints = PackedVector3Array(94, 0, -76, 94, 0, -50)
+default_pause = 4
+loop = false
+facing = Vector3(0, 0, 1)
+
+[sub_resource type="Resource" id="s4"]
+script = ExtResource("e2")
+id = &"sentry"
+unit = ExtResource("e3")
+count = 1
+waypoints = PackedVector3Array(44, 0, -48)
+default_pause = 2.5
+loop = true
+facing = Vector3(-0.5, 0, 1)
+
+[sub_resource type="Resource" id="s5"]
+script = ExtResource("e4")
+id = &"extract"
+title = "Extract the squad"
+kind = &"primary"
+type = &"reach_area"
+side = &"player"
+require_all = true
+area_center = Vector3(-78, 0, 80)
+area_radius = 10
+at_start = false
+
+[sub_resource type="Resource" id="s6"]
+script = ExtResource("e6")
+target_objective = &"sabotage_uplink"
+extraction = SubResource("s5")
+alerted_extraction = Vector3(-90, 0, -95)
+alerted_deadline_seconds = 300.0
+reinforcements = Array[ExtResource("e5")]([ExtResource("e1"), ExtResource("e1"), ExtResource("e1"), ExtResource("e1"), ExtResource("e3")])
+reinforcement_entry = Vector3(80, 0, -102)
+max_reinforcement_waves = 1
+
+[sub_resource type="Resource" id="s7"]
+script = ExtResource("e4")
+id = &"sabotage_uplink"
+title = "Sabotage the Combine uplink"
+kind = &"primary"
+type = &"sabotage"
+side = &"enemy"
+defs = Array[ExtResource("e8")]([ExtResource("e7")])
+area_center = Vector3(66, 0, -95)
+area_radius = 12
+
+[sub_resource type="Resource" id="s8"]
+script = ExtResource("e4")
+id = &"stay_hidden"
+title = "Stay undetected"
+kind = &"secondary"
+type = &"stay_undetected"
+side = &"enemy"
+passive = true
+
+[sub_resource type="Resource" id="s9"]
+script = ExtResource("e4")
+id = &"scan_relay"
+title = "Scan the Combine relay"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"kessel_combine_relay"])
+area_center = Vector3(100, 0, -40)
+area_radius = 8
+
+[sub_resource type="Resource" id="s10"]
+script = ExtResource("e4")
+id = &"no_losses"
+title = "Leave no one behind"
+kind = &"hidden"
+type = &"keep_alive"
+side = &"player"
+passive = true
+require_all = true
+
+[resource]
+script = ExtResource("e0")
+id = &"infiltration"
+title = "Quiet Uplink"
+mission_type = &"infiltration"
+summary = "No base. Slip a Wisp squad past the outpost's patrols and sabotage its uplink."
+briefing = "The Combine outpost in the north-east relays everything it finds to their fleet. We want it deaf, and we do not want them to know who did it.\n\nYou have three Wisps and a Surveyor, dropped at the far side of the basin. No base, no reinforcements. In stealth mode Wisps creep and cloak; guards only notice them close up and inside their sight cones, and not at once. Sabotage the uplink (the outpost's Hub), then get the squad out.\n\nIf they raise the alarm the job is not over, but it changes: more drones arrive, the pick-up moves to the far west and the clock starts."
+map_scene = ExtResource("e9")
+player_start = Vector3(-78, 0, 80)
+player_facing = Vector3(1, 0, -1)
+player_roster = Array[ExtResource("e5")]([ExtResource("e10"), ExtResource("e10"), ExtResource("e10"), ExtResource("e11")])
+start_alloy = 0
+start_flux = 0
+hostile_faction = 1
+hostile_hq = ExtResource("e7")
+hostile_hq_position = Vector3(66, 0, -95)
+hostile_buildings = Array[ExtResource("e14")]([ExtResource("e12"), ExtResource("e13")])
+hostile_building_positions = PackedVector3Array(54, 0, -79, 47, 0, -92)
+patrols = Array[ExtResource("e2")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3"), SubResource("s4")])
+enemy_alert_meter = true
+objectives = Array[ExtResource("e4")]([SubResource("s7"), SubResource("s5"), SubResource("s8"), SubResource("s9"), SubResource("s10")])
+mission_script = ExtResource("e15")
+script_rules = SubResource("s6")
+camera_start = Vector3(-78, 0, 80)

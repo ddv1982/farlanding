@@ -96,6 +96,12 @@ func set_selected(selected: bool) -> void:
 	_health_bar.set_selected(selected)
 
 
+## 0 = plain, 1 = cloaked (drawn as a shimmering ghost; the owner still sees it).
+func set_cloaked(amount: float) -> void:
+	for mesh in _meshes:
+		mesh.set_instance_shader_parameter(&"cloak", clampf(amount, 0.0, 1.0))
+
+
 ## 1 = full health, 0 = dead. Also drives the worn look of the model.
 func set_health(fraction: float) -> void:
 	_health_bar.set_fraction(fraction)

@@ -91,4 +91,35 @@ signal field_option_used(option: Resource, faction: int, at: Vector3)
 ## The player's codex gained an entry. `entry` is the DiscoveryDef it describes.
 signal codex_entry_added(entry: Resource)
 
+## A mission objective became known to the player. `objective` is an Objective:
+## `id`, `title`, `kind` (&"primary", &"secondary", &"hidden"), `state`
+## (&"active", &"done", &"failed") and `progress_text`.
+signal objective_added(objective: RefCounted)
+
+## An objective's progress text changed.
+signal objective_updated(objective: RefCounted)
+
+## An objective was achieved.
+signal objective_completed(objective: RefCounted)
+
+## An objective can no longer be achieved.
+signal objective_failed(objective: RefCounted)
+
+## A watcher began to notice `target`: its suspicion crossed the notice threshold
+## (StealthSystem.NOTICE_AT). It fires again only after the watcher calmed down to zero.
+signal suspicion_raised(watcher: Node3D, target: Node3D)
+
+## A watcher is now sure of `target`: it has been spotted.
+signal intruder_spotted(watcher: Node3D, target: Node3D)
+
+## The alert state of a watching faction changed: &"unaware", &"suspicious" or
+## &"alerted". Alerts decay back down when nothing is seen for a while.
+signal alert_level_changed(faction: int, level: StringName, previous: StringName)
+
+## `saboteur` disabled the enemy building `building` for good (it no longer works).
+signal entity_sabotaged(building: Node3D, saboteur: Node3D)
+
+## A unit's cloak closed (`cloaked` true) or opened. Fires for every faction's units.
+signal cloak_changed(unit: Node3D, cloaked: bool)
+
 @warning_ignore_restore("unused_signal")

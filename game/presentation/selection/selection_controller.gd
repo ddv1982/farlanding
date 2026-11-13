@@ -6,7 +6,8 @@ extends Node
 ## - classic (default, Command & Conquer style): left click does everything by
 ##   context. On an own unit or building it selects; with units selected it moves,
 ##   attacks an enemy in sight, harvests a deposit (Haulers), scans a site
-##   (Surveyors) or helps build an own site (Fabricators); with a producer building
+##   (Surveyors), sabotages an enemy building (Wisps) or helps build an own site
+##   (Fabricators); with a producer building
 ##   selected it sets the rally point. Right click deselects.
 ## - modern: left click selects (and attacks an enemy in sight), right click
 ##   commands with the same context rules.
@@ -34,6 +35,7 @@ const CURSOR_FOR_ACTION: Dictionary[StringName, StringName] = {
 	SelectionRules.CLICK_HARVEST: CursorIcons.HARVEST,
 	SelectionRules.CLICK_ASSIST: CursorIcons.ASSIST,
 	SelectionRules.CLICK_RALLY: CursorIcons.RALLY,
+	SelectionRules.CLICK_SABOTAGE: CursorIcons.SABOTAGE,
 }
 
 @export var camera: RtsCamera
@@ -168,6 +170,8 @@ func apply_click(button: MouseButton, target: Node3D, ground: Vector3, shift: bo
 			_issue_on_target(BuildCommand.new(player_faction, [], target, shift), target, shift)
 		SelectionRules.CLICK_SCAN:
 			_issue_on_target(ScanCommand.new(player_faction, [], target, shift), target, shift)
+		SelectionRules.CLICK_SABOTAGE:
+			_issue_on_target(SabotageCommand.new(player_faction, [], target, shift), target, shift)
 		SelectionRules.CLICK_RALLY:
 			_rally_at(ground)
 	return action

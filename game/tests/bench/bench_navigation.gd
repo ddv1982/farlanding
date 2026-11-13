@@ -49,7 +49,7 @@ func _ready() -> void:
 	process_physics_priority = -100
 	_avoidance = not OS.get_cmdline_user_args().has("--no-avoidance")
 	_map = MAP.instantiate() as KesselProving
-	_map.start_roster = []
+	_map.with_mission = false
 	add_child(_map)
 	(_map.world.paths as NavmeshPathService).avoidance_enabled = _avoidance
 	Events.sim_ticked.connect(_on_sim_ticked)
@@ -72,7 +72,10 @@ func _process(_delta: float) -> void:
 	# then give avoidance agents a moment before ordering.
 	if _spawned_at_msec < 0:
 		var map: RID = get_viewport().world_3d.navigation_map
-		if NavigationServer3D.map_get_closest_point(map, _map.player_start) != Vector3.ZERO:
+		if (
+			NavigationServer3D.map_get_closest_point(map, KesselProving.LANDING_ZONE)
+			!= Vector3.ZERO
+		):
 			_spawn()
 			_spawned_at_msec = Time.get_ticks_msec()
 	elif _ordered_at_msec < 0:

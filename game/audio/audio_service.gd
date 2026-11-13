@@ -12,7 +12,11 @@
 ## MusicDirector, the SignalPulses (discovery-site pulses and scan loops) and
 ## the DiscoverySoundRouter (resolve phrases, Intel, field options, codex).
 ## While a discovery resolves, a BusDucker briefly lowers music, ambience and
-## effects.
+## effects. Phase 5 adds the StealthSoundRouter (alert stingers, spotted,
+## cloaks, the stealth music mood), SuspicionTones (the watchers' rising tone)
+## and the MissionSoundRouter (objectives, briefing and debrief beds, launch,
+## storm). The combat and stealth moods both ask for music states; a
+## MusicArbiter decides which one plays.
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -23,6 +27,8 @@ const POSITIONAL_VOICES: int = 32
 const ZOOM_EPSILON: float = 0.01
 ## The music layer that surfaces as discovery sites are resolved.
 const TRAIL_LAYER: StringName = &"trail"
+## The music layer of the Survey storm (silent until the storm warning).
+const STORM_LAYER: StringName = &"storm"
 
 var _events: Dictionary[StringName, SoundEvent] = {}
 var _last_variation: Dictionary[StringName, int] = {}
@@ -43,8 +49,13 @@ var _base_loops: BaseLoops
 var _music: MusicDirector
 var _pulses: SignalPulses
 var _discovery: DiscoverySoundRouter
+var _stealth: StealthSoundRouter
+var _tones: SuspicionTones
+var _missions: MissionSoundRouter
 var _ducker: BusDucker = BusDucker.new()
 var _ducking: bool = false
+var _combat_music: StringName = MusicMood.EXPLORE
+var _stealth_music: StringName = &""
 
 
 func _ready() -> void:
@@ -67,7 +78,9 @@ func _ready() -> void:
 	_combat.play_at = play_at
 	_combat.offer_alert = func(kind: StringName, at: Vector3) -> void:
 		_router.offer_advisor_alert(kind, _now(), at)
-	_combat.set_music_state = set_music_state
+	_combat.set_music_state = func(state: StringName) -> void:
+		_combat_music = state
+		_music.set_state(MusicArbiter.pick(_combat_music, _stealth_music))
 	_combat.end_music = _end_music
 	_router.alert_position = func(_kind: StringName) -> Vector3:
 		return _combat.last_hurt_position(_now())
@@ -84,6 +97,7 @@ func _ready() -> void:
 	_music = MusicDirector.new()
 	_music.name = &"MusicDirector"
 	add_child(_music)
+	_music.set_layer_gain(STORM_LAYER, AudioMix.SILENT_DB)
 	_pulses = SignalPulses.new()
 	_pulses.name = &"SignalPulses"
 	_pulses.resolve_event = get_event
@@ -97,6 +111,27 @@ func _ready() -> void:
 	_discovery.set_trail_gain = func(gain_db: float) -> void:
 		_music.set_layer_gain(TRAIL_LAYER, gain_db)
 	add_child(_discovery)
+	_stealth = StealthSoundRouter.new()
+	_stealth.name = &"StealthRouter"
+	_stealth.play_first = play_first
+	_stealth.duck = duck_for
+	_stealth.set_music_state = func(state: StringName) -> void:
+		_stealth_music = state
+		_music.set_state(MusicArbiter.pick(_combat_music, _stealth_music))
+	add_child(_stealth)
+	_tones = SuspicionTones.new()
+	_tones.name = &"SuspicionTones"
+	_tones.resolve_event = get_event
+	add_child(_tones)
+	_missions = MissionSoundRouter.new()
+	_missions.name = &"MissionRouter"
+	_missions.play_first = play_first
+	_missions.offer_alert = func(kind: StringName) -> void:
+		_router.offer_advisor_alert(kind, _now())
+	_missions.play_bed = play_bed
+	_missions.stop_bed = _music.stop_bed
+	_missions.set_layer_gain = _music.set_layer_gain
+	add_child(_missions)
 	Settings.changed.connect(_apply_volumes)
 	_apply_volumes()
 	if ResourceLoader.exists(DEFAULT_SCORE):
@@ -133,6 +168,7 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 	_combat.focus = focus
 	_pulses.focus = focus
 	_pulses.zoom = _zoom
+	_tones.focus = focus
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 
@@ -189,6 +225,19 @@ func duck_for(hold: float) -> void:
 ## Current duck offset of a bus in dB (0 when not ducked), for tests.
 func duck_offset_db(bus: StringName) -> float:
 	return _ducker.offset_db(bus, _now())
+
+
+## Loops the stream of bed event `event_id` under a panel (briefing, debrief),
+## dipping the score by `duck_db`.
+func play_bed(event_id: StringName, duck_db: float) -> void:
+	var event: SoundEvent = get_event(event_id)
+	if event != null and not event.streams.is_empty():
+		_music.play_bed(event.streams[0], duck_db)
+
+
+## The music state requested last (after merging combat and stealth), for tests.
+func music_state() -> StringName:
+	return _music.current_state()
 
 
 ## Voices in use (flat + positional), for the debug overlay and tests.

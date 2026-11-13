@@ -3,9 +3,11 @@ extends CanvasLayer
 ## In-mission HUD: the resource bar (top), the command panel (bottom centre: build
 ## menu, production, field options, hints), a selection panel with one chip per
 ## type, the minimap (bottom right) with the controls panel (F1) above it, the codex
-## (button or C) and the mouse scheme toggle (top right), the end-of-mission panel and
-## a debug overlay (F3). Built in code from HudStyle so every panel reads as the same
-## survey-instrument family.
+## (button or C) and the mouse scheme toggle (top right), the mission's objectives
+## (top left, with the enemy alert meter when the mission has one) and a debug
+## overlay (F3). The end of a mission is shown by the debrief (ui/debrief_panel.gd).
+## Built in code from HudStyle so every panel reads as the same survey-instrument
+## family.
 
 ## Controls panel text per mouse scheme (Settings.control_scheme).
 const HINT_CLASSIC: String = (
@@ -60,7 +62,7 @@ var _resource_bar: ResourceBar
 var _command_panel: CommandPanel
 var _corner: VBoxContainer
 var _minimap: Minimap
-var _end_panel: EndPanel
+var _objectives: ObjectivesPanel
 var _hint: Label
 var _codex: CodexPanel
 var _codex_button: Button
@@ -79,8 +81,10 @@ func _ready() -> void:
 	_codex.grow_vertical = Control.GROW_DIRECTION_BOTH
 	Settings.changed.connect(_on_settings_changed)
 	_on_settings_changed()
-	_end_panel = EndPanel.new()
-	add_child(_end_panel)
+	_objectives = ObjectivesPanel.new()
+	_objectives.name = &"Objectives"
+	add_child(_objectives)
+	_place(_objectives, Control.PRESET_TOP_LEFT)
 	# The world sets up its economy in the map's _ready, after this HUD's.
 	_build_economy_panels.call_deferred()
 	Events.selection_changed.connect(_on_selection_changed)
@@ -106,6 +110,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif key.keycode == KEY_ESCAPE and _codex.visible:
 		_codex.close_panel()
 		get_viewport().set_input_as_handled()
+
+
+## Shows the alert meter of the enemy `faction` under the objectives.
+func show_alert_meter(faction: int) -> void:
+	_objectives.show_alert_meter(faction)
 
 
 ## Opens the codex with the player's entries, or closes it.
@@ -213,6 +222,8 @@ func _build_economy_panels() -> void:
 	_minimap.name = &"Minimap"
 	_minimap.setup(world, camera, selection_controller, player_faction, map_area)
 	_corner.add_child(_minimap)
+	for objective: Objective in _objectives.known():
+		_minimap.track_objective(objective)
 
 
 func _build_selection_panel() -> void:
@@ -272,7 +283,7 @@ func _on_settings_changed() -> void:
 
 
 func _build_debug() -> void:
-	_debug_panel = _make_panel(Control.PRESET_TOP_LEFT)
+	_debug_panel = _make_panel(Control.PRESET_CENTER_LEFT)
 	_debug = _make_label(12, HudStyle.TEXT_COLOR)
 	_debug_panel.add_child(_debug)
 	_debug_panel.visible = false
@@ -315,7 +326,11 @@ func _place(control: Control, preset: Control.LayoutPreset) -> void:
 	control.grow_vertical = (
 		Control.GROW_DIRECTION_END
 		if preset == Control.PRESET_TOP_LEFT
-		else Control.GROW_DIRECTION_BEGIN
+		else (
+			Control.GROW_DIRECTION_BOTH
+			if preset == Control.PRESET_CENTER_LEFT
+			else Control.GROW_DIRECTION_BEGIN
+		)
 	)
 
 

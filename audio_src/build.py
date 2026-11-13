@@ -73,6 +73,12 @@ EVENT_DEFAULTS = {
     "discovery": dict(bus="Discovery", priority=95, max_instances=1, cooldown=0.5, positional=False, max_distance=0.0),
     "field": dict(bus="SFX", priority=90, max_instances=1, cooldown=0.5, positional=False, max_distance=0.0),
     "antecedent": dict(bus="Units", priority=68, max_instances=2, cooldown=0.3, positional=True, max_distance=110.0),
+    # Stealth (Phase 5): flat alert stingers on their own bus, which the
+    # discovery duck leaves alone so a spotted sting always reads.
+    # Beds loop under the briefing and debrief panels on their own player
+    # (MissionSoundRouter -> MusicDirector.play_bed); the event only names the stream.
+    "bed": dict(bus="Music", priority=100, max_instances=1, cooldown=0.0, positional=False, max_distance=0.0),
+    "stealth": dict(bus="Stealth", priority=96, max_instances=1, cooldown=0.4, positional=False, max_distance=0.0),
 }
 EVENT_OVERRIDES = {
     "ui_hover": dict(priority=20, max_instances=1, cooldown=0.06),
@@ -121,6 +127,25 @@ EVENT_OVERRIDES = {
     "signal_pulse": dict(max_distance=80.0, priority=45),
     # Played with the antecedent resolve phrase, which ducks the Music bus.
     "mus_swell_antecedent": dict(bus="Discovery"),
+    # Phase 5. Suspicion tones are driven by SuspicionTones (level and pitch
+    # follow suspicion); cloak sounds sit on the Wisp.
+    "stealth_suspicion": dict(positional=True, max_distance=70.0, priority=50, max_instances=2, cooldown=0.0),
+    "stealth_cloak_engage": dict(positional=True, max_distance=60.0, priority=65, max_instances=2, cooldown=0.1),
+    "stealth_cloak_disengage": dict(positional=True, max_distance=60.0, priority=65, max_instances=2, cooldown=0.1),
+    "stealth_spotted": dict(priority=110, cooldown=0.6),
+    "stealth_alert_alarm": dict(priority=105, cooldown=2.0),
+    "stealth_alert_suspicious": dict(cooldown=1.5),
+    "stealth_all_clear": dict(cooldown=1.5),
+    "ui_briefing_tick": dict(priority=15, max_instances=1, cooldown=0.03),
+    "ui_objective_tick": dict(cooldown=0.25, max_instances=1),
+    "advisor_objective_done_secondary": dict(cooldown=0.5),
+    "weapon_wisp_fire": dict(priority=38, max_instances=2, cooldown=0.08, max_distance=50.0),
+    "weapon_lancer_fire": dict(priority=54, max_instances=2, cooldown=0.12, max_distance=85.0),
+    "weapon_arc_fire": dict(priority=58, max_instances=2, cooldown=0.2, max_distance=110.0),
+    "death_wisp": dict(priority=66, max_instances=2, cooldown=0.1),
+    "death_lancer": dict(priority=66, max_instances=2, cooldown=0.1),
+    "death_arc": dict(priority=72, max_instances=2, cooldown=0.15, max_distance=140.0),
+    "move_wisp": dict(max_instances=2, max_distance=30.0),
 }
 
 

@@ -10,7 +10,8 @@ extends Node
 ## player's faction (resource_depleted for anyone: deposits are neutral).
 ## Advisor alerts go through an AdvisorQueue (throttled, never stacked, and
 ## place alerts such as under_attack skipped while the camera shows the place).
-## Combat events (fire, impacts, deaths) are the CombatSoundRouter's.
+## Combat events (fire, impacts, deaths) are the CombatSoundRouter's; the
+## objective Advisor kinds (objective_new/_done/_failed) the MissionSoundRouter's.
 
 const BUILDINGS_GROUP: StringName = &"buildings"
 ## A production_started this soon after the same producer finished a unit is
@@ -182,6 +183,8 @@ func _on_resource_depleted(node: Node3D) -> void:
 
 
 func _on_advisor_alert(kind: StringName) -> void:
+	if kind in MissionSoundRouter.OBJECTIVE_ALERTS:
+		return  # voiced by the MissionSoundRouter with the objective signals
 	var at: Vector3 = alert_position.call(kind)
 	offer_advisor_alert(kind, _now(), at)
 

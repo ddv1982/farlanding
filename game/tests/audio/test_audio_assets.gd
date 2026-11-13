@@ -35,9 +35,27 @@ const LOOPS: Array[String] = [
 	"res://assets/audio/discovery/signal_pulse.wav",
 	"res://assets/audio/discovery/scan_loop.wav",
 	"res://assets/audio/music/kessel/mus_kessel_explore_trail.ogg",
+	"res://assets/audio/movement/move_phantom.wav",
+	"res://assets/audio/movement/move_strider.wav",
+	"res://assets/audio/movement/move_crawler.wav",
+	"res://assets/audio/stealth/stealth_suspicion.wav",
+	"res://assets/audio/music/kessel/mus_kessel_stealth_hush.ogg",
+	"res://assets/audio/music/kessel/mus_kessel_stealth_watch.ogg",
+	"res://assets/audio/music/kessel/mus_kessel_storm.ogg",
+	"res://assets/audio/music/beds/mus_briefing_bed.ogg",
+	"res://assets/audio/music/beds/mus_debrief_bed.ogg",
 ]
 const WEAPON_SETS: Array[String] = [
-	"repeater", "cannon", "light_gun", "sentry", "skitter_gun", "lance", "siege"
+	"repeater",
+	"cannon",
+	"light_gun",
+	"sentry",
+	"skitter_gun",
+	"lance",
+	"siege",
+	"wisp",
+	"lancer",
+	"arc"
 ]
 const MIX_RATE: float = 44100.0
 
@@ -69,7 +87,9 @@ func test_every_sound_event_is_playable() -> void:
 
 
 func test_every_unit_sound_set_has_its_replies() -> void:
-	for sound_set: String in ["surveyor", "ranger", "bulwark", "kite", "hauler", "fabricator"]:
+	for sound_set: String in [
+		"surveyor", "ranger", "bulwark", "kite", "hauler", "fabricator", "wisp", "lancer", "arc"
+	]:
 		for kind: String in ["select", "move", "attack"]:
 			var path: String = "%s/unit/unit_%s_%s.tres" % [EVENTS_DIR, sound_set, kind]
 			var event: SoundEvent = load(path) as SoundEvent

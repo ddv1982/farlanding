@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/concord_lancer.tscn" id="2_scene"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_unit_lancer.png" id="3_icon"]
+[ext_resource type="Resource" path="res://data/weapons/lancer_rail.tres" id="w_weapon"]
+
+[resource]
+script = ExtResource("1_def")
+armour_type = &"light"
+weapon = ExtResource("w_weapon")
+max_health = 200
+move_speed = 5.0
+turn_speed = 400.0
+vision_range = 20.0
+radius = 0.8
+acceleration = 14.0
+id = &"concord_lancer"
+display_name = "Lancer"
+faction = 0
+scene = ExtResource("2_scene")
+icon = ExtResource("3_icon")
+sound_set = &"lancer"
+description = "Anti-armour walker. Its rail lance punches through heavy hulls. Trained at the Muster Bay."
+cost_alloy = 110
+cost_flux = 25
+build_time = 13.0

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/weapon_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"arc_howitzer"
+display_name = "Howitzer"
+damage = 70.0
+damage_type = &"heavy"
+splash_radius = 4.5
+max_range = 40.0
+min_range = 12.0
+cooldown = 5.0
+salvo = 1
+salvo_spacing = 0.0
+projectile_speed = 20.0
+arc_height = 12.0
+fire_while_moving = false
+turret = true
+turn_speed = 60.0
+fire_arc = 8.0
+muzzle = Vector3(0, 2.4, -2.2)
+projectile_style = &"shell"
+impact_size = 4.0
+sound_set = &"arc"

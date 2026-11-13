@@ -14,6 +14,9 @@ extends RefCounted
 ##   listener focus is within ON_SCREEN_RADIUS of it; the player is looking at
 ##   the fight. A dropped alert does not start the throttle, so the warning
 ##   still comes once the camera moves away.
+## - Families: kinds in one FAMILY share their throttle (a primary and a
+##   secondary objective completing together, or gameplay raising
+##   objective_new as the objective signal arrives, speak once).
 ##
 ## Use: `push(kind, now, position)` when an alert arrives (set `focus` first);
 ## every frame, `pop_ready(now)` and, if it returns a kind, play it and call
@@ -31,6 +34,15 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"under_attack": 20.0,
 	&"discovery": 4.0,
 	&"field_option_ready": 20.0,
+	&"objective_new": 2.5,
+	&"objective_hidden": 2.5,
+	&"objective_done": 2.0,
+	&"objective_done_secondary": 2.0,
+	&"objective_failed": 2.0,
+	&"storm_warning": 8.0,
+	&"storm_final": 8.0,
+	&"objective_time_low": 10.0,
+	&"detected": 10.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -44,6 +56,20 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"building_placed": 20,
 	&"discovery": 70,
 	&"field_option_ready": 45,
+	&"detected": 115,
+	&"storm_final": 112,
+	&"storm_warning": 110,
+	&"objective_failed": 105,
+	&"objective_time_low": 100,
+	&"objective_done": 90,
+	&"objective_hidden": 85,
+	&"objective_done_secondary": 75,
+	&"objective_new": 72,
+}
+## Kind -> the family whose throttle it shares (kinds not listed are their own).
+const FAMILY: Dictionary[StringName, StringName] = {
+	&"objective_hidden": &"objective_new",
+	&"objective_done_secondary": &"objective_done",
 }
 ## Kind -> the queued kind it makes stale.
 const SUPERSEDES: Dictionary[StringName, StringName] = {
@@ -74,6 +100,11 @@ static func throttle_of(kind: StringName) -> float:
 	return seconds
 
 
+static func family_of(kind: StringName) -> StringName:
+	var family: StringName = FAMILY.get(kind, kind)
+	return family
+
+
 static func priority_of(kind: StringName) -> int:
 	var priority: int = PRIORITY.get(kind, DEFAULT_PRIORITY)
 	return priority
@@ -92,7 +123,7 @@ func is_on_screen(position: Vector3) -> bool:
 func push(kind: StringName, now: float, position: Vector3 = Vector3.INF) -> bool:
 	if kind == &"":
 		return false
-	var last: float = _last_accepted.get(kind, -INF)
+	var last: float = _last_accepted.get(family_of(kind), -INF)
 	if now - last < throttle_of(kind):
 		return false
 	if kind in PLACE_KINDS and is_on_screen(position):
@@ -111,7 +142,7 @@ func push(kind: StringName, now: float, position: Vector3 = Vector3.INF) -> bool
 		_remove_at(weakest)
 	_kinds.append(kind)
 	_times.append(now)
-	_last_accepted[kind] = now
+	_last_accepted[family_of(kind)] = now
 	return true
 
 

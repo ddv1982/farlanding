@@ -33,3 +33,15 @@ func seen_enemies(center: Vector3, radius: float) -> Array[Node3D]:
 		if not Factions.is_custodian(Combat.faction_of(entity)):
 			seen.append(entity)
 	return seen
+
+
+func alert_level() -> StringName:
+	if world.stealth == null:
+		return StealthSystem.LEVEL_UNAWARE
+	return world.stealth.alert_level(faction)
+
+
+func alert_position() -> Vector3:
+	if world.stealth == null:
+		return Vector3.INF
+	return world.stealth.alert_position(faction)

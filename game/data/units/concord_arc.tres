@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/concord_arc.tscn" id="2_scene"]
+[ext_resource type="Texture2D" path="res://assets/icons/concord_unit_arc.png" id="3_icon"]
+[ext_resource type="Resource" path="res://data/weapons/arc_howitzer.tres" id="w_weapon"]
+
+[resource]
+script = ExtResource("1_def")
+armour_type = &"light"
+weapon = ExtResource("w_weapon")
+max_health = 240
+move_speed = 4.0
+turn_speed = 120.0
+vision_range = 16.0
+radius = 1.4
+acceleration = 5.0
+id = &"concord_arc"
+display_name = "Arc"
+faction = 0
+scene = ExtResource("2_scene")
+icon = ExtResource("3_icon")
+sound_set = &"arc"
+description = "Wheeled artillery. Lobs slow shells far beyond its own sight; cannot hit anything closer than 12 m. Built at the Foundry."
+cost_alloy = 240
+cost_flux = 90
+build_time = 26.0

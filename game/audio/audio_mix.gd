@@ -10,6 +10,7 @@ const SETTING_FOR_BUS: Dictionary[StringName, StringName] = {
 	&"Ambience": &"sfx_volume",
 	&"SFX": &"sfx_volume",
 	&"Discovery": &"sfx_volume",
+	&"Stealth": &"sfx_volume",
 	&"Voice": &"sfx_volume",
 	&"UI": &"ui_volume",
 }

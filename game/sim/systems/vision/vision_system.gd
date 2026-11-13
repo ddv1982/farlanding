@@ -23,6 +23,8 @@ const EXPOSE_RADIUS: float = 3.0
 
 var grid: VisionGrid
 var player_faction: int = 0
+## Hides low-signature units their enemies have not spotted (null = no stealth).
+var stealth: StealthSystem = null
 ## Wall-clock cost of the last faction update (grid plus applying the view), in µs.
 var last_update_usec: int = 0
 
@@ -136,6 +138,8 @@ func can_see(faction: int, entity: Node3D) -> bool:
 	var building: Building = entity as Building
 	if building != null:
 		return grid.is_area_visible(faction, building.footprint())
+	if stealth != null and stealth.is_concealed(faction, entity as Unit):
+		return false
 	return grid.is_visible(faction, AttackCommand.position_of(entity))
 
 
@@ -153,7 +157,11 @@ func apply_player_view(
 
 func refresh_unit(unit: Unit) -> void:
 	var seen: bool = (
-		unit.faction == player_faction or grid.is_visible(player_faction, unit.sim_position())
+		unit.faction == player_faction
+		or (
+			grid.is_visible(player_faction, unit.sim_position())
+			and (stealth == null or not stealth.is_concealed(player_faction, unit))
+		)
 	)
 	unit.is_visible_to_player = seen
 	unit.visible = seen
