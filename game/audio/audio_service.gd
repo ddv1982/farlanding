@@ -37,6 +37,12 @@
 ## Phase 8c adds Verdance: the CanopySound (child "Canopy": the player's units
 ## rustling under the crowns, and the ambience's high band closing while the
 ## camera looks under one, applied here with the storm's muffle).
+## Phase 8d adds Hollow Meridian: the CoreSound (child "Core": the score's Core
+## layers by charge, and the awakening, the campaign's peak, on its own player;
+## the victory sting is left out while it rings), the MachineSound (child
+## "Machines": the old engines' spin-up, wind-down and the enemy's seizure, and
+## the running engines' hum; BaseLoops leaves those machines alone) and screen
+## music (ScreenMusic: a campaign screen with a score of its own, the ending).
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -112,6 +118,8 @@ var _tide: TideSound
 var _eruption: EruptionSound
 var _holdout: HoldoutSound
 var _canopy: CanopySound
+var _core: CoreSound
+var _machines: MachineSound
 ## Canopy shade over the camera's focus (0 open .. 1 under a crown).
 var _shade: float = 0.0
 
@@ -242,6 +250,19 @@ func _ready() -> void:
 	_canopy.play_at = func(event_id: StringName, at: Vector3) -> bool: return play_at(event_id, at)
 	_canopy.set_shade = _set_canopy_shade
 	add_child(_canopy)
+	_core = CoreSound.new()
+	_core.name = &"Core"
+	_core.resolve_event = get_event
+	_core.set_music_gain = _music.set_layer_gain
+	_core.dip_music = _music.dip_for
+	add_child(_core)
+	_machines = MachineSound.new()
+	_machines.name = &"Machines"
+	_machines.resolve_event = get_event
+	_machines.play_at = func(event_id: StringName, at: Vector3) -> bool:
+		return play_at(event_id, at)
+	add_child(_machines)
+	_base_loops.claimed = _machines.is_tracked
 	_campaign = CampaignSoundRouter.new()
 	_campaign.name = &"CampaignRouter"
 	_campaign.play_first = play_first
@@ -297,6 +318,7 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 	_ambience.focus = focus
 	_eruption.focus = focus
 	_canopy.focus = focus
+	_machines.focus = focus
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 
@@ -349,10 +371,16 @@ func _show_screen(screen: StringName) -> void:
 		_leave_ship(true)
 		return
 	var state: StringName = CampaignCues.music_state(screen)
+	var score: MusicScore = _ship_score
+	var own: ScreenMusic = ScreenMusic.find(screen)  # a screen with its own score (the ending)
+	if own != null:
+		score = own.score
+		state = own.state
 	if not _missions.is_menu_open():
 		_music.stop_bed()  # the debrief's bed, or a hand-over dip
 	if _ship:
-		_music.switch_score(_ship_score, state)
+		if score != null:
+			_music.switch_score(score, state)
 		_ambience.set_ship_screen(screen)
 		return
 	_ship = true
@@ -363,8 +391,9 @@ func _show_screen(screen: StringName) -> void:
 	_eruption.handle_mission_started()  # and the vents
 	_holdout.handle_mission_started()
 	_canopy.handle_mission_started()
-	if _ship_score != null:
-		_music.switch_score(_ship_score, state)
+	_machines.handle_mission_started()
+	if score != null:
+		_music.switch_score(score, state)
 	_ambience.start_ship(screen)
 	_apply_volumes()
 
@@ -486,7 +515,7 @@ func stop_all_voices() -> void:
 	for i: int in _positional_players.size():
 		_positional_players[i].stop()
 		_positional_budget.release(i)
-	for node: Node in [_loops, _base_loops, _pulses, _tones]:
+	for node: Node in [_loops, _base_loops, _pulses, _tones, _machines]:
 		ShutdownGuard._stop_all(node)
 	_ducker = BusDucker.new()
 	_ducking = false
@@ -621,6 +650,8 @@ func _apply_volumes() -> void:
 func _end_music(won: bool) -> void:
 	_storm.handle_mission_ended(won)
 	_music.force_state(MusicMood.VICTORY if won else MusicMood.DEFEAT)
+	if _core.is_peaking():
+		return  # the Core's awakening is the victory: no sting over it
 	var storm_level: float = maxf(_storm.intensity(), _storm.cues.target)
 	var played: StringName = play_first(
 		_voiced(StormCues.ending_stings(won, storm_level, _outsurveyed))

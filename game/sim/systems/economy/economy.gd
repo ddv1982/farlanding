@@ -11,6 +11,9 @@ const SAVE_VERSION: int = 1
 
 var rules: EconomyRules
 var player_faction: int = 0
+## Share of their power output buildings that are not Antecedent machines give (a
+## planet rule may cut it: Hollow Meridian, ADR 0017).
+var power_scale: float = 1.0
 
 var _stockpiles: Dictionary[int, Stockpile] = {}
 
@@ -108,7 +111,10 @@ func update_power(buildings: Array[Building]) -> void:
 		if building.def == null or not building.is_operational() or building.is_dead:
 			continue
 		var total: Vector2i = totals.get(building.faction, Vector2i.ZERO)
-		total += Vector2i(building.def.power_output, building.def.power_use)
+		var output: int = building.def.power_output
+		if not building.def.machine:
+			output = roundi(output * power_scale)
+		total += Vector2i(output, building.def.power_use)
 		totals[building.faction] = total
 	for faction: int in totals:
 		set_power(faction, totals[faction].x, totals[faction].y)

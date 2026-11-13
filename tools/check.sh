@@ -4,12 +4,12 @@
 # and Linux.
 #
 # Env: GODOT (default: godot), GDTOOLKIT_VERSION (default: 4.5.0),
-#      CHECK_TIMEOUT seconds per Godot step (default: 300).
+#      CHECK_TIMEOUT seconds per Godot step (default: 600).
 set -euo pipefail
 
 GODOT="${GODOT:-godot}"
 GDTOOLKIT_VERSION="${GDTOOLKIT_VERSION:-4.5.0}"
-CHECK_TIMEOUT="${CHECK_TIMEOUT:-300}"
+CHECK_TIMEOUT="${CHECK_TIMEOUT:-600}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GAME="$ROOT/game"

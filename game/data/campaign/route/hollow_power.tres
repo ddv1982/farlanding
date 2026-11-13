@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/hollow_meridian.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/hollow_power.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"hollow_power"
+title = "Power Up"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.95, 0.6)
+leads_to = Array[StringName]([&"hollow_finale"])
+excludes = Array[StringName]([])
+scan_summary = "The trail's last bearing: a built world of plated decks over bottomless chasms. Old engines stand on the deck, dormant and guarded, and the Combine is already landing."
+intel_notes = "Wake and hold the deck's engines; no Reactors here. Custodians guard every engine. The last beacon stands on the western deck."
+placeholder = false

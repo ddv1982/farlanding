@@ -28,7 +28,8 @@ func is_working() -> bool:
 
 
 ## True if `building` is something this unit may sabotage: a finished, working
-## building of another (non-Custodian) faction.
+## building of another (non-Custodian) faction. Never an Antecedent engine: it changes
+## hands and would stay dead for whoever took it.
 static func can_sabotage(building: Variant, faction: int) -> bool:
 	if not is_instance_valid(building) or not building is Building:
 		return false
@@ -38,6 +39,7 @@ static func can_sabotage(building: Variant, faction: int) -> bool:
 		and not node.is_dead
 		and node.faction != faction
 		and not Factions.is_custodian(node.faction)
+		and node.machine == null
 		and node.is_operational()
 	)
 

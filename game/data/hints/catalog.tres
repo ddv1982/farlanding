@@ -119,6 +119,29 @@ text = "Talons fly straight over ridges, roots and the stream, and {command} ord
 trigger = &"selected"
 subject = &"concord_talon"
 
+[sub_resource type="Resource" id="h15"]
+script = ExtResource("1_hint")
+id = &"machinery"
+title = "Power from old machinery"
+text = "No Reactors here: power comes from the Antecedent engines on the deck. Select a Fabricator or a Surveyor and {command} an engine (or press REACTIVATE) to wake it; it then powers whoever runs it. Waking one stirs the Custodians around it, and they go for whoever woke them: bring an escort."
+mission_types = Array[StringName]([&"power", &"finale"])
+delay_seconds = 6.0
+
+[sub_resource type="Resource" id="h16"]
+script = ExtResource("1_hint")
+id = &"machine_online"
+title = "Holding an engine"
+text = "The engine runs for you now. The Combine can take it over the same way (a slower job, so guard it), or shoot it until it shuts down for a while. A shut-down engine restarts on its own, unless the enemy claims it first."
+trigger = &"machine_reactivated"
+
+[sub_resource type="Resource" id="h17"]
+script = ExtResource("1_hint")
+id = &"core"
+title = "Waking the Core"
+text = "The Core charges while you run enough engines and a Surveyor stands linked on the dais (the bar in the objectives). Every few steps of charge, more Custodians wake and converge on the dais. If the Combine links at the same time, nobody charges: clear the dais."
+trigger = &"core_charging"
+mission_types = Array[StringName]([&"finale"])
+
 [resource]
 script = ExtResource("2_catalog")
-hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10"), SubResource("h11"), SubResource("h12"), SubResource("h13"), SubResource("h14")])
+hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10"), SubResource("h11"), SubResource("h12"), SubResource("h13"), SubResource("h14"), SubResource("h15"), SubResource("h16"), SubResource("h17")])

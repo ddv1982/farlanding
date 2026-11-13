@@ -16,6 +16,10 @@ extends Node
 ## Quit; the sim clock and the camera stop) quits to the star map in a campaign and to
 ## the mission select otherwise.
 ##
+## When the campaign's last landing is won (ADR 0017), Back from the debrief opens the
+## ending screen, which returns to the title; Continue on a finished campaign opens it
+## again.
+##
 ## Saved landings (ADR 0013): F5 quicksaves and F9 quickloads in a mission, the pause
 ## menu saves into and loads from any slot, a campaign landing is autosaved as it
 ## starts, and the title's Continue picks the newest of the campaign autosave and the
@@ -62,6 +66,7 @@ var _star_map: StarMap
 var _meridian: MeridianScreen
 var _briefing: BriefingPanel
 var _debrief: DebriefPanel
+var _ending: EndingScreen
 var _pause: PauseMenu
 var _settings: SettingsPanel
 var _hints: TutorialHints
@@ -118,6 +123,10 @@ func _ready() -> void:
 	_layer.add_child(_debrief)
 	_debrief.retry_pressed.connect(_on_retry)
 	_debrief.back_pressed.connect(_back_from_landing)
+	_ending = EndingScreen.new()
+	_ending.name = &"Ending"
+	_layer.add_child(_ending)
+	_ending.title_pressed.connect(show_title)
 	_hints = TutorialHints.new()
 	_hints.name = &"TutorialHints"
 	_layer.add_child(_hints)
@@ -216,7 +225,24 @@ func continue_campaign() -> void:
 		_title.open(false)
 		return
 	campaign = loaded
+	if loaded.state.is_complete():
+		# The Trail is done: there is no landing left to go to, only the ending.
+		show_ending()
+		return
 	show_star_map()
+
+
+## The end of a finished campaign (ADR 0017): what the Beacon Core showed, the
+## campaign's numbers, and the way back to the title. Over the star backdrop.
+func show_ending() -> void:
+	if campaign == null:
+		show_title()
+		return
+	_close_map()
+	_show_only(_ending)
+	_show_backdrop(STAR_BACKDROP_SCENE)
+	_ending.open(campaign.state)
+	_set_screen(&"ending")
 
 
 ## Back to the mission list (any mission in play is closed; no campaign).
@@ -444,6 +470,9 @@ func _back_from_landing() -> void:
 		show_select()
 		return
 	campaign.abandon_landing()
+	if campaign.state.is_complete():
+		show_ending()
+		return
 	show_star_map()
 
 
@@ -476,7 +505,8 @@ func _on_mission_finished(result: MissionResult) -> void:
 	if runner != null and runner.context != null:
 		runner.context.sim_clock.paused = true
 	_hints.end_mission()
-	_debrief.show_result(result, banked)
+	var final: bool = campaign != null and campaign.state.is_complete() and result.won
+	_debrief.show_result(result, banked, final)
 	_debrief.visible = true
 
 
@@ -546,7 +576,7 @@ func _on_retry() -> void:
 
 ## Shows `page` (or nothing) of the full-screen menus; hides the others.
 func _show_only(page: Control) -> void:
-	for other: Control in [_title, _select, _star_map, _meridian, _briefing, _debrief]:
+	for other: Control in [_title, _select, _star_map, _meridian, _briefing, _debrief, _ending]:
 		other.visible = other == page
 
 
@@ -583,6 +613,7 @@ func _show_backdrop(path: String) -> void:
 	_star_map.set_see_through(backdrop != null)
 	_meridian.set_see_through(backdrop != null)
 	_briefing.set_see_through(backdrop != null)
+	_ending.set_see_through(backdrop != null)
 
 
 func _free_backdrop() -> void:

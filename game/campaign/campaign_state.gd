@@ -83,6 +83,31 @@ func buy(tech_id: StringName) -> bool:
 	return true
 
 
+## True once the campaign's final landing is won: the Trail is complete (ADR 0017).
+func is_complete() -> bool:
+	return def != null and def.final_node != &"" and won.has(def.final_node)
+
+
+## The campaign's numbers for the ending screen: landings won and made, Intel banked
+## in all, discoveries made, techs owned.
+func statistics() -> Dictionary[StringName, int]:
+	var attempts: int = 0
+	var banked: int = 0
+	for node_id: StringName in results:
+		var entry: Dictionary = results[node_id]
+		var tries: int = entry.get("attempts", 0)
+		var intel_banked: int = entry.get("intel_banked", 0)
+		attempts += tries
+		banked += intel_banked
+	return {
+		&"landings_won": won.size(),
+		&"landings_made": attempts,
+		&"intel_banked": banked,
+		&"discoveries": discoveries.size(),
+		&"techs": techs.size(),
+	}
+
+
 ## Tech ids the player could buy right now.
 func affordable_techs() -> Array[StringName]:
 	var result: Array[StringName] = []

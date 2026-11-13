@@ -15,6 +15,8 @@ extends Resource
 @export var locked_at_start: Array[StringName] = []
 ## Share of the stockpiled Intel a lost landing still banks (0 = none).
 @export_range(0.0, 1.0, 0.05) var lost_landing_share: float = 0.0
+## The landing that ends the campaign once won (the Beacon Core, ADR 0017); &"" = none.
+@export var final_node: StringName = &""
 
 
 func node(node_id: StringName) -> RouteNodeDef:

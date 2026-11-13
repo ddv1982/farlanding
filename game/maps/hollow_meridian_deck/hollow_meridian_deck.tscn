@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://maps/landing_map.tscn" id="1_base"]
+[ext_resource type="PackedScene" path="res://maps/hollow_meridian_deck/hollow_visuals.tscn" id="2_visuals"]
+[ext_resource type="Resource" path="res://data/maps/hollow_meridian_deck_map.tres" id="3_map"]
+
+[node name="HollowMeridianDeck" instance=ExtResource("1_base")]
+map_def = ExtResource("3_map")
+
+[node name="HollowVisuals" parent="." instance=ExtResource("2_visuals")]

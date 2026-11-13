@@ -105,3 +105,18 @@ func test_scouts_go_to_unexplored_ground_far_from_home_first() -> void:
 	knowledge.block_sector_at(second, 500)
 	var third: Vector3 = knowledge.next_scout_point(first, home, 20, 1000)
 	assert_ne(third, second, "an unreachable sector is skipped for a while")
+
+
+func test_a_unit_a_mission_script_commands_is_never_an_idle_builder() -> void:
+	_f.building(_f.hub, Vector3(80, 0, 80))
+	var rigger: Unit = _f.unit(_f.builder, Vector3(70, 0, 70))
+	_start_commander()
+	_look()
+	assert_true(_commander.build_view(1000).idle_builders.has(rigger))
+	_commander.hands_off[rigger.entity_id] = true
+	assert_false(_commander.build_view(1000).idle_builders.has(rigger))
+	var soldier: Unit = _f.unit(_f.combat.soldier, Vector3(72, 0, 72))
+	_look()
+	assert_true(_commander.build_view(1000).guards.has(soldier))
+	_commander.hands_off[soldier.entity_id] = true
+	assert_false(_commander.build_view(1000).guards.has(soldier), "nor one of its guards")

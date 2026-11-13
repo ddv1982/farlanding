@@ -25,6 +25,11 @@ const ERUPTION_DAMAGE: StringName = &"eruption_damage"
 const VENT_COOLDOWN: StringName = &"vent_cooldown"
 ## How close an observer of the faction sees a unit under a tree crown (ADR 0016).
 const CANOPY_SIGHT: StringName = &"canopy_sight"
+## How fast the faction's units reactivate or take over an Antecedent engine (ADR 0017).
+const REACTIVATION_RATE: StringName = &"reactivation_rate"
+## How far the faction's units disturb dormant Custodians: their wake radius and the
+## radius a reactivation wakes (ADR 0017).
+const CUSTODIAN_DISTURB: StringName = &"custodian_disturb"
 const STATS: Array[StringName] = [
 	MAX_HEALTH,
 	VISION_RANGE,
@@ -36,6 +41,8 @@ const STATS: Array[StringName] = [
 	ERUPTION_DAMAGE,
 	VENT_COOLDOWN,
 	CANOPY_SIGHT,
+	REACTIVATION_RATE,
+	CUSTODIAN_DISTURB,
 ]
 
 static var _none: FactionPerks = null

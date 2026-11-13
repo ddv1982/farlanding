@@ -30,12 +30,14 @@ func _kinds(mission: MissionDef) -> Array[StringName]:
 
 func test_catalog_lists_the_kessel_missions_and_recovery() -> void:
 	var catalog: MissionCatalog = load(CATALOG)
-	assert_eq(catalog.missions.size(), 8)
+	assert_eq(catalog.missions.size(), 10)
 	assert_eq(catalog.missions[3].id, &"thalassa_recovery")
 	assert_eq(catalog.missions[4].id, &"emberfall_conquest")
 	assert_eq(catalog.missions[5].id, &"emberfall_holdout")
 	assert_eq(catalog.missions[6].id, &"verdance_conquest")
 	assert_eq(catalog.missions[7].id, &"verdance_infiltration")
+	assert_eq(catalog.missions[8].id, &"hollow_power")
+	assert_eq(catalog.missions[9].id, &"hollow_finale")
 	for mission: MissionDef in catalog.missions:
 		assert_not_null(mission.map_scene, String(mission.id))
 		assert_ne(mission.title, "")

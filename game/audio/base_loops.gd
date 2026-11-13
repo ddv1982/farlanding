@@ -36,6 +36,9 @@ extends Node
 ## else `artefact`) wherever it is, carried or lying down, while the player
 ## can hear it: always if it has no `is_visible_to_player`, else while that is
 ## true. The Recovery artefact hums `loop_hum_artefact`.
+##
+## Nodes that `claimed` answers true for are left alone: another router owns
+## their sound (Phase 8d: Hollow Meridian's engines, MachineSound).
 
 const BUILDINGS_GROUP: StringName = &"buildings"
 const UNITS_GROUP: StringName = &"units"
@@ -67,6 +70,8 @@ var resolve_event: Callable = func(_id: StringName) -> SoundEvent: return null
 ## Plays a positional one-shot (the wake): `func(id: StringName, at: Vector3) -> bool`.
 var play_at: Callable = func(_id: StringName, _at: Vector3) -> bool: return false
 var player_faction: int = 0
+## True for nodes whose loops another router plays: `func(node: Node) -> bool`.
+var claimed: Callable = func(_node: Node) -> bool: return false
 
 var _players: Array[AudioStreamPlayer3D] = []
 var _owners: Array[Node3D] = []
@@ -195,7 +200,7 @@ func rescan() -> void:
 	for group: StringName in [BUILDINGS_GROUP, UNITS_GROUP, ARTEFACTS_GROUP]:
 		for node: Node in get_tree().get_nodes_in_group(group):
 			var entity: Node3D = node as Node3D
-			if entity == null or not entity.is_inside_tree():
+			if entity == null or not entity.is_inside_tree() or claimed.call(entity):
 				continue
 			var loop_id: StringName = &""
 			if group == ARTEFACTS_GROUP:

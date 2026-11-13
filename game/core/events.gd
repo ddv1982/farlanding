@@ -154,9 +154,23 @@ signal tide_changed(level: float)
 ## faction's ground units.
 signal canopy_cover_changed(unit: Node3D, covered: bool)
 
+## `faction` brought the Antecedent machine `machine` back to life (Hollow Meridian:
+## an engine that now gives that faction power).
+signal machine_reactivated(machine: Node3D, faction: int)
+
+## `machine` stopped working for `faction` (taken over by another faction or shut down).
+signal machine_lost(machine: Node3D, faction: int)
+
+## The Beacon Core's charge changed: 0 = dormant, 1 = awake. Emitted as it moves, a
+## few times a second at most.
+signal core_charge_changed(fraction: float)
+
+## The Beacon Core `core` is awake: the end of the Trail.
+signal core_awakened(core: Node3D)
+
 ## The campaign shows another screen: &"title", &"star_map", &"meridian",
-## &"tech_web", &"loadout", or &"" when a landing (briefing, mission, debrief)
-## takes over.
+## &"tech_web", &"loadout", &"ending" (the campaign is complete), or &"" when a
+## landing (briefing, mission, debrief) takes over.
 signal campaign_screen_changed(screen: StringName)
 
 ## The player bought `tech` (a TechDef) on the tech web. Permanent for the campaign.
@@ -165,6 +179,10 @@ signal tech_unlocked(tech: Resource)
 ## A landing ended and its result was written into the campaign: `node` is the
 ## route node (a RouteNodeDef), `intel_banked` what the landing brought home.
 signal landing_resolved(node: Resource, won: bool, intel_banked: int)
+
+## The campaign's last landing was won: the Trail is complete (ADR 0017). The ending
+## screen follows once the debrief is closed.
+signal campaign_completed
 
 ## The campaign was written to disk (`slot` names the save).
 signal campaign_saved(slot: StringName)

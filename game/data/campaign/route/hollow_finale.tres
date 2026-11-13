@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/hollow_meridian.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/hollow_finale.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"hollow_finale"
+title = "The Beacon Core"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.94, 0.93)
+leads_to = Array[StringName]([])
+excludes = Array[StringName]([])
+scan_summary = "The Beacon Core on the dais at the centre of the deck. It answers whoever runs the engines and stands beside it."
+intel_notes = "The last landing. Charge the Core with four engines and a Surveyor on the dais, before the Combine does. Every Custodian on the deck will come."
+placeholder = false

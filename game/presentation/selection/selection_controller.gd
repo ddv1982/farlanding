@@ -37,6 +37,7 @@ const CURSOR_FOR_ACTION: Dictionary[StringName, StringName] = {
 	SelectionRules.CLICK_RALLY: CursorIcons.RALLY,
 	SelectionRules.CLICK_SABOTAGE: CursorIcons.SABOTAGE,
 	SelectionRules.CLICK_CARRY: CursorIcons.ASSIST,
+	SelectionRules.CLICK_REACTIVATE: CursorIcons.ASSIST,
 }
 
 @export var camera: RtsCamera
@@ -178,6 +179,10 @@ func apply_click(button: MouseButton, target: Node3D, ground: Vector3, shift: bo
 			_issue_on_target(ScanCommand.new(player_faction, [], target, shift), target, shift)
 		SelectionRules.CLICK_SABOTAGE:
 			_issue_on_target(SabotageCommand.new(player_faction, [], target, shift), target, shift)
+		SelectionRules.CLICK_REACTIVATE:
+			_issue_on_target(
+				ReactivateCommand.new(player_faction, [], target, shift), target, shift
+			)
 		SelectionRules.CLICK_CARRY:
 			var carriers: Array[Node3D] = []
 			carriers.assign(SelectionRules.able(selection, Carrier.KIND))

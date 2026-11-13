@@ -38,9 +38,19 @@ func tick() -> void:
 		if other_unit == null or other_unit.faction == unit.faction or other_unit.is_dead:
 			continue
 		var there: Vector3 = other_unit.sim_position()
-		if Vector2(there.x - at.x, there.z - at.z).length() <= unit.def.wake_radius:
+		# A faction may tread more quietly (ADR 0017: the `custodian_disturb` perk).
+		var reach: float = unit.def.wake_radius * _disturb_scale(other_unit)
+		if Vector2(there.x - at.x, there.z - at.z).length() <= reach:
 			wake()
 			return
+
+
+func _disturb_scale(intruder: Unit) -> float:
+	if intruder.def == null:
+		return 1.0
+	return FactionPerks.of(unit.world.perks, intruder.faction).scale(
+		intruder.def.id, FactionPerks.CUSTODIAN_DISTURB
+	)
 
 
 func wake() -> void:

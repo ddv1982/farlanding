@@ -11,10 +11,15 @@ const TYPE_INFILTRATION: StringName = &"infiltration"
 const TYPE_RECOVERY: StringName = &"recovery"
 ## Keep a site alive until extraction (PLAN 2.6, ADR 0015).
 const TYPE_HOLDOUT: StringName = &"holdout"
+## Hold the deck's power: run enough Antecedent engines long enough (ADR 0017).
+const TYPE_POWER: StringName = &"power"
+## The campaign's last landing: wake the Beacon Core (ADR 0017).
+const TYPE_FINALE: StringName = &"finale"
 
 @export var id: StringName = &""
 @export var title: String = ""
-## &"conquest", &"survey", &"infiltration", &"recovery", &"holdout".
+## &"conquest", &"survey", &"infiltration", &"recovery", &"holdout", &"power",
+## &"finale".
 @export var mission_type: StringName = TYPE_CONQUEST
 ## One line for the mission list.
 @export var summary: String = ""

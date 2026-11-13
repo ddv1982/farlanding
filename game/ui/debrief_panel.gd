@@ -54,9 +54,12 @@ func _ready() -> void:
 
 ## Shows `result`. In a campaign (`banked` >= 0, the Intel the landing banked) Back
 ## returns to the star map, and a won landing cannot be retried.
-func show_result(result: MissionResult, banked: int = -1) -> void:
+func show_result(result: MissionResult, banked: int = -1, final: bool = false) -> void:
 	var in_campaign: bool = banked >= 0
 	_back.text = "BACK TO STAR MAP" if in_campaign else "BACK TO MISSIONS"
+	if final:
+		# The campaign's last landing was won: Back goes to the ending (ADR 0017).
+		_back.text = "THE END OF THE TRAIL"
 	_retry.visible = not (in_campaign and result.won)
 	Events.ui_feedback.emit(&"debrief_open")
 	_title.text = "Mission accomplished" if result.won else "Mission failed"

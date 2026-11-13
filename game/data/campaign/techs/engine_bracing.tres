@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TechDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e0"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e1"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+kind = &"scale"
+target = &"antecedent_engine"
+stat = &"max_health"
+factor = 1.5
+
+[resource]
+script = ExtResource("e0")
+id = &"engine_bracing"
+title = "Engine Bracing"
+description = "Deck plating bolted round every engine we run: our engines take half as much again before they shut down."
+branch = &"survey"
+intel_cost = 80
+requires = Array[StringName]([])
+requires_discovery = &"hollow_plate_seam"
+grid = Vector2i(1, 8)
+effects = Array[ExtResource("e1")]([SubResource("s0")])

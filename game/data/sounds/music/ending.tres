@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="MusicScore" format=3]
+
+[ext_resource type="Script" path="res://audio/music_score.gd" id="1_score"]
+[ext_resource type="Script" path="res://audio/music_clip.gd" id="2_clip"]
+[ext_resource type="Script" path="res://audio/music_state.gd" id="3_state"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/ending/mus_ending_pad.ogg" id="4_pad"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/ending/mus_ending_melody.ogg" id="5_melody"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/ending/mus_ending_bells.ogg" id="6_bells"]
+
+[sub_resource type="Resource" id="Resource_ending_clip"]
+script = ExtResource("2_clip")
+name = &"ending"
+layers = Array[AudioStream]([ExtResource("4_pad"), ExtResource("5_melody"), ExtResource("6_bells")])
+layer_names = PackedStringArray("pad", "melody", "bells")
+layer_groups = PackedStringArray("", "", "")
+loop_beats = 64
+
+[sub_resource type="Resource" id="Resource_ending"]
+script = ExtResource("3_state")
+name = &"ending"
+clip = &"ending"
+layer_volumes_db = PackedFloat32Array(0, 0, 0)
+intensity = 0
+fade_seconds = 4.0
+
+[resource]
+script = ExtResource("1_score")
+id = &"ending"
+clips = Array[ExtResource("2_clip")]([SubResource("Resource_ending_clip")])
+states = Array[ExtResource("3_state")]([SubResource("Resource_ending")])
+default_state = &"ending"
+transition_beats = 4.0
+min_hold = 0.0
+layer_fade = 4.0
+bpm = 60.0
+quantize_beats = 4.0

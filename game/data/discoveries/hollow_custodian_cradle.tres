@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/antecedent_site_ruin.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"hollow_custodian_cradle"
+display_name = "Custodian cradle"
+discovery_type = &"antecedent"
+scene = ExtResource("2")
+intel_reward = 80
+scan_time = 12.0
+radius = 3.0
+leads_to = &""
+codex_title = "Where the Custodians rest"
+codex_text = "A cradle of brass arms where a Custodian lay for repair, long ago. Its field still mends whatever stands in it. The arms keep a log of what woke each guardian: footsteps, mostly, and the hum of an engine coming back. A survey team that learns that rhythm can walk closer before anything stirs."
+payoff = &"heal_field"
+payoff_radius = 12.0
+payoff_amount = 10.0
+payoff_seconds = 90.0
+color = Color(0.75, 0.6, 1.0, 1)

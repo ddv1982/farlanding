@@ -21,6 +21,11 @@ uniform vec3 wet_tint : source_color = vec3(0.55, 0.62, 0.62);
 uniform float heat_level = -1000.0;
 uniform vec3 heat_color : source_color = vec3(1.0, 0.32, 0.05);
 
+// Built ground (the Antecedent deck): plates this many metres across with lit seams
+// between them. 0 = natural ground, no plates.
+uniform float panel_size = 0.0;
+uniform vec3 panel_glow : source_color = vec3(0.75, 0.9, 1.0);
+
 #include "fog.gdshaderinc"
 
 varying vec3 world_pos;
@@ -62,6 +67,21 @@ void fragment() {
 	float heat = smoothstep(heat_level + 1.5, heat_level, world_pos.y);
 	heat *= heat * (0.35 + 0.65 * smoothstep(0.45, 0.7, fine));
 	EMISSION = heat_color * heat * 2.5 * fog_at(world_pos).r;
+	if (panel_size > 0.0) {
+		// Seams: thin dark joints on a plate grid, every fourth one lit. Flat ground only.
+		vec2 cell = world_pos.xz / panel_size;
+		vec2 to_line = abs(fract(cell - 0.5) - 0.5) * panel_size;
+		float seam = 1.0 - smoothstep(0.03, 0.09, min(to_line.x, to_line.y));
+		vec2 major = abs(fract(cell / 4.0 - 0.5) - 0.5) * panel_size * 4.0;
+		float lit = 1.0 - smoothstep(0.05, 0.16, min(major.x, major.y));
+		float flat_ground = 1.0 - cliff;
+		ALBEDO *= 1.0 - 0.45 * seam * flat_ground;
+		float pulse = 0.75 + 0.25 * sin(TIME * 0.8 + (world_pos.x + world_pos.z) * 0.05);
+		// A chasm has no floor to see: everything fades to black a few metres down.
+		float depth = smoothstep(-9.0, -1.0, world_pos.y);
+		ALBEDO *= depth;
+		EMISSION += panel_glow * lit * flat_ground * pulse * 0.9 * depth * fog_at(world_pos).r;
+	}
 	NORMAL_MAP = texture(detail_normal, world_pos.xz / 7.0).rgb;
 	NORMAL_MAP_DEPTH = mix(0.55, 0.15, cliff);
 }

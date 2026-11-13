@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/kessel_site_formation.tscn" id="2"]
+[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="n_node"]
+
+[resource]
+script = ExtResource("1")
+id = &"hollow_plate_seam"
+display_name = "Sprung plate"
+discovery_type = &"geological"
+scene = ExtResource("2")
+intel_reward = 50
+scan_time = 9.0
+radius = 3.0
+leads_to = &""
+codex_title = "A sprung plate"
+codex_text = "One deck plate has lifted along its seam. Under it is not rock but more structure, layer on layer of worked alloy, and the alloy under the seam has come loose. The same plating, bolted round an engine, would keep it running through a long fight."
+payoff = &"deposit"
+payoff_node = ExtResource("n_node")
+payoff_offset = Vector3(0, 0, 9)
+color = Color(0.35, 0.92, 1.0, 1)

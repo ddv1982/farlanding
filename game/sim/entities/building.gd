@@ -21,7 +21,8 @@ signal aim_cleared
 signal sabotaged
 
 ## 4: whether the player has seen it (enemy buildings stay shown under fog).
-const SAVE_VERSION: int = 4
+## 5: an Antecedent machine's state (ADR 0017).
+const SAVE_VERSION: int = 5
 const GROUP: StringName = &"buildings"
 
 var def: BuildingDef
@@ -37,6 +38,8 @@ var vent: ResourceNode = null
 var health: Health = null
 ## Null for buildings without a defence weapon.
 var weapon: Weapon = null
+## Null unless the def is an Antecedent machine (ADR 0017).
+var machine: Machine = null
 ## False while the player cannot see this building now. Read by audio and UI.
 var is_visible_to_player: bool = true
 ## True once the player has seen it; an enemy building stays shown from then on.
@@ -49,6 +52,12 @@ var is_sabotaged: bool = false
 var is_dead: bool:
 	get:
 		return health != null and health.is_dead()
+
+## True for an Antecedent machine that is not running (dormant or shut down): it gives
+## nothing, and nothing targets it. Read by combat, the AI, UI and presentation.
+var is_inert: bool:
+	get:
+		return machine != null and not machine.is_running()
 
 ## Read by audio (base loops) and the HUD.
 var is_under_construction: bool:
@@ -99,6 +108,12 @@ func setup(complete: bool) -> void:
 	health.setup(roundi(max_health), def.armour_type, self)
 	health.changed.connect(health_changed.emit)
 	add_child(health)
+	if def.machine:
+		# Shut down, never destroyed: the MachinerySystem acts on empty health.
+		health.undying = true
+		machine = Machine.new()
+		machine.name = &"Machine"
+		add_child(machine)
 	if def.weapon != null:
 		weapon = Weapon.new()
 		weapon.name = &"Weapon"
@@ -115,7 +130,12 @@ func _ready() -> void:
 
 
 func is_operational() -> bool:
-	return construction != null and construction.is_complete() and not is_sabotaged
+	return (
+		construction != null
+		and construction.is_complete()
+		and not is_sabotaged
+		and (machine == null or machine.is_running())
+	)
 
 
 ## Disables the building for good (SimWorld.sabotage announces it).
@@ -196,6 +216,7 @@ func to_dict() -> Dictionary:
 		"sabotage": sabotage_progress,
 		"sabotaged": is_sabotaged,
 		"seen": seen_by_player,
+		"machine": machine.to_dict() if machine != null else {},
 	}
 
 
@@ -226,6 +247,9 @@ func from_dict(data: Dictionary) -> void:
 	sabotage_progress = data.get("sabotage", 0.0)
 	is_sabotaged = data.get("sabotaged", false)
 	seen_by_player = data.get("seen", seen_by_player)
+	var machine_data: Dictionary = data.get("machine", {})
+	if machine != null and not machine_data.is_empty():
+		machine.from_dict(machine_data)
 	if world != null and world.vision != null:
 		world.vision.refresh_building(self)
 

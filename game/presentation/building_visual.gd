@@ -21,6 +21,9 @@ const SPARK_COLOR := Color(2.4, 1.5, 0.5)
 var _meshes: Array[MeshInstance3D] = []
 var _dish: Node3D
 var _turret: Node3D
+## The model's lit part (an Antecedent machine's `active`), shown only while it runs.
+var _active_part: Node3D
+var _active: bool = true
 var _aim_point: Vector3 = Vector3.ZERO
 var _has_aim: bool = false
 var _ring: MeshInstance3D
@@ -51,7 +54,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if _dish != null:
+	if _dish != null and _active:
 		_dish.rotate_y(DISH_SPEED * delta)
 	if _turret != null:
 		# Building models keep their front towards +Z (see art/pipeline/fl.py).
@@ -97,6 +100,14 @@ func set_sabotaged(sabotaged: bool) -> void:
 		_sparks.emitting = sabotaged
 
 
+## An Antecedent machine runs (true) or is dormant or shut down: its lit part shows and
+## its ring turns only while it runs (ADR 0017).
+func set_active(active: bool) -> void:
+	_active = active
+	if _active_part != null:
+		_active_part.visible = active
+
+
 func set_selected(selected: bool) -> void:
 	_ring.visible = selected
 	_health_bar.set_selected(selected)
@@ -126,6 +137,8 @@ func _collect(node: Node) -> void:
 		_dish = node as Node3D
 	elif String(node.name) == "turret":
 		_turret = node as Node3D
+	elif String(node.name) == "active":
+		_active_part = node as Node3D
 	for child in node.get_children():
 		_collect(child)
 

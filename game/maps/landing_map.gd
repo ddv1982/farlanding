@@ -152,6 +152,7 @@ func _place_landing(paths: NavmeshPathService) -> void:
 	_make_runner()
 	if runner != null:
 		runner.spawn_structures()
+	_spawn_machines()
 	_spawn_sites()
 	paths.apply_cuts()
 	paths.prepare_flood_stages()
@@ -251,6 +252,15 @@ func _spawn_sites() -> void:
 			if modifiers != null and modifiers.charts(def.id):
 				charted = true
 			world.spawn_site(def, map_def.discovery_positions[i], charted)
+
+
+## The map's Antecedent machines (Hollow Meridian's engines), dormant and held by the
+## Custodians until somebody reactivates one (ADR 0017).
+func _spawn_machines() -> void:
+	if map_def.machine == null:
+		return
+	for point: Vector3 in map_def.machine_positions:
+		world.spawn_building(map_def.machine, Factions.CUSTODIANS, point, true)
 
 
 func _spawn_props() -> void:

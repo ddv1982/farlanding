@@ -220,7 +220,8 @@ func matches(entity: Node3D) -> bool:
 	if faction < 0 or not factions_of(def.side).has(faction):
 		return false
 	if def.defs.is_empty():
-		return true
+		# Antecedent engines cannot be destroyed: only an objective naming them counts them.
+		return not Combat.is_machine(entity)
 	var value: Variant = entity.get(&"def")
 	return value is EntityDef and def.defs.has(value)
 

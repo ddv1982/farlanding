@@ -30,8 +30,8 @@ static func evaluate(
 	var has_hq: bool = hq == null
 	var enemies: int = 0
 	for building: Building in buildings:
-		if not Combat.is_alive(building):
-			continue
+		if not Combat.is_alive(building) or building.machine != null:
+			continue  # Antecedent engines are never destroyed (ADR 0017)
 		if building.faction == faction:
 			has_hq = has_hq or building.def == hq
 		elif not Factions.is_custodian(building.faction):

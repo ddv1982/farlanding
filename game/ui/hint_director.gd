@@ -31,6 +31,8 @@ func setup(p_catalog: HintCatalog) -> void:
 	Events.eruption_warning.connect(_on_eruption_warning)
 	Events.alert_level_changed.connect(_on_alert_level_changed)
 	Events.canopy_cover_changed.connect(_on_canopy_cover_changed)
+	Events.machine_reactivated.connect(_on_machine_reactivated)
+	Events.core_charge_changed.connect(_on_core_charge_changed)
 
 
 ## Stops listening (the flow is being freed).
@@ -45,6 +47,8 @@ func dispose() -> void:
 	Events.eruption_warning.disconnect(_on_eruption_warning)
 	Events.alert_level_changed.disconnect(_on_alert_level_changed)
 	Events.canopy_cover_changed.disconnect(_on_canopy_cover_changed)
+	Events.machine_reactivated.disconnect(_on_machine_reactivated)
+	Events.core_charge_changed.disconnect(_on_core_charge_changed)
 
 
 ## A mission of `type` began: hints may show, starting with the mission-start ones.
@@ -178,3 +182,14 @@ func _on_canopy_cover_changed(unit: Node3D, covered: bool) -> void:
 		return
 	if own.faction == own.world.player_faction:
 		fire(HintDef.TRIGGER_CANOPY_COVER, subjects_of(own))
+
+
+func _on_machine_reactivated(machine: Node3D, faction: int) -> void:
+	var engine: Building = machine as Building
+	if engine != null and engine.world != null and faction == engine.world.player_faction:
+		fire(HintDef.TRIGGER_MACHINE_REACTIVATED)
+
+
+func _on_core_charge_changed(fraction: float) -> void:
+	if fraction > 0.0:
+		fire(HintDef.TRIGGER_CORE_CHARGING)

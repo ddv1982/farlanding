@@ -59,8 +59,6 @@ func setup(
 	context.set_service(SERVICE_KEY, self)
 	if def.enemy_alert_meter and world.stealth != null:
 		world.stealth.add_guard_faction(def.hostile_faction)
-	if def.planet != null and def.planet.rule != null:
-		PlanetRuleSystem.start(world, def.planet.rule)
 	var pile: Stockpile = world.economy.stockpile(player_faction)
 	if def.start_alloy >= 0 or def.start_flux >= 0:
 		pile.alloy = def.start_alloy if def.start_alloy >= 0 else pile.alloy
@@ -70,6 +68,9 @@ func setup(
 		world.economy.add_intel(player_faction, def.start_intel)
 	if modifiers != null:
 		modifiers.apply_to_world(world, player_faction)
+	# After the perks: a rule may add to them (Hollow Meridian locks the Reactor).
+	if def.planet != null and def.planet.rule != null:
+		PlanetRuleSystem.start(world, def.planet.rule)
 	_last_intel = pile.intel
 
 

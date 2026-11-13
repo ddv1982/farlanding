@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/weapon_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"sentinel_lens"
+display_name = "Sentinel lens"
+damage = 60.0
+damage_type = &"heavy"
+splash_radius = 2.5
+hits_air = true
+hits_ground = true
+max_range = 26.0
+cooldown = 3.2
+salvo = 1
+salvo_spacing = 0.0
+projectile_speed = 45.0
+arc_height = 0.0
+fire_while_moving = false
+turret = true
+turn_speed = 160.0
+fire_arc = 8.0
+muzzle = Vector3(0, 2.6, -0.8)
+projectile_style = &"lance"
+impact_size = 1.4
+sound_set = &"sentinel"

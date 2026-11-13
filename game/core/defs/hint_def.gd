@@ -19,6 +19,11 @@ const TRIGGER_ALERT_METER: StringName = &"alert_meter"
 ## One of the player's units went under a tree crown (Verdance:
 ## `Events.canopy_cover_changed`); `subject` matches it like `selected`.
 const TRIGGER_CANOPY_COVER: StringName = &"canopy_cover"
+## An Antecedent engine started working for the player (Hollow Meridian:
+## `Events.machine_reactivated`).
+const TRIGGER_MACHINE_REACTIVATED: StringName = &"machine_reactivated"
+## The Beacon Core began to charge (`Events.core_charge_changed` above 0).
+const TRIGGER_CORE_CHARGING: StringName = &"core_charging"
 ## Capabilities `subject` may name (otherwise it is a def id).
 const SUBJECT_BUILDER: StringName = &"builder"
 const SUBJECT_HARVESTER: StringName = &"harvester"

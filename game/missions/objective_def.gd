@@ -19,6 +19,12 @@ const TYPE_RIVAL_INTEL: StringName = &"rival_intel"
 const TYPE_CARRY_TO: StringName = &"carry_to"
 ## Fails when the side (the enemy) brings a carriable prop into the area (its base).
 const TYPE_KEEP_FROM_ENEMY: StringName = &"keep_from_enemy"
+## Done when the side has run `amount` Antecedent engines for `seconds` in all (the
+## clock pauses while it holds fewer); for the enemy side it fails instead (ADR 0017).
+const TYPE_HOLD_MACHINES: StringName = &"hold_machines"
+## Done when the side's charge of the Beacon Core (the mission's CoreScript) is full;
+## for the enemy side it fails instead (the finale, ADR 0017).
+const TYPE_CORE_CHARGE: StringName = &"core_charge"
 ## Whose things an objective is about.
 const SIDE_PLAYER: StringName = &"player"
 const SIDE_ENEMY: StringName = &"enemy"

@@ -72,7 +72,7 @@ func can_target(faction: int, target: Variant) -> bool:
 		return false
 	var node: Node3D = target
 	var target_faction: int = faction_of(node)
-	if target_faction < 0 or target_faction == faction:
+	if target_faction < 0 or target_faction == faction or is_inert(node):
 		return false
 	return world == null or world.vision == null or world.vision.can_see(faction, node)
 
@@ -130,6 +130,9 @@ func find_target(
 					continue
 				var candidate: Node3D = entries[i]
 				if is_dormant(candidate):
+					continue
+				if Factions.is_custodian(faction) and is_machine(candidate):
+					# Custodians guard the machines; they never shoot one.
 					continue
 				var score: float = distance + (0.0 if is_armed(candidate) else SOFT_TARGET_PENALTY)
 				if score >= best_score or not can_target(faction, candidate):
@@ -241,9 +244,12 @@ func interpolate(fraction: float) -> void:
 ## damage taken. Raises the player's `under_attack` alert at most once a second.
 func damage(entity: Node3D, amount: float, damage_type: StringName, attacker: Node3D) -> float:
 	var health: Health = health_of(entity)
-	if health == null or health.is_dead():
+	if health == null or health.is_dead() or is_inert(entity):
 		return 0.0
 	var source: Node3D = attacker if is_instance_valid(attacker) else null
+	# Custodians guard the machines: not even their splash harms one.
+	if source != null and is_machine(entity) and Factions.is_custodian(faction_of(source)):
+		return 0.0
 	var taken: float = health.take(
 		damage_table.apply(amount, damage_type, health.armour_type), source
 	)
@@ -314,10 +320,23 @@ static func health_of(entity: Node3D) -> Health:
 	return null
 
 
-## True for a Custodian that has not been disturbed yet.
+## True for a Custodian that has not been disturbed yet, or an Antecedent machine that
+## is not running (ADR 0017): weapons leave it alone.
 static func is_dormant(entity: Node3D) -> bool:
 	var unit: Unit = entity as Unit
-	return unit != null and unit.is_dormant
+	return (unit != null and unit.is_dormant) or is_inert(entity)
+
+
+## True for an Antecedent machine that is dormant or shut down: it cannot be attacked.
+static func is_inert(entity: Node3D) -> bool:
+	var building: Building = entity as Building
+	return building != null and building.is_inert
+
+
+## True for an Antecedent machine (running or not).
+static func is_machine(entity: Node3D) -> bool:
+	var building: Building = entity as Building
+	return building != null and building.machine != null
 
 
 ## True for a unit or building with a weapon.

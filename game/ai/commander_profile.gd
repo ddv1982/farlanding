@@ -111,6 +111,18 @@ extends Resource
 @export_range(0.0, 1.0, 0.05) var vent_at_pressure: float = 0.7
 ## Its units leave a vent's radius when it bursts within this many seconds.
 @export_range(0.0, 120.0, 1.0, "suffix:s") var vent_flee_seconds: float = 20.0
+@export_group("Machinery")
+## Hollow Meridian (ADR 0017): Antecedent engines the commander tries to run (0 = it
+## leaves them alone). It sends an idle builder to reactivate the nearest one it has
+## explored, with an escort when it has seen Custodians guarding it.
+@export_range(0, 16, 1) var machines_wanted: int = 0
+## Armed units sent along with the builder when Custodians guard the engine or another
+## faction runs it.
+@export_range(0, 20, 1) var machine_escort: int = 3
+## Also takes over engines the enemy runs (or claims ones it shut down).
+@export var machine_takeover: bool = true
+## Armed units sent to an engine of its own that is under attack or being taken over.
+@export_range(0, 20, 1) var machine_defenders: int = 3
 @export_group("Recovery")
 ## Sends a squad to take carriable props (artefacts) home (a Recovery mission's rival).
 @export var retrieves_cargo: bool = false

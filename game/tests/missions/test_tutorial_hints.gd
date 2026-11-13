@@ -202,3 +202,35 @@ func test_going_under_a_crown_fires_the_canopy_hint_for_own_units_only() -> void
 	var air_trigger: StringName = triggers.get(&"air_units", &"")
 	assert_eq(canopy_trigger, HintDef.TRIGGER_CANOPY_COVER, "Verdance's hint")
 	assert_eq(air_trigger, HintDef.TRIGGER_SELECTED, "and the Talon's")
+
+
+func test_hollow_meridians_hints_fire_on_engines_and_the_core() -> void:
+	var online: HintDef = _hint(&"machine_online", HintDef.TRIGGER_MACHINE_REACTIVATED)
+	var core: HintDef = _hint(&"core", HintDef.TRIGGER_CORE_CHARGING)
+	core.mission_types = [&"finale"] as Array[StringName]
+	_catalog.hints.append(online)
+	_catalog.hints.append(core)
+	_director.begin(&"finale")
+	_due_ids()
+	var fixture: EconomyFixture = EconomyFixture.new(self)
+	var engine_def: BuildingDef = BuildingDef.new()
+	engine_def.id = &"engine"
+	engine_def.machine = true
+	var engine: Building = fixture.world.spawn_building(engine_def, 2, Vector3.ZERO, true)
+	Events.machine_reactivated.emit(engine, 1)
+	assert_eq(_due_ids(), [] as Array[StringName], "not when the Combine wakes one")
+	Events.machine_reactivated.emit(engine, 0)
+	assert_eq(_due_ids(), [&"machine_online"] as Array[StringName], "the player's engine")
+	Events.core_charge_changed.emit(0.0)
+	assert_eq(_due_ids(), [] as Array[StringName], "an empty Core says nothing")
+	Events.core_charge_changed.emit(0.05)
+	assert_eq(_due_ids(), [&"core"] as Array[StringName], "the Core began to charge")
+	fixture.dispose()
+	var real: HintCatalog = load(CATALOG)
+	var found: Dictionary[StringName, HintDef] = {}
+	for hint: HintDef in real.hints:
+		found[hint.id] = hint
+	assert_true(found.has(&"machinery"), "the rule's hint")
+	assert_true(found[&"machinery"].mission_types.has(&"power"))
+	assert_eq(found[&"machine_online"].trigger, HintDef.TRIGGER_MACHINE_REACTIVATED)
+	assert_eq(found[&"core"].trigger, HintDef.TRIGGER_CORE_CHARGING)
