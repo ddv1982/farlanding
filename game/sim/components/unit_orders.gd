@@ -189,8 +189,10 @@ func from_dict(data: Dictionary) -> void:
 		queue.append(Order.from_dict(order_data))
 
 
-## Reconnects restored orders to their target entities: `lookup` is
-## `func(id: int) -> Node3D` (SimWorld.entity).
+## Reconnects restored orders to their target entities (`lookup` is
+## `func(id: int) -> Node3D`, SimWorld.entity), then lets the handler of the current
+## order reconnect its own state (`OrderHandler.resume`), so a unit mid-harvest,
+## mid-build, mid-scan or mid-sabotage carries on after a load.
 func resolve_targets(lookup: Callable) -> void:
 	var all: Array[Order] = queue.duplicate()
 	if current != null:
@@ -199,6 +201,8 @@ func resolve_targets(lookup: Callable) -> void:
 		if order.target_id >= 0 and order.target_entity == null:
 			var target: Node3D = lookup.call(order.target_id)
 			order.target_entity = target
+	if current != null and _handlers.has(current.kind):
+		_handlers[current.kind].resume(current)
 
 
 ## Ends the current order and starts the next queued one. A self-given attack with

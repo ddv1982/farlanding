@@ -8,6 +8,12 @@ extends Node3D
 ## MissionDef in `mission` supplies the forces and rules through a Mission node
 ## (missions/mission.gd): who lands where, the enemy, objectives, script. Without one
 ## it plays the default mission, so the scene also runs on its own.
+##
+## A saved landing (ADR 0013) is restored instead when `restore_state` is set: the
+## map builds its terrain data and services as usual, then places nothing itself and
+## restores everything from the save (resource nodes, sites, props, buildings, units,
+## the storm, the mission runner and its AI), the camera and the control groups.
+## `snapshot()` produces that dictionary for a running landing.
 
 ## The terrain is 240 m square, centred on the origin.
 const TERRAIN_AREA: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
@@ -58,6 +64,11 @@ const LANDING_ZONE: Vector3 = Vector3(-80.0, 0.0, 85.0)
 
 ## The mission to play; set before the map enters the tree.
 var mission: MissionDef = null
+## What the player brings into the landing (campaign), or null; set with `mission`.
+var modifiers: LandingModifiers = null
+## A saved landing to restore instead of a fresh one (`snapshot()` of an earlier
+## run); set with `mission` before the map enters the tree. Empty = a fresh landing.
+var restore_state: Dictionary = {}
 ## The running mission, or null.
 var runner: Mission = null
 var heights: HeightField
@@ -87,17 +98,52 @@ func _ready() -> void:
 		world.enable_vision(TERRAIN_AREA, VISION_CELL)
 	camera.heights = heights
 	print("kessel_proving: terrain data built in %d ms" % (Time.get_ticks_msec() - started))
-	started = Time.get_ticks_msec()
+	if restore_state.is_empty():
+		_place_landing(paths)
+	else:
+		_restore_landing(paths)
+	if world.vision != null:
+		# See the landing site from the first frame, not one sim tick later.
+		world.vision.update_faction(
+			player_faction, world.units, world.buildings, world.resource_nodes
+		)
+		fog = FogOfWar.new()
+		fog.name = &"FogOfWar"
+		add_child(fog)
+		fog.setup(world.vision, player_faction)
+	if hud != null and mission != null and mission.enemy_alert_meter:
+		hud.show_alert_meter(mission.hostile_faction)
+	if runner != null and restore_state.is_empty():
+		runner.start()
+	elif runner != null:
+		var mission_data: Dictionary = restore_state.get("mission", {})
+		runner.resume(mission_data)
+
+
+## The landing as it is now, for a saved game: the sim clock, the world, the mission
+## runner (objectives, script, AI), the camera's focus and the control groups.
+func snapshot() -> Dictionary:
+	var groups: Dictionary = (
+		selection_controller.control_groups().to_dict() if selection_controller != null else {}
+	)
+	return {
+		"clock": context.sim_clock.to_dict(),
+		"world": world.to_dict(),
+		"mission": runner.to_dict() if runner != null else {},
+		"camera": var_to_str(camera.get_focus()),
+		"groups": groups,
+	}
+
+
+## A fresh landing: the map's resources, props and sites, the mission's forces.
+func _place_landing(paths: NavmeshPathService) -> void:
+	var started: int = Time.get_ticks_msec()
 	_spawn_nodes(deposit, deposit_positions)
 	_spawn_nodes(rich_deposit, rich_deposit_positions)
 	_spawn_nodes(vent, vent_positions)
 	_spawn_props()
-	if mission != null:
-		runner = Mission.new()
-		runner.name = &"Mission"
-		runner.log_enemy_ai = log_enemy_ai
-		add_child(runner)
-		runner.setup(mission, context, world, TERRAIN_AREA)
+	_make_runner()
+	if runner != null:
 		runner.spawn_structures()
 	_spawn_sites()
 	paths.apply_cuts()
@@ -112,26 +158,60 @@ func _ready() -> void:
 		world.spawn_unit(
 			custodian_roster[i], Factions.CUSTODIANS, custodian_positions[i], towards_centre
 		)
-	presentation = MissionPresentation.new()
-	presentation.name = &"MissionPresentation"
-	add_child(presentation)
-	presentation.setup(world, player_faction)
+	_make_presentation()
 	if runner != null:
 		runner.spawn_units()
 	_center_camera()
-	if world.vision != null:
-		# See the landing site from the first frame, not one sim tick later.
-		world.vision.update_faction(
-			player_faction, world.units, world.buildings, world.resource_nodes
+
+
+## A saved landing: nothing is placed from the map's lists; the save has it all.
+func _restore_landing(paths: NavmeshPathService) -> void:
+	var started: int = Time.get_ticks_msec()
+	var clock_data: Dictionary = restore_state.get("clock", {})
+	if not clock_data.is_empty():
+		context.sim_clock.from_dict(clock_data)
+		context.sim_clock.paused = false
+	# The runner first: it starts the planet rule and the perks the world restores into.
+	_make_runner()
+	var world_data: Dictionary = restore_state.get("world", {})
+	world.from_dict(world_data)
+	paths.apply_cuts()
+	_make_presentation()
+	presentation.show_restored_state()
+	var groups: Dictionary = restore_state.get("groups", {})
+	if selection_controller != null:
+		selection_controller.control_groups().from_dict(groups, world.entity)
+	var focus_text: String = restore_state.get("camera", "")
+	var focus: Variant = str_to_var(focus_text) if focus_text != "" else null
+	if focus is Vector3:
+		var point: Vector3 = focus
+		camera.center_on(point)
+	else:
+		_center_camera()
+	print(
+		(
+			"kessel_proving: landing restored (%d units, %d buildings) in %d ms"
+			% [world.units.size(), world.buildings.size(), Time.get_ticks_msec() - started]
 		)
-		fog = FogOfWar.new()
-		fog.name = &"FogOfWar"
-		add_child(fog)
-		fog.setup(world.vision, player_faction)
-	if hud != null and mission != null and mission.enemy_alert_meter:
-		hud.show_alert_meter(mission.hostile_faction)
-	if runner != null:
-		runner.start()
+	)
+
+
+func _make_runner() -> void:
+	if mission == null:
+		return
+	runner = Mission.new()
+	runner.name = &"Mission"
+	runner.log_enemy_ai = log_enemy_ai
+	runner.modifiers = modifiers
+	add_child(runner)
+	runner.setup(mission, context, world, TERRAIN_AREA)
+
+
+func _make_presentation() -> void:
+	presentation = MissionPresentation.new()
+	presentation.name = &"MissionPresentation"
+	add_child(presentation)
+	presentation.setup(world, world.player_faction)
 
 
 func _center_camera() -> void:
@@ -153,6 +233,8 @@ func _spawn_sites() -> void:
 		var def: DiscoveryDef = discoveries[i]
 		if def != null:
 			var charted: bool = not Discovery.is_led_to(discoveries, def.id)
+			if modifiers != null and modifiers.charts(def.id):
+				charted = true
 			world.spawn_site(def, discovery_positions[i], charted)
 
 

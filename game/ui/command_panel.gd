@@ -301,7 +301,12 @@ func _add_option_button(option: FieldOptionDef, building: Building) -> void:
 	button.custom_minimum_size = Vector2(120, 104)
 	button.tooltip_text = (
 		"%s  ·  %d Intel  ·  cooldown %d s\n%s"
-		% [option.display_name, option.intel_cost, roundi(option.cooldown), option.description]
+		% [
+			option.display_name,
+			world.discovery.field_options.cost(faction, option),
+			roundi(world.discovery.field_options.cooldown(faction, option)),
+			option.description
+		]
 	)
 	button.pressed.connect(_on_option_pressed.bind(option, building))
 	_buttons.add_child(button)
@@ -313,7 +318,9 @@ func _refresh_option(entry: Dictionary, _pile: Stockpile) -> void:
 	var button: Button = entry["button"]
 	var options: FieldOptions = world.discovery.field_options
 	var state: StringName = options.check(faction, option)
-	var line: String = "%d Intel" % option.intel_cost
+	var line: String = "%d Intel" % options.cost(faction, option)
+	if options.charges(faction, option) > 0:
+		line = "%d free" % options.charges(faction, option)
 	match state:
 		FieldOptions.LOCKED:
 			line = "locked: needs a discovery"
@@ -457,7 +464,9 @@ func _build_options() -> Array[BuildingDef]:
 	for unit: Unit in _builders():
 		for entry: EntityDef in unit.def.builds:
 			var def: BuildingDef = entry as BuildingDef
-			if def != null and def.placeable and not options.has(def):
+			if def == null or FactionPerks.of(world.perks, faction).is_locked(def.id):
+				continue
+			if def.placeable and not options.has(def):
 				options.append(def)
 	return options
 

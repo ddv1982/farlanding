@@ -1,13 +1,15 @@
 class_name MissionSelect
 extends Control
-## The first screen: the expedition's name and one card per mission of the catalog
-## (type, title, one-line summary), and the settings. Choosing one emits
+## Single missions (from the title screen): the expedition's name and one card per
+## mission of the catalog (type, title, one-line summary), the settings and Back. Choosing one emits
 ## `mission_chosen`. With the menu backdrop behind it the background lets it through.
 
 ## The player picked `mission`.
 signal mission_chosen(mission: MissionDef)
 ## The player asked for the settings.
 signal settings_pressed
+## Back to the title screen.
+signal back_pressed
 
 const BACKGROUND := Color(0.035, 0.045, 0.06)
 const TYPE_NAMES: Dictionary[StringName, String] = {
@@ -51,6 +53,15 @@ func _ready() -> void:
 	column.add_child(_cards)
 	var footer := HBoxContainer.new()
 	footer.alignment = BoxContainer.ALIGNMENT_END
+	footer.add_theme_constant_override(&"separation", 10)
+	var back: Button = HudStyle.make_small_button("BACK")
+	back.custom_minimum_size = Vector2(120, 34)
+	back.pressed.connect(
+		func() -> void:
+			Events.ui_feedback.emit(&"click")
+			back_pressed.emit()
+	)
+	footer.add_child(back)
 	var settings: Button = HudStyle.make_small_button("SETTINGS")
 	settings.custom_minimum_size = Vector2(140, 34)
 	settings.pressed.connect(func() -> void: settings_pressed.emit())

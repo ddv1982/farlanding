@@ -47,11 +47,15 @@ var profiling: bool = false
 var section_usec: Dictionary[StringName, int] = {}
 ## Also split the units' tick into orders, movement and weapon (costs a little).
 var profiling_units: bool = false
+## Per faction: what it brought into the landing (locks and stat scales, ADR 0012).
+## Set before anything of the faction spawns; a faction without an entry has none.
+var perks: Dictionary[int, FactionPerks] = {}
 
 var _next_id: int = 1
 var _entities: Dictionary[int, Node3D] = {}
 var _blocks: Dictionary[int, int] = {}  # entity id -> PathService block handle
 var _speed_version: int = 0
+var _restoring_props: bool = false
 
 
 ## Wires the world into a mission. Call before spawning.
@@ -208,7 +212,9 @@ func spawn_prop(def: PropDef, at: Vector3, quarter_turns: int = 0) -> Prop:
 	prop.tree_exiting.connect(_on_prop_exiting.bind(prop))
 	if def.blocks_movement:
 		_blocks[prop.entity_id] = paths.block_area(prop.footprint())
-		evacuate(prop.footprint())
+		# A prop coming back from a save was already there: nobody has to make room.
+		if not _restoring_props:
+			evacuate(prop.footprint())
 	if prop.health != null:
 		prop.health.died.connect(_on_prop_destroyed.bind(prop))
 	_refresh_sight_blockers()
@@ -666,9 +672,6 @@ func from_dict(data: Dictionary) -> void:
 			var site: DiscoverySite = spawn_site(site_def, _saved_position(site_data))
 			_restore_id(site, site.entity_id, site_data)
 			site.from_dict(site_data)
-	var discovery_data: Dictionary = data.get("discovery", {})
-	if not discovery_data.is_empty():
-		discovery.from_dict(discovery_data)
 	var saved_buildings: Array = data.get("buildings", [])
 	for entry: Variant in saved_buildings:
 		var building_data: Dictionary = entry
@@ -680,6 +683,10 @@ func from_dict(data: Dictionary) -> void:
 			)
 			_restore_id(building, building.entity_id, building_data)
 			building.from_dict(building_data)
+	# After the buildings: field options look their definitions up on the Survey Lab.
+	var discovery_data: Dictionary = data.get("discovery", {})
+	if not discovery_data.is_empty():
+		discovery.from_dict(discovery_data)
 	var saved_units: Array = data.get("units", [])
 	for entry: Variant in saved_units:
 		var unit_data: Dictionary = entry
@@ -691,9 +698,6 @@ func from_dict(data: Dictionary) -> void:
 			unit.from_dict(unit_data)
 	var saved_next: int = data.get("next_id", _next_id)
 	_next_id = maxi(_next_id, saved_next)
-	for unit: Unit in units:
-		if unit.orders != null:
-			unit.orders.resolve_targets(entity)
 	var vision_data: Dictionary = data.get("vision", {})
 	if vision != null and not vision_data.is_empty():
 		vision.from_dict(vision_data)
@@ -710,6 +714,16 @@ func from_dict(data: Dictionary) -> void:
 	var props_data: Dictionary = data.get("props", {})
 	if not props_data.is_empty():
 		_props_from_dict(props_data)
+	# Restoring handed out (and then replaced) fresh ids: continue from the saved count.
+	var highest: int = saved_next - 1
+	for id: int in _entities:
+		highest = maxi(highest, id)
+	_next_id = highest + 1
+	# Second pass, every entity exists now: saved ids become nodes again (ADR 0013).
+	for unit: Unit in units:
+		unit.resolve_references(entity)
+	for building: Building in buildings:
+		building.resolve_references(entity)
 
 
 func _props_to_dict() -> Dictionary:
@@ -741,8 +755,12 @@ func _props_from_dict(data: Dictionary) -> void:
 		if def == null:
 			continue
 		var turns: int = prop_data.get("turns", 0)
+		_restoring_props = true
 		var prop: Prop = spawn_prop(def, _saved_position(prop_data), turns)
+		_restoring_props = false
 		if prop != null:
+			_restore_id(prop, prop.entity_id, prop_data)
+			prop.entity_id = prop_data.get("entity_id", prop.entity_id)
 			prop.from_dict(prop_data)
 
 

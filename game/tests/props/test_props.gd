@@ -4,6 +4,8 @@ extends GutTest
 ## auto-targeted, can be blown apart when destructible (and then stop blocking), and
 ## save their damage.
 
+const REAL_CRATES: String = "res://data/props/combine_prop_crates.tres"
+
 var _f: MissionFixture
 var _wall: PropDef
 var _crates: PropDef
@@ -120,7 +122,7 @@ func test_prop_damage_is_saved() -> void:
 
 
 func test_a_saved_prop_the_world_lacks_is_spawned_on_load() -> void:
-	var crates: PropDef = load("res://data/props/combine_prop_crates.tres")
+	var crates: PropDef = load(REAL_CRATES)
 	var prop: Prop = _f.world.spawn_prop(crates, Vector3(10, 0, 0), 1)
 	prop.health.take(40.0, null)
 	var left: float = prop.health.current
@@ -135,6 +137,21 @@ func test_a_saved_prop_the_world_lacks_is_spawned_on_load() -> void:
 	assert_eq(restored.position, Vector3(10, 0, 0))
 	assert_eq(restored.quarter_turns, 1)
 	assert_almost_eq(restored.health.current, left, 0.01)
+
+
+func test_a_restored_prop_does_not_chase_off_the_unit_beside_it() -> void:
+	var crates: PropDef = load(REAL_CRATES)
+	var prop: Prop = _f.world.spawn_prop(crates, Vector3(10, 0, 0))
+	var wisp: Unit = _f.spawn(_f.wisp, 0, Vector3(12.0, 0, 0))
+	_f.tick(1)
+	assert_true(wisp.orders.is_idle(), "hiding right behind the crates")
+	var saved: Dictionary = _f.world.to_dict()
+	prop.health.take(10000.0, null)
+	_f.tick(2)
+	var saved_props: Dictionary = saved["props"]
+	_f.world._props_from_dict(saved_props)
+	assert_eq(_f.world.props.size(), 1)
+	assert_true(wisp.orders.is_idle(), "a load does not send it walking")
 
 
 func test_vision_cells_behind_occluders() -> void:

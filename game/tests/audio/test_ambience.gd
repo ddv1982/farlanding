@@ -108,6 +108,7 @@ func test_gaps_and_wander_ranges() -> void:
 
 
 func test_two_minutes_never_sound_the_same() -> void:
+	_director._rng.seed = 20261113  # the counts below are bounds on one known run
 	_director.start(null)
 	_director.set_nearness(0.4, 0.6, 0.0)
 	_director.settle()

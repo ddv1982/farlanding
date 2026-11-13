@@ -129,4 +129,26 @@ signal storm_incoming(seconds: float)
 ## builds and as it dies down, a few times a second at most.
 signal storm_changed(intensity: float)
 
+## The campaign shows another screen: &"title", &"star_map", &"meridian",
+## &"tech_web", &"loadout", or &"" when a landing (briefing, mission, debrief)
+## takes over.
+signal campaign_screen_changed(screen: StringName)
+
+## The player bought `tech` (a TechDef) on the tech web. Permanent for the campaign.
+signal tech_unlocked(tech: Resource)
+
+## A landing ended and its result was written into the campaign: `node` is the
+## route node (a RouteNodeDef), `intel_banked` what the landing brought home.
+signal landing_resolved(node: Resource, won: bool, intel_banked: int)
+
+## The campaign was written to disk (`slot` names the save).
+signal campaign_saved(slot: StringName)
+
+## The campaign could not be written to disk (`slot` names the save): what
+## changed since the last good save exists only in memory.
+signal campaign_save_failed(slot: StringName)
+
+## A campaign or a mid-mission save was loaded from `slot`.
+signal campaign_loaded(slot: StringName)
+
 @warning_ignore_restore("unused_signal")

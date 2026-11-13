@@ -7,6 +7,8 @@ extends MissionScript
 ## the target itself. The extraction objective appears once the target (the uplink)
 ## is sabotaged.
 
+const SAVE_VERSION: int = 1
+
 var rules: InfiltrationRules = null
 ## True once the outpost has been alerted.
 var compromised: bool = false
@@ -22,6 +24,33 @@ func on_started() -> void:
 		return
 	if mission.guards != null:
 		mission.guards.reinforcements_called.connect(_on_reinforcements_called)
+
+
+func on_resumed() -> void:
+	on_started()
+
+
+func objective_defs() -> Array[ObjectiveDef]:
+	var defs: Array[ObjectiveDef] = []
+	var found: InfiltrationRules = mission.def.script_rules as InfiltrationRules
+	if found != null and found.extraction != null:
+		defs.append(found.extraction)
+	return defs
+
+
+func to_dict() -> Dictionary:
+	return {
+		"version": SAVE_VERSION,
+		"compromised": compromised,
+		"waves_sent": waves_sent,
+		"deadline": _deadline_tick,
+	}
+
+
+func from_dict(data: Dictionary) -> void:
+	compromised = data.get("compromised", false)
+	waves_sent = data.get("waves_sent", 0)
+	_deadline_tick = data.get("deadline", -1)
 
 
 func on_objective_finished(objective: Objective) -> void:

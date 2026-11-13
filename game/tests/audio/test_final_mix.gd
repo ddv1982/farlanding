@@ -8,6 +8,9 @@ extends GutTest
 ##   dust storm (beds, gusts, debris, the muffle), six weapon starts and six
 ##   impacts a frame near the listener plus blasts, an Advisor or stealth alarm
 ##   every 1.5 s and interface clicks: everything at once.
+## - ship (Phase 7): aboard the Meridian on the star map: the ship theme, the
+##   ship ambience, map hovers and clicks, a tech purchase and a campaign
+##   Advisor phrase every 1.5 s.
 ##
 ## Asserted: the Master output never clips (the limiter's ceiling holds), the mix
 ## itself has headroom before the limiter, and loudness stays in its window.
@@ -19,6 +22,15 @@ const CEILING_DBFS: float = -0.9
 const PRE_LIMITER_MAX_DBFS: float = 0.0
 const WORST_LUFS: Vector2 = Vector2(-24.0, -13.0)
 const EXPLORE_LUFS: Vector2 = Vector2(-36.0, -22.0)
+const SHIP_LUFS: Vector2 = Vector2(-36.0, -22.0)
+const SHIP_SCORE: String = "res://data/sounds/music/meridian.tres"
+const SHIP_ALERTS: Array[StringName] = [
+	&"advisor_campaign_return_won",
+	&"advisor_campaign_intel_banked",
+	&"advisor_campaign_route_open",
+	&"advisor_campaign_tech_available",
+]
+const SHIP_CATEGORIES: Array[StringName] = [&"Music", &"Ambience", &"Advisor", &"UI"]
 const SETTLE_SECONDS: float = 2.5
 const RECORD_SECONDS: float = 6.0
 const FRAME: float = 0.05
@@ -46,17 +58,21 @@ func before_each() -> void:
 
 func after_each() -> void:
 	_mix.detach()
+	Events.campaign_screen_changed.emit(&"")
+	Audio.music().stop_bed()
 	Audio.storm().handle_mission_started()
 	Audio.music().set_layer_gain(&"urgency", AudioMix.SILENT_DB)
 	Audio.music().force_state(&"explore")
 
 
-func _record(worst: bool) -> Array[float]:
+func _record(scene: StringName) -> Array[float]:
+	var worst: bool = scene == &"worst"
+	var ship: bool = scene == &"ship"
 	Audio.stop_all_voices()  # nothing left over from earlier tests
 	await wait_seconds(SETTLE_SECONDS)
 	_mix.attach()
-	if worst:
-		for bus: StringName in CATEGORIES:
+	if worst or ship:
+		for bus: StringName in CATEGORIES if worst else SHIP_CATEGORIES:
 			_mix.attach_bus(bus)
 	_mix.clear()
 	var t: float = 0.0
@@ -69,6 +85,8 @@ func _record(worst: bool) -> Array[float]:
 				_mix.alert(i / 30)
 			if i % 8 == 0:
 				Audio.play(&"ui_click")
+		if ship:
+			_ship_frame(i)
 		_mix.note_bus_peaks()
 		most_voices = maxi(most_voices, Audio.active_voices())
 		await wait_seconds(FRAME)
@@ -92,14 +110,7 @@ func _record(worst: bool) -> Array[float]:
 		. p(
 			(
 				"%s: pre-limiter peak %.2f dBFS, master peak %.2f dBFS, %.1f LUFS over %.1f s, %d voices"
-				% [
-					"worst case" if worst else "explore",
-					result[0],
-					result[1],
-					result[2],
-					result[3],
-					most_voices
-				]
+				% [String(scene), result[0], result[1], result[2], result[3], most_voices]
 			)
 		)
 	)
@@ -115,9 +126,21 @@ func _record(worst: bool) -> Array[float]:
 	return result
 
 
+## One frame aboard: hovers sweep, a click now and then, a purchase, and a
+## campaign Advisor phrase every 1.5 s (the strongest things the ship does).
+func _ship_frame(i: int) -> void:
+	Events.ui_feedback.emit(&"map_node_hover")
+	if i % 10 == 0:
+		Events.ui_feedback.emit(&"map_node_select")
+	if i % 40 == 5:
+		Events.ui_feedback.emit(&"tech_buy")
+	if i % 30 == 0:
+		Audio.play(SHIP_ALERTS[(i / 30) % SHIP_ALERTS.size()])
+
+
 func test_explore_sits_quietly() -> void:
 	Audio.music().force_state(&"explore")
-	var result: Array[float] = await _record(false)
+	var result: Array[float] = await _record(&"explore")
 	assert_gt(result[3], RECORD_SECONDS * 0.8, "the mixer ran (captured %.1f s)" % result[3])
 	assert_lt(result[1], CEILING_DBFS)
 	assert_between(result[2], EXPLORE_LUFS.x, EXPLORE_LUFS.y, "explore loudness")
@@ -129,7 +152,7 @@ func test_worst_case_never_clips_and_stays_in_its_window() -> void:
 		Audio.storm().advance(0.1)
 	Audio.music().set_layer_gain(&"urgency", 0.0)
 	Audio.music().force_state(&"combat_heavy")
-	var result: Array[float] = await _record(true)
+	var result: Array[float] = await _record(&"worst")
 	assert_gt(result[3], RECORD_SECONDS * 0.8, "the mixer ran (captured %.1f s)" % result[3])
 	assert_lt(result[1], CEILING_DBFS, "Master never clips")
 	assert_lt(result[0], PRE_LIMITER_MAX_DBFS, "the mix has headroom before the limiter")
@@ -144,3 +167,23 @@ func test_worst_case_never_clips_and_stays_in_its_window() -> void:
 		speaking[1] + ADVISOR_OVER_MUSIC_LU,
 		"the Advisor is heard over the battle score"
 	)
+
+
+func test_ship_sits_quietly_and_the_advisor_is_clear() -> void:
+	var ship: MusicScore = load(SHIP_SCORE)
+	Events.campaign_screen_changed.emit(&"star_map")
+	await wait_until(func() -> bool: return Audio.music().score == ship, 5.0)
+	var result: Array[float] = await _record(&"ship")
+	assert_gt(result[3], RECORD_SECONDS * 0.8, "the mixer ran (captured %.1f s)" % result[3])
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_lt(result[0], PRE_LIMITER_MAX_DBFS, "the mix has headroom before the limiter")
+	assert_between(result[2], SHIP_LUFS.x, SHIP_LUFS.y, "ship loudness")
+	var speaking: Array[float] = MixScene.loudness_while(
+		_frames[&"Advisor"], _frames[&"Music"], AudioServer.get_mix_rate()
+	)
+	gut.p("  while the Advisor speaks aboard: Advisor %.1f LUFS, Music %.1f LUFS" % speaking)
+	assert_gt(
+		speaking[0], speaking[1] + ADVISOR_OVER_MUSIC_LU, "the Advisor is heard over the ship theme"
+	)
+	var ui: float = MixScene.lufs(_frames[&"UI"], AudioServer.get_mix_rate())
+	assert_lt(ui, speaking[0], "the interface stays under the Advisor")

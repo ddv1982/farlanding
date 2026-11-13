@@ -86,7 +86,7 @@ func update_faction(
 	grid.begin_update(faction)
 	for unit: Unit in units:
 		if unit.faction == faction and not unit.is_dead and unit.def != null:
-			grid.reveal(faction, unit.sim_position(), unit.def.vision_range * range_scale)
+			grid.reveal(faction, unit.sim_position(), unit.vision_range * range_scale)
 	for building: Building in buildings:
 		if building.faction == faction and not building.is_dead and building.def != null:
 			grid.reveal(faction, building.position, building.def.vision_range * range_scale)

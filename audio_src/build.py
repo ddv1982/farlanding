@@ -87,6 +87,11 @@ EVENT_DEFAULTS = {
     # priority of all, so a fight steals their voices first.
     "ambdetail": dict(bus="Ambience", priority=10, max_instances=2, cooldown=1.0, positional=True,
                       max_distance=160.0),
+    # Phase 7. Ship details aboard the Meridian: flat stereo one-shots (the pan
+    # is in the file), played by the AmbienceDirector in ship mode; as low a
+    # priority as the planet's details.
+    "shipdetail": dict(bus="Ambience", priority=10, max_instances=2, cooldown=1.0, positional=False,
+                       max_distance=0.0),
 }
 EVENT_OVERRIDES = {
     "ui_hover": dict(priority=20, max_instances=1, cooldown=0.06),
@@ -172,6 +177,15 @@ EVENT_OVERRIDES = {
     "advisor_enemy_intel": dict(cooldown=2.0),
     "mus_hit_combat": dict(cooldown=6.0),
     "mus_hit_aftermath": dict(cooldown=6.0),
+    # Phase 7. Hovers are also rate-limited by the CampaignSoundRouter.
+    "ui_map_node_hover": dict(priority=20, max_instances=1, cooldown=0.05),
+    "ui_tech_hover": dict(priority=20, max_instances=1, cooldown=0.05),
+    "ui_tech_buy": dict(cooldown=0.15, max_instances=1),
+    "ui_tech_unlocked": dict(cooldown=0.3, max_instances=1),
+    "ui_tech_denied": dict(cooldown=0.15, max_instances=1),
+    "ui_map_launch": dict(cooldown=1.0, max_instances=1),
+    "ui_campaign_saved": dict(priority=40, cooldown=1.0, max_instances=1),
+    "ui_loadout_change": dict(cooldown=0.06),
 }
 
 

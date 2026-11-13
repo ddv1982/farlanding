@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/kessel_reach.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/survey.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"kessel_storm"
+title = "Before the Storm"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.42, 0.28)
+leads_to = Array[StringName]([&"thalassa_shallows"])
+excludes = Array[StringName]([&"kessel_uplink"])
+scan_summary = "A storm front that will not lift is building over the basin. Combine raiders are already on the ground."
+intel_notes = "A survey landing: Intel is the objective, so it banks well. Choosing it closes the uplink raid."
+placeholder = false

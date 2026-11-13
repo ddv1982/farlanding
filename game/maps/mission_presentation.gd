@@ -35,12 +35,19 @@ func setup(p_world: SimWorld, p_player_faction: int) -> void:
 		_on_entity_spawned(unit)
 
 
+## After a saved game was restored: give the restored world the looks the events
+## that made it would have given (sabotaged buildings). Objective markers follow the
+## objectives the mission announces again; damage, construction, cloak and storm
+## looks follow the components' own signals.
+func show_restored_state() -> void:
+	for building: Building in world.buildings:
+		if building.is_sabotaged:
+			_on_entity_sabotaged(building, null)
+
+
 func _process(delta: float) -> void:
+	_drop_freed()
 	for unit: Variant in _cones.keys():
-		if not is_instance_valid(unit):
-			_cones.erase(unit)
-			_cone_ranges.erase(unit)
-			continue
 		var watcher: Unit = unit
 		var cone: SightConeVisual = _cones[watcher]
 		if watcher.is_dead:
@@ -54,9 +61,6 @@ func _process(delta: float) -> void:
 			_cone_ranges[watcher] = reach
 			cone.set_cone(reach, watcher.sight_angle)
 	for unit: Variant in _cloaks.keys():
-		if not is_instance_valid(unit):
-			_cloaks.erase(unit)
-			continue
 		var cloaked: Unit = unit
 		var target: float = 1.0 if cloaked.is_cloaked else 0.0
 		var amount: float = move_toward(_cloaks[cloaked], target, CLOAK_FADE * delta)
@@ -65,6 +69,33 @@ func _process(delta: float) -> void:
 			var visual: UnitVisual = _visual_of(cloaked)
 			if visual != null:
 				visual.set_cloaked(amount)
+
+
+## Forgets units that were freed. A freed object cannot be erased from a typed
+## dictionary (the engine refuses the key), so the dictionaries are rebuilt instead.
+func _drop_freed() -> void:
+	var stale: bool = false
+	for unit: Variant in _cones.keys():
+		stale = stale or not is_instance_valid(unit)
+	for unit: Variant in _cloaks.keys():
+		stale = stale or not is_instance_valid(unit)
+	if not stale:
+		return
+	var cones: Dictionary[Unit, SightConeVisual] = {}
+	var ranges: Dictionary[Unit, float] = {}
+	for unit: Variant in _cones.keys():
+		if is_instance_valid(unit):
+			var watcher: Unit = unit
+			cones[watcher] = _cones[watcher]
+			ranges[watcher] = _cone_ranges.get(watcher, 0.0)
+	var cloaks: Dictionary[Unit, float] = {}
+	for unit: Variant in _cloaks.keys():
+		if is_instance_valid(unit):
+			var cloaked: Unit = unit
+			cloaks[cloaked] = _cloaks[cloaked]
+	_cones = cones
+	_cone_ranges = ranges
+	_cloaks = cloaks
 
 
 func _on_entity_spawned(entity: Node3D) -> void:

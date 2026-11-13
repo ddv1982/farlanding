@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/kessel_reach.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/conquest.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"kessel_proving"
+title = "Proving Ground"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.14, 0.55)
+leads_to = Array[StringName]([&"kessel_storm", &"kessel_uplink"])
+excludes = Array[StringName]([])
+scan_summary = "A dust basin under a thin, bright sky. The Combine has a forward operation dug in on the far rim; two Custodian Wardens sleep among the ruins."
+intel_notes = "Expect 150-300 Intel from the basin's sites. Antecedent signals: a trail beacon and a sealed cache."
+placeholder = false

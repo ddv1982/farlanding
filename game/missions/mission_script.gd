@@ -34,3 +34,23 @@ func on_alert_changed(_faction: int, _level: StringName, _previous: StringName) 
 ## The mission is over or being freed: let go of everything.
 func stop() -> void:
 	pass
+
+
+## A saved game was loaded (instead of `on_started()`): the forces, objectives and
+## this script's state (`from_dict`) are back; reconnect to what it listens to.
+func on_resumed() -> void:
+	pass
+
+
+## Objective definitions this script may add later (not in the MissionDef's list),
+## so a saved objective can be found again by its id.
+func objective_defs() -> Array[ObjectiveDef]:
+	return []
+
+
+func to_dict() -> Dictionary:
+	return {}
+
+
+func from_dict(_data: Dictionary) -> void:
+	pass

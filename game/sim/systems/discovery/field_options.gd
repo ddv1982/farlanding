@@ -11,7 +11,7 @@ const COOLDOWN: StringName = &"cooldown"
 const NO_INTEL: StringName = &"no_intel"
 const NO_LAB: StringName = &"no_lab"
 const BAD_TARGET: StringName = &"bad_target"
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
 
 var world: SimWorld = null
 var player_faction: int = 0
@@ -22,6 +22,9 @@ var _unlocked: Dictionary[int, Dictionary] = {}
 var _ready_at: Dictionary[int, Dictionary] = {}
 ## Per faction: option id -> FieldOptionDef, for options on cooldown (ready alerts).
 var _waiting: Dictionary[int, Dictionary] = {}
+## Per faction: option id -> uses left that cost no Intel and start no cooldown
+## (a charge brought along in the landing's loadout).
+var _charges: Dictionary[int, Dictionary] = {}
 var _tick: int = 0
 ## Set by from_dict: deadlines were rebuilt on `_tick`, which a fresh system has
 ## not yet synchronised with the restored clock; the next tick rebases them.
@@ -41,7 +44,45 @@ func unlock(faction: int, option_id: StringName) -> void:
 	_unlocked[faction][option_id] = true
 
 
+## Gives `faction` `count` free uses of the option `option_id`.
+func add_charges(faction: int, option_id: StringName, count: int) -> void:
+	if option_id == &"" or count <= 0:
+		return
+	if not _charges.has(faction):
+		_charges[faction] = {}
+	var held: int = _charges[faction].get(option_id, 0)
+	_charges[faction][option_id] = held + count
+
+
+## Free uses of `option` `faction` has left.
+func charges(faction: int, option: FieldOptionDef) -> int:
+	var held: Dictionary = _charges.get(faction, {})
+	return held.get(option.id, 0)
+
+
+## Intel `faction` pays for `option` (its perks may make it cheaper).
+func cost(faction: int, option: FieldOptionDef) -> int:
+	if world == null:
+		return option.intel_cost
+	return roundi(
+		FactionPerks.of(world.perks, faction).apply(
+			option.id, FactionPerks.INTEL_COST, option.intel_cost
+		)
+	)
+
+
+## Cooldown of `option` for `faction`, in seconds (after its perks).
+func cooldown(faction: int, option: FieldOptionDef) -> float:
+	if world == null:
+		return option.cooldown
+	return FactionPerks.of(world.perks, faction).apply(
+		option.id, FactionPerks.COOLDOWN, option.cooldown
+	)
+
+
 func is_unlocked(faction: int, option: FieldOptionDef) -> bool:
+	if world != null and FactionPerks.of(world.perks, faction).is_locked(option.id):
+		return false
 	if not option.requires_unlock:
 		return true
 	var unlocked: Dictionary = _unlocked.get(faction, {})
@@ -59,9 +100,11 @@ func cooldown_left(faction: int, option: FieldOptionDef) -> float:
 func check(faction: int, option: FieldOptionDef) -> StringName:
 	if option == null or not is_unlocked(faction, option):
 		return LOCKED
+	if charges(faction, option) > 0:
+		return OK
 	if cooldown_left(faction, option) > 0.0:
 		return COOLDOWN
-	if world != null and world.economy.stockpile(faction).intel < option.intel_cost:
+	if world != null and world.economy.stockpile(faction).intel < cost(faction, option):
 		return NO_INTEL
 	return OK
 
@@ -74,12 +117,17 @@ func use(faction: int, option: FieldOptionDef, at: Vector3) -> StringName:
 		return refused
 	if option.effect == FieldOptionDef.EFFECT_SUPPLY_DROP and not _drop_spot_ok(option, at):
 		return BAD_TARGET
-	if not world.economy.spend_intel(faction, option.intel_cost):
+	if charges(faction, option) > 0:
+		_charges[faction][option.id] = charges(faction, option) - 1
+		_apply(faction, option, at)
+		Events.field_option_used.emit(option, faction, at)
+		return OK
+	if not world.economy.spend_intel(faction, cost(faction, option)):
 		return NO_INTEL
 	if not _ready_at.has(faction):
 		_ready_at[faction] = {}
 		_waiting[faction] = {}
-	_ready_at[faction][option.id] = _tick + Discovery.ticks(option.cooldown)
+	_ready_at[faction][option.id] = _tick + Discovery.ticks(cooldown(faction, option))
 	_waiting[faction][option.id] = option
 	_apply(faction, option, at)
 	Events.field_option_used.emit(option, faction, at)
@@ -171,17 +219,32 @@ func to_dict() -> Dictionary:
 			var at: int = _ready_at[faction][id]
 			left[str(id)] = maxi(at - _tick, 0)
 		cooldowns[str(faction)] = left
-	return {"version": SAVE_VERSION, "unlocked": unlocked, "cooldowns": cooldowns}
+	var charge_data: Dictionary = {}
+	for faction: int in _charges:
+		charge_data[str(faction)] = _charges[faction].duplicate()
+	return {
+		"version": SAVE_VERSION,
+		"unlocked": unlocked,
+		"cooldowns": cooldowns,
+		"charges": charge_data,
+	}
 
 
 ## Restores unlocks and cooldowns (cooldowns end without a ready alert).
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
-	assert(version == SAVE_VERSION, "Unsupported FieldOptions save version")
+	assert(version >= 1 and version <= SAVE_VERSION, "Unsupported FieldOptions save version")
 	_restored = true
 	_unlocked.clear()
 	_ready_at.clear()
 	_waiting.clear()
+	_charges.clear()
+	var charge_data: Dictionary = data.get("charges", {})
+	for key: Variant in charge_data:
+		var held: Dictionary = charge_data[key]
+		for id: Variant in held:
+			var count: int = held[id]
+			add_charges(int(str(key)), StringName(str(id)), count)
 	var unlocked: Dictionary = data.get("unlocked", {})
 	for key: Variant in unlocked:
 		var ids: Array = unlocked[key]
@@ -196,3 +259,20 @@ func from_dict(data: Dictionary) -> void:
 		for id: Variant in left:
 			var ticks: int = left[id]
 			_ready_at[faction][StringName(str(id))] = _tick + ticks
+			# Still cooling down: the "ready" alert is still owed.
+			var option: FieldOptionDef = _option_def(StringName(str(id)))
+			if ticks > 0 and option != null:
+				_waiting[faction][option.id] = option
+
+
+## The option `id` as a building of the world offers it (the Survey Lab), or null.
+func _option_def(id: StringName) -> FieldOptionDef:
+	if world == null:
+		return null
+	for building: Building in world.buildings:
+		if building.def == null:
+			continue
+		for option: FieldOptionDef in building.def.field_options:
+			if option != null and option.id == id:
+				return option
+	return null

@@ -44,6 +44,14 @@ const LOOPS: Array[String] = [
 	"res://assets/audio/music/kessel/mus_kessel_storm.ogg",
 	"res://assets/audio/music/beds/mus_briefing_bed.ogg",
 	"res://assets/audio/music/beds/mus_debrief_bed.ogg",
+	"res://assets/audio/ambience/ship/amb_ship_hum.ogg",
+	"res://assets/audio/ambience/ship/amb_ship_air.ogg",
+	"res://assets/audio/music/meridian/mus_meridian_pad.ogg",
+	"res://assets/audio/music/meridian/mus_meridian_pulse.ogg",
+	"res://assets/audio/music/meridian/mus_meridian_melody.ogg",
+	"res://assets/audio/music/meridian/mus_meridian_title.ogg",
+	"res://assets/audio/music/meridian/mus_meridian_web.ogg",
+	"res://assets/audio/music/meridian/mus_meridian_loadout.ogg",
 ]
 const WEAPON_SETS: Array[String] = [
 	"repeater",

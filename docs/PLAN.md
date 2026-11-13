@@ -292,7 +292,7 @@ Each phase ends in something playable and has all three tracks. A phase is done 
 - **Code:** star map, branching route, the Meridian screen, tech web, loadouts, persistent state, campaign save/load, then mid-mission saves.
 - **Art:** star map, ship interior screens, tech-web icons.
 - **Audio:** ship ambience and theme, map interface, Advisor campaign lines.
-- **Known gap to close here:** entities save and restore their own state, but a restored unit does not yet reconnect an active build, harvest or scan order to its target (the Builder, Harvester and Scanner handlers keep runtime references that are not rehydrated). Wire this up together with the first game-level load.
+- **Mid-mission saves (ADR 0013):** quicksave (F5) / quickload (F9), a landing autosave as a campaign landing starts, three manual slots from the pause menu, Continue on the title picks the newest of the campaign autosave and the saved landings. A load builds the map and restores the whole landing into it (world, orders reconnected to their targets, mission runner, objectives, script, enemy AI, fog, storm, camera, control groups). Not saved: commands younger than one tick, transient AI timers, the shooter of a projectile in flight.
 - **Done when:** two planets can be played in sequence with Intel carrying over and changing the second landing.
 
 ### Phase 8 — Content

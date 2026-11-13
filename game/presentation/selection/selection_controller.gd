@@ -119,6 +119,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_key(key)
 
 
+## The player's control groups (a saved game stores and restores them).
+func control_groups() -> ControlGroups:
+	return _groups
+
+
 ## Starts placing `def` with the selected units that can build it.
 func begin_placement(def: BuildingDef) -> void:
 	var builders: Array[Unit] = SelectionRules.able(selection, Builder.KIND)

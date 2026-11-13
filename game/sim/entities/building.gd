@@ -20,7 +20,8 @@ signal aim_cleared
 ## A saboteur disabled the building for good.
 signal sabotaged
 
-const SAVE_VERSION: int = 3
+## 4: whether the player has seen it (enemy buildings stay shown under fog).
+const SAVE_VERSION: int = 4
 const GROUP: StringName = &"buildings"
 
 var def: BuildingDef
@@ -81,7 +82,7 @@ func setup(complete: bool) -> void:
 	if def.is_producer():
 		producer = Producer.new()
 		producer.name = &"Producer"
-		producer.setup(def.produces, def.queue_limit)
+		producer.setup(_available(def.produces), def.queue_limit)
 		add_child(producer)
 	if def.flux_amount > 0:
 		flux_extractor = FluxExtractor.new()
@@ -90,7 +91,12 @@ func setup(complete: bool) -> void:
 		add_child(flux_extractor)
 	health = Health.new()
 	health.name = &"Health"
-	health.setup(def.max_health, def.armour_type, self)
+	var max_health: float = def.max_health
+	if world != null:
+		max_health = FactionPerks.of(world.perks, faction).apply(
+			def.id, FactionPerks.MAX_HEALTH, max_health
+		)
+	health.setup(roundi(max_health), def.armour_type, self)
 	health.changed.connect(health_changed.emit)
 	add_child(health)
 	if def.weapon != null:
@@ -189,6 +195,7 @@ func to_dict() -> Dictionary:
 		"weapon": weapon.to_dict() if weapon != null else {},
 		"sabotage": sabotage_progress,
 		"sabotaged": is_sabotaged,
+		"seen": seen_by_player,
 	}
 
 
@@ -218,3 +225,24 @@ func from_dict(data: Dictionary) -> void:
 		weapon.from_dict(weapon_data)
 	sabotage_progress = data.get("sabotage", 0.0)
 	is_sabotaged = data.get("sabotaged", false)
+	seen_by_player = data.get("seen", seen_by_player)
+	if world != null and world.vision != null:
+		world.vision.refresh_building(self)
+
+
+## After a load, once every entity exists: the weapon's saved target becomes a node
+## again. `lookup` is `func(id: int) -> Node3D` (SimWorld.entity).
+func resolve_references(lookup: Callable) -> void:
+	if weapon != null:
+		weapon.resolve_target(lookup)
+
+
+## The unit types of `options` the faction may produce (its perks may lock some).
+func _available(options: Array[UnitDef]) -> Array[UnitDef]:
+	if world == null:
+		return options
+	var result: Array[UnitDef] = []
+	for option: UnitDef in options:
+		if option != null and not FactionPerks.of(world.perks, faction).is_locked(option.id):
+			result.append(option)
+	return result

@@ -29,3 +29,15 @@ func _banked() -> int:
 	for faction: int in factions_of(def.side):
 		total = maxi(total, mission.world.economy.stockpile(faction).intel)
 	return total
+
+
+func to_dict() -> Dictionary:
+	var data: Dictionary = super()
+	data["last_banked"] = _last_banked
+	return data
+
+
+func from_dict(data: Dictionary) -> void:
+	super(data)
+	progress_side = ObjectiveDef.SIDE_ENEMY
+	_last_banked = data.get("last_banked", 0)

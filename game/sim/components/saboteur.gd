@@ -85,8 +85,20 @@ func end(_order: Order) -> void:
 	target = null
 
 
+## A load: the target is the restored order's; progress made is kept on the building.
+func resume(order: Order) -> void:
+	target = (
+		order.target_entity as Building if can_sabotage(order.target_entity, unit.faction) else null
+	)
+	_working = false
+
+
 func to_dict() -> Dictionary:
-	return {"target": Order.entity_id_of(target)}
+	return {"target": Order.entity_id_of(target), "attempts": _attempts}
+
+
+func from_dict(data: Dictionary) -> void:
+	_attempts = data.get("attempts", 0)
 
 
 func _approach() -> void:

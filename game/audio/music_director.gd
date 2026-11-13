@@ -23,6 +23,13 @@ extends Node
 ## others in the group are silent. The change lands on the loop boundary.
 ## `at_next_beat` runs an action on the next beat of the grid (transition
 ## hits); `dip_for` lowers the score briefly under a sting.
+##
+## Switching scores (Phase 7): `switch_score` fades the playing score out on
+## the one player, then starts the new one and fades it in, so the ship theme
+## and a planet score never sound together. State requests that arrive during
+## the fade are for the incoming score. Switching back to the playing score
+## before the fade ends cancels the switch. A hold dip keeps the score lowered
+## (no bed) until a bed or `stop_bed` changes it: the landing hand-over.
 
 const MUSIC_BUS: StringName = &"Music"
 const AMBIENCE_BUS: StringName = &"Ambience"
@@ -31,8 +38,16 @@ const BED_FADE_IN: float = 2.0
 const BED_FADE_OUT: float = 1.5
 ## How fast the score dips under a bed and comes back (dB per second).
 const DIP_DB_PER_SECOND: float = 10.0
+## Score switch: the old score fades out over SWAP_FADE_OUT, the new one fades
+## in over SWAP_FADE_IN. A score that has played less than SWAP_CUT_BELOW is
+## replaced at once (nothing worth fading yet, e.g. at boot).
+const SWAP_FADE_OUT: float = 1.5
+const SWAP_FADE_IN: float = 2.0
+const SWAP_CUT_BELOW: float = 1.0
 
 var score: MusicScore
+## A score younger than this is cut rather than faded (tests set 0).
+var swap_cut_below: float = SWAP_CUT_BELOW
 
 var _blender: MusicBlender = MusicBlender.new()
 var _player: AudioStreamPlayer
@@ -59,6 +74,11 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _on_beat: Array = []
 var _sting_dip_db: float = 0.0
 var _sting_dip_until: float = -INF
+## Score switch: the score (and its state) waiting for the fade-out, and the
+## playing score's switch level (linear 0..1).
+var _next_score: MusicScore = null
+var _next_state: StringName = &""
+var _swap_level: float = 1.0
 
 
 func _ready() -> void:
@@ -78,6 +98,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_step_swap(delta)
 	_step_bed(delta)
 	if _clip < 0:
 		return
@@ -98,22 +119,30 @@ func _process(delta: float) -> void:
 		layers.set_sync_stream_volume(i, volumes[i])
 
 
-## Starts `new_score` in its default state (and its ambience bed, if given).
-func play_score(new_score: MusicScore, ambience: AudioStream = null) -> void:
+## Starts `new_score` in its default state, or `start_state` if given (and
+## its ambience bed, if given). Cuts whatever played; see `switch_score`.
+func play_score(
+	new_score: MusicScore, ambience: AudioStream = null, start_state: StringName = &""
+) -> void:
 	score = new_score
+	_next_score = null
+	_next_state = &""
 	_blender = MusicBlender.new()
 	_blender.min_hold = score.min_hold
 	_blender.fade_seconds = score.layer_fade
 	_build_stream()
 	_player.stream = _interactive
-	var start: MusicState = score.find_state(score.default_state)
+	var first: StringName = score.default_state
+	if start_state != &"" and score.find_state(start_state) != null:
+		first = start_state
+	var start: MusicState = score.find_state(first)
 	if start != null:
 		_interactive.initial_clip = maxi(score.clip_index(start.clip), 0)
 	_clip = _interactive.initial_clip
 	_started_at = _now()
 	_pick_variants(true)
-	_blender.request(score.default_state, 0 if start == null else start.intensity, _now())
-	_apply(score.default_state, true)
+	_blender.request(first, 0 if start == null else start.intensity, _now())
+	_apply(first, true)
 	_blender.snap()
 	_process(0.0)
 	_player.play()
@@ -125,8 +154,43 @@ func play_score(new_score: MusicScore, ambience: AudioStream = null) -> void:
 		create_tween().tween_property(_ambience, ^"volume_db", 0.0, AMBIENCE_FADE_IN)
 
 
-## Requests a state by name; unknown states are ignored.
+## Fades the playing score out and `new_score` in (in `state`, or its
+## default). Nothing plays: it starts at once. The same score: only the state.
+## A negative `hold_dip_db` keeps the score lowered that far without a bed
+## until a bed starts or `stop_bed` lets it back (the landing hand-over).
+func switch_score(new_score: MusicScore, state: StringName = &"", hold_dip_db: float = 0.0) -> void:
+	if new_score == null:
+		return
+	if hold_dip_db < 0.0:
+		_score_dip_target_db = hold_dip_db
+	if new_score == score and _clip >= 0:
+		_next_score = null  # cancels a switch away that has not happened yet
+		_next_state = &""
+		if state != &"":
+			set_state(state)
+		return
+	if _clip < 0 or not _player.playing or _now() - _started_at < swap_cut_below:
+		if _clip < 0 or not _player.playing:
+			_swap_level = 1.0
+		play_score(new_score, null, state)
+		return
+	_next_score = new_score
+	_next_state = state
+
+
+## The score playing now, or the one a switch is fading to (a switch is
+## under way while this differs from `score`).
+func target_score() -> MusicScore:
+	return _next_score if _next_score != null else score
+
+
+## Requests a state by name; unknown states are ignored. During a score switch
+## the request is for the incoming score.
 func set_state(state_name: StringName) -> void:
+	if _next_score != null:
+		if _next_score.find_state(state_name) != null:
+			_next_state = state_name
+		return
 	if score == null:
 		return
 	var state: MusicState = score.find_state(state_name)
@@ -138,6 +202,9 @@ func set_state(state_name: StringName) -> void:
 
 ## Switches to `state_name` at once, without waiting for the hold time or the beat.
 func force_state(state_name: StringName) -> void:
+	if _next_score != null:
+		set_state(state_name)
+		return
 	if score == null:
 		return
 	var state: MusicState = score.find_state(state_name)
@@ -214,6 +281,7 @@ func seconds_to_pending_change() -> float:
 
 
 func stop() -> void:
+	_next_score = null
 	_player.stop()
 	_ambience.stop()
 	_bed.stop()
@@ -357,6 +425,17 @@ func _run_beat_actions(now: float) -> void:
 	_on_beat = waiting
 
 
+func _step_swap(delta: float) -> void:
+	if _next_score != null:
+		_swap_level = move_toward(_swap_level, 0.0, delta / SWAP_FADE_OUT)
+		if _swap_level <= 0.0:
+			var incoming: MusicScore = _next_score
+			var state: StringName = _next_state
+			play_score(incoming, null, state)
+	else:
+		_swap_level = move_toward(_swap_level, 1.0, delta / SWAP_FADE_IN)
+
+
 func _step_bed(delta: float) -> void:
 	var rate: float = BED_FADE_IN if _bed_target > _bed_level else BED_FADE_OUT
 	_bed_level = move_toward(_bed_level, _bed_target, delta / rate)
@@ -368,7 +447,7 @@ func _step_bed(delta: float) -> void:
 		_bed.volume_db = AudioMix.linear_to_db_safe(_bed_level)
 		if _bed_level <= 0.0 and _bed_target <= 0.0:
 			_bed.stop()
-	_player.volume_db = _score_dip_db
+	_player.volume_db = _score_dip_db + AudioMix.linear_to_db_safe(_swap_level)
 
 
 func _build_stream() -> void:

@@ -15,7 +15,8 @@ signal resolved_changed(resolved: bool)
 ## Colour of the discovery type, for the visual.
 signal discovery_color_changed(color: Color)
 
-const SAVE_VERSION: int = 1
+## 2: scan progress saved (a scan in progress survives a load).
+const SAVE_VERSION: int = 2
 const GROUP: StringName = &"discovery_sites"
 
 var def: DiscoveryDef
@@ -128,16 +129,19 @@ func to_dict() -> Dictionary:
 		"position": var_to_str(position),
 		"charted": charted,
 		"resolved_by": resolved_by,
+		"progress": scan_progress,
 	}
 
 
 ## Restores the state; a scan in progress is not saved (it starts over).
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
-	assert(version == SAVE_VERSION, "Unsupported DiscoverySite save version")
+	assert(version >= 1 and version <= SAVE_VERSION, "Unsupported DiscoverySite save version")
 	entity_id = data.get("entity_id", entity_id)
 	charted = data.get("charted", charted)
 	visible = charted
 	resolved_by = data.get("resolved_by", -1)
-	scan_progress = 1.0 if is_resolved else 0.0
+	var progress: float = data.get("progress", 0.0)
+	scan_progress = 1.0 if is_resolved else clampf(progress, 0.0, 1.0)
 	resolved_changed.emit(is_resolved)
+	scan_progress_changed.emit(scan_progress)

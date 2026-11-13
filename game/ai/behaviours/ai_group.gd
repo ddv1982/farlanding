@@ -168,6 +168,49 @@ func may_reorder() -> bool:
 	return port.now() - last_order_tick >= REORDER_TICKS
 
 
+## The group's state for a saved game: members by save id, the active state and
+## the shared fields. Subclasses add their own.
+func to_dict() -> Dictionary:
+	prune()
+	var ids: Array[int] = []
+	for unit: Unit in members:
+		ids.append(unit.entity_id)
+	return {
+		"members": ids,
+		"state": String(state()),
+		"last_order": last_order_tick,
+		"strength": initial_strength,
+	}
+
+
+## Restores what `to_dict()` saved. Subclasses set their own fields first, then call
+## this: it re-enters the saved state (which re-issues its order, as entering it
+## always does) and puts back the shared fields.
+func from_dict(data: Dictionary) -> void:
+	var saved_state: String = data.get("state", "")
+	if saved_state != "" and machine.has_state(StringName(saved_state)):
+		_resume_state(StringName(saved_state))
+	last_order_tick = data.get("last_order", last_order_tick)
+	initial_strength = data.get("strength", initial_strength)
+
+
+## The live units of `ids` (saved members). `lookup` is `func(id: int) -> Node3D`.
+static func units_from_ids(ids: Array, lookup: Callable) -> Array[Unit]:
+	var found: Array[Unit] = []
+	for entry: Variant in ids:
+		var id: int = entry
+		var unit_node: Node3D = lookup.call(id)
+		var unit: Unit = unit_node as Unit
+		if Combat.is_alive(unit):
+			found.append(unit)
+	return found
+
+
+## Enters a saved state after a load; override to choose how it is entered.
+func _resume_state(state_name: StringName) -> void:
+	machine.resume(state_name)
+
+
 static func flat_distance(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
 

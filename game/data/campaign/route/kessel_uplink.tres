@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RouteNodeDef" format=3]
+
+[ext_resource type="Script" path="res://campaign/route_node_def.gd" id="e0"]
+[ext_resource type="Resource" path="res://data/planets/kessel_reach.tres" id="e1"]
+[ext_resource type="Resource" path="res://data/missions/infiltration.tres" id="e2"]
+
+[resource]
+script = ExtResource("e0")
+id = &"kessel_uplink"
+title = "Quiet Uplink"
+planet = ExtResource("e1")
+mission = ExtResource("e2")
+map_position = Vector2(0.42, 0.8)
+leads_to = Array[StringName]([&"thalassa_shallows"])
+excludes = Array[StringName]([&"kessel_storm"])
+scan_summary = "A Combine uplink relays the basin's survey data off-world. Patrols, no base for the Concord: a small squad goes in."
+intel_notes = "Little Intel, but the relay's data is worth having. Choosing it closes the storm survey."
+placeholder = false

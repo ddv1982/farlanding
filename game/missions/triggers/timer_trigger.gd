@@ -25,3 +25,14 @@ func update(mission: Mission) -> void:
 		_due_tick = mission.now() + CommanderDifficulty.ticks(seconds)
 	if action.is_valid():
 		action.call()
+
+
+func to_dict() -> Dictionary:
+	var data: Dictionary = super()
+	data["due"] = _due_tick
+	return data
+
+
+func from_dict(data: Dictionary) -> void:
+	super(data)
+	_due_tick = data.get("due", _due_tick)

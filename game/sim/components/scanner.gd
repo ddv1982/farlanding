@@ -61,6 +61,29 @@ func end(_order: Order) -> void:
 	_leave(true)
 
 
+## A load: the site is the restored order's target. A scanner that was scanning joins
+## the site's scanners again (its saved progress is on the site) and announces the
+## scan for presentation and audio; one on its way walks on.
+func resume(order: Order) -> void:
+	var target: DiscoverySite = order.target_entity as DiscoverySite
+	if not _scannable(target):
+		state = STATE_IDLE
+		site = null
+		return
+	site = target
+	if state == STATE_SCANNING and site.add_scanner(unit):
+		Events.scan_started.emit(unit, site)
+
+
+func to_dict() -> Dictionary:
+	return {"state": state, "site": Order.entity_id_of(site), "attempts": _attempts}
+
+
+func from_dict(data: Dictionary) -> void:
+	state = data.get("state", STATE_IDLE)
+	_attempts = data.get("attempts", 0)
+
+
 func _step_approach() -> bool:
 	if _in_reach():
 		_start_scanning()
@@ -78,7 +101,7 @@ func _step_scanning(dt: float) -> bool:
 	# Pushed out of reach (a building site, a crowd): the scan is cut short.
 	if not _in_reach(REACH_SLACK):
 		return true
-	site.set_scan_progress(site.scan_progress + unit.def.scan_rate * dt / site.def.scan_time)
+	site.set_scan_progress(site.scan_progress + unit.scan_rate * dt / site.def.scan_time)
 	if site.scan_progress < 1.0:
 		return false
 	var done: DiscoverySite = site

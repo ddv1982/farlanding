@@ -41,6 +41,8 @@ var cooldown_left: float = 0.0
 var _aiming: bool = false
 var _stagger: int = 0
 var _announced_aim: Vector3 = Vector3.INF
+## The target's save id after a load, until `resolve_target()`.
+var _target_id: int = -1
 
 
 func setup(p_def: WeaponDef, p_carrier: Node3D, p_faction: int, p_combat: Combat) -> void:
@@ -131,6 +133,16 @@ func from_dict(data: Dictionary) -> void:
 	assert(version == SAVE_VERSION, "Unsupported Weapon save version")
 	cooldown_left = data.get("cooldown", 0.0)
 	aim_yaw = data.get("aim_yaw", 0.0)
+	_target_id = data.get("target", -1)
+
+
+## After a load: the saved target (by id) becomes the target again if it is still
+## there. `lookup` is `func(id: int) -> Node3D` (SimWorld.entity).
+func resolve_target(lookup: Callable) -> void:
+	if _target_id >= 0 and lookup.is_valid():
+		var found: Node3D = lookup.call(_target_id)
+		target = found if Combat.is_alive(found) else null
+	_target_id = -1
 
 
 func _choose(position: Vector3, ordered: Node3D, may_auto: bool, sight_reach: float) -> Node3D:
