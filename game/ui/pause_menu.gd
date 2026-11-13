@@ -11,6 +11,15 @@ signal restart_pressed
 signal quit_pressed
 
 const DIM := Color(0.02, 0.025, 0.035, 0.6)
+const MENU_ACTIONS: Array[StringName] = [
+	&"ui_left",
+	&"ui_right",
+	&"ui_up",
+	&"ui_down",
+	&"ui_accept",
+	&"ui_focus_next",
+	&"ui_focus_prev",
+]
 
 var _title: Label
 
@@ -63,8 +72,19 @@ func _input(event: InputEvent) -> void:
 	if key.pressed and not key.echo and key.keycode == KEY_ESCAPE and _settings_hidden():
 		resume_pressed.emit()
 		get_viewport().set_input_as_handled()
-	elif _settings_hidden():
+	elif _settings_hidden() or not _is_menu_key(key):
 		get_viewport().set_input_as_handled()
+
+
+## Keys the settings panel itself needs: Esc (it closes) and moving through its
+## controls. Every other key would be a gameplay shortcut reaching the paused map.
+static func _is_menu_key(key: InputEventKey) -> bool:
+	if key.keycode == KEY_ESCAPE:
+		return true
+	for action: StringName in MENU_ACTIONS:
+		if key.is_action(action):
+			return true
+	return false
 
 
 func _settings_hidden() -> bool:

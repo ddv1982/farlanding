@@ -131,6 +131,42 @@ func test_the_card_shows_then_dismisses_without_taking_clicks() -> void:
 	hints.end_mission()
 
 
+func test_a_paused_mission_holds_its_hints() -> void:
+	var hints: TutorialHints = TutorialHints.new()
+	add_child_autofree(hints)
+	hints.setup(_catalog)
+	var mission: MissionDef = MissionDef.new()
+	mission.mission_type = &"conquest"
+	hints.begin_mission(mission)
+	hints.suspended = true
+	hints._process(HintDirector.SETTLE_SECONDS + 0.1)
+	hints._process(0.01)
+	assert_null(hints.shown, "nothing comes due while paused")
+	hints.suspended = false
+	hints._process(HintDirector.SETTLE_SECONDS + 0.1)
+	hints._process(0.01)
+	assert_not_null(hints.shown)
+	hints.suspended = true
+	hints._process(TutorialHints.AUTO_HIDE_SECONDS + 1.0)
+	assert_not_null(hints.shown, "the card does not time out under the pause menu")
+	hints.end_mission()
+
+
+func test_settings_over_the_pause_menu_only_pass_menu_keys() -> void:
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	assert_true(PauseMenu._is_menu_key(escape))
+	var tab := InputEventKey.new()
+	tab.keycode = KEY_TAB
+	assert_true(PauseMenu._is_menu_key(tab), "moving through the controls")
+	var group := InputEventKey.new()
+	group.keycode = KEY_1
+	assert_false(PauseMenu._is_menu_key(group), "a control group stays with the paused map")
+	var stop := InputEventKey.new()
+	stop.keycode = KEY_S
+	assert_false(PauseMenu._is_menu_key(stop))
+
+
 func test_the_real_catalog_loads() -> void:
 	var real: HintCatalog = load("res://data/hints/catalog.tres")
 	assert_gte(real.hints.size(), 9)

@@ -141,6 +141,7 @@ func open_pause() -> void:
 	if map == null or paused:
 		return
 	paused = true
+	_hints.suspended = true
 	_set_map_running(false)
 	_pause.open(current.title if current != null else "")
 	Events.ui_feedback.emit(&"pause_open")
@@ -151,6 +152,7 @@ func resume() -> void:
 	if not paused:
 		return
 	paused = false
+	_hints.suspended = false
 	_settings.visible = false
 	_pause.visible = false
 	_set_map_running(true)

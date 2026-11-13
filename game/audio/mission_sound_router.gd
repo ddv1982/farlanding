@@ -37,7 +37,8 @@ extends Node
 ## Completing the deadline objective takes the storm layer out again.
 ## Fallbacks for a mission without such an objective: `advisor_alert` kind
 ## &"objective_time_low" starts the minute stage; a later one (at least
-## FINAL_MIN_GAP on) or &"storm_final" starts the countdown. (Since Phase 6
+## FINAL_MIN_GAP on) or &"storm_final" starts the countdown (with a deadline
+## objective known, &"storm_final" is left to the deadline). (Since Phase 6
 ## &"storm_warning" is the weather's own warning, voiced by the Advisor and
 ## heard through StormSound; it no longer starts the deadline stages.)
 ## mission_started resets all of it.
@@ -250,6 +251,10 @@ func handle_advisor_alert(kind: StringName, now: float) -> StringName:
 		_pending_kinds.append(kind)
 		return &""
 	var warning: bool = kind == TIME_LOW
+	# The weather announces its last storm long before the deadline; with a
+	# deadline objective to follow, the countdown waits for its last seconds.
+	if kind == STORM_FINAL and _has_deadline():
+		return &""
 	if kind == STORM_FINAL or (warning and _storm_stage >= 1):
 		if _storm_stage >= 2 or (warning and now - _storm_since < FINAL_MIN_GAP):
 			return &""
@@ -282,6 +287,13 @@ func seconds_to_deadline(tick: int) -> float:
 		var due: int = _int_of(objective, &"countdown_tick")
 		soonest = minf(soonest, maxf(float(due - tick) / SimClock.TICK_RATE, 0.0))
 	return soonest
+
+
+func _has_deadline() -> bool:
+	for id: StringName in _deadlines.keys():
+		if is_deadline(_deadlines[id]):
+			return true
+	return false
 
 
 ## A known objective that fails when its countdown runs out, and is still active.

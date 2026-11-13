@@ -148,6 +148,16 @@ func test_storm_follows_the_deadline() -> void:
 	assert_eq(_played, [&"mus_storm_minute", &"mus_storm_countdown"] as Array[StringName])
 
 
+func test_the_final_storm_warning_leaves_the_countdown_to_the_deadline() -> void:
+	var survey: FakeObjective = _objective(&"bank_intel")
+	survey.countdown_tick = 1000
+	_router.handle_objective_added(survey)
+	var rate: int = SimClock.TICK_RATE
+	_router.handle_sim_ticked(1000 - 60 * rate)
+	assert_eq(_router.handle_advisor_alert(&"storm_final", 0.0), &"", "a minute out is too early")
+	assert_eq(_router.handle_sim_ticked(1000 - 10 * rate), &"mus_storm_countdown")
+
+
 func test_a_survive_timer_is_not_a_storm() -> void:
 	var hold: FakeObjective = _objective(&"hold")
 	hold.countdown_tick = 100

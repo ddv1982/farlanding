@@ -14,6 +14,8 @@ const HINT_COLOR := Color(0.4, 0.9, 1.0)
 var director: HintDirector = HintDirector.new()
 ## The hint on screen, or null.
 var shown: HintDef = null
+## True while the mission is paused: no hint comes due and the card's time stands still.
+var suspended: bool = false
 
 var _card: PanelContainer
 var _title: Label
@@ -69,6 +71,7 @@ func setup(catalog: HintCatalog) -> void:
 ## A mission began: its hints may show.
 func begin_mission(mission: MissionDef) -> void:
 	_hide()
+	suspended = false
 	director.begin(mission.mission_type if mission != null else &"")
 
 
@@ -79,7 +82,7 @@ func end_mission() -> void:
 
 
 func _process(delta: float) -> void:
-	if not director.active:
+	if not director.active or suspended:
 		return
 	director.advance(delta)
 	if shown != null:
