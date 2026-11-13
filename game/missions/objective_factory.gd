@@ -30,6 +30,10 @@ static func create(def: ObjectiveDef) -> Objective:
 			objective = CarryToObjective.new()
 		ObjectiveDef.TYPE_KEEP_FROM_ENEMY:
 			objective = KeepFromEnemyObjective.new()
+		ObjectiveDef.TYPE_HOLD_MACHINES:
+			objective = HoldMachinesObjective.new()
+		ObjectiveDef.TYPE_CORE_CHARGE:
+			objective = CoreChargeObjective.new()
 		_:
 			push_error("ObjectiveFactory: unknown objective type '%s'" % def.type)
 			return null

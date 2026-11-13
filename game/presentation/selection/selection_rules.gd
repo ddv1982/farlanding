@@ -29,6 +29,8 @@ const CLICK_SCAN: StringName = &"scan"
 const CLICK_SABOTAGE: StringName = &"sabotage"
 ## Pick up a carriable prop (an artefact) nobody carries.
 const CLICK_CARRY: StringName = &"carry"
+## Reactivate or take over an Antecedent engine (builders and scanners, ADR 0017).
+const CLICK_REACTIVATE: StringName = &"reactivate"
 ## Sets the selected producer building's rally point.
 const CLICK_RALLY: StringName = &"rally"
 ## Clears the selection (classic right click).
@@ -138,8 +140,9 @@ static func right_click_target(
 ## or building (sabotage a working enemy building when every selected unit able to
 ## act on it is a saboteur, i.e. a squad of Wisps), harvest a deposit (if any can
 ## harvest), scan an unresolved site (if any can scan), help build an own site (if
-## any can build), pick up an artefact nobody carries (if any can carry), or move
-## there. Null = the ground. Nothing without a selection.
+## any can build), reactivate an Antecedent engine (if any can, ADR 0017), pick up an
+## artefact nobody carries (if any can carry), or move there. Null = the ground.
+## Nothing without a selection.
 ## The one place these rules live.
 static func command_target(current: Array[Unit], target: Node3D, player_faction: int) -> StringName:
 	var units: Array[Unit] = selectable(current, player_faction)
@@ -160,6 +163,8 @@ static func command_target(current: Array[Unit], target: Node3D, player_faction:
 			return CLICK_CARRY
 	var building: Building = target as Building
 	if building != null and is_instance_valid(building) and building.is_inside_tree():
+		if _prefers_reactivate(units, building, player_faction):
+			return CLICK_REACTIVATE
 		if building.faction != player_faction:
 			if not building.is_visible_to_player:
 				return CLICK_MOVE
@@ -238,6 +243,7 @@ static func _is_visible_enemy(target: Node3D, player_faction: int) -> bool:
 		and building.faction != player_faction
 		and building.is_visible_to_player
 		and not building.is_dead
+		and not building.is_inert
 	)
 
 
@@ -256,6 +262,24 @@ static func _prefers_sabotage(units: Array[Unit], building: Building, player_fac
 		return false
 	if not _any_can(units, Saboteur.KIND):
 		return false
+	for unit: Unit in units:
+		if unit.weapon != null:
+			return false
+	return true
+
+
+## True when the selection should work on the Antecedent engine `building`: some
+## selected units can, and it is dormant or shut down (nothing to shoot), or none of
+## the others carries a weapon (a takeover rather than an attack).
+static func _prefers_reactivate(
+	units: Array[Unit], building: Building, player_faction: int
+) -> bool:
+	if building.machine == null or not _any_can(units, Reactivator.KIND):
+		return false
+	if not Reactivator.can_reactivate(building, player_faction):
+		return false
+	if building.is_inert:
+		return true
 	for unit: Unit in units:
 		if unit.weapon != null:
 			return false

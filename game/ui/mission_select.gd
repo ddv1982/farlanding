@@ -16,6 +16,8 @@ const TYPE_NAMES: Dictionary[StringName, String] = {
 	&"conquest": "CONQUEST",
 	&"survey": "SURVEY",
 	&"infiltration": "INFILTRATION",
+	&"power": "POWER",
+	&"finale": "FINALE",
 }
 
 var _cards: VBoxContainer

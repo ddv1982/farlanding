@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="PlanetDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/planet_def.gd" id="1_planet"]
+[ext_resource type="Script" path="res://core/defs/machinery_rule.gd" id="2_rule"]
+[ext_resource type="Script" path="res://sim/systems/planet/machinery_system.gd" id="3_system"]
+
+[sub_resource type="Resource" id="rule"]
+script = ExtResource("2_rule")
+id = &"hollow_machinery"
+summary = "Custodians everywhere; power comes from reactivating old machinery. Reactors cannot be built: a Fabricator or a Surveyor brings an Antecedent engine back, and it powers whoever runs it until it is taken over or shut down. Every engine wakes the guardians around it."
+system = ExtResource("3_system")
+random_seed = 53
+reactivate_seconds = 12.0
+takeover_seconds = 24.0
+progress_decay = 0.05
+work_range = 3.0
+shutdown_seconds = 45.0
+disturb_radius = 32.0
+chase_distance = 40.0
+locked_buildings = Array[StringName]([&"concord_reactor"])
+headquarters_power_scale = 0.5
+alert_seconds = 10.0
+
+[resource]
+script = ExtResource("1_planet")
+id = &"hollow_meridian"
+display_name = "Hollow Meridian"
+summary = "Not a planet but a built world: plated decks on three levels, two bottomless chasms crossed by four bridges, and a dais at the centre where the Beacon Core stands. Custodians stand guard everywhere."
+rule = SubResource("rule")

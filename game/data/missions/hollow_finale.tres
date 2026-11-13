@@ -1,0 +1,124 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Resource" path="res://data/planets/hollow_meridian.tres" id="planet"]
+[ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
+[ext_resource type="Script" path="res://missions/objective_def.gd" id="e1"]
+[ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="e3"]
+[ext_resource type="Resource" path="res://data/units/custodian_sentinel.tres" id="e4"]
+[ext_resource type="PackedScene" path="res://maps/hollow_meridian_deck/hollow_meridian_deck.tscn" id="e5"]
+[ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="e6"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="e7"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e8"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="e9"]
+[ext_resource type="Resource" path="res://data/buildings/combine_hub.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="e11"]
+[ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="e12"]
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="e13"]
+[ext_resource type="Resource" path="res://data/units/combine_scrapper.tres" id="e14"]
+[ext_resource type="Resource" path="res://data/units/combine_rigger.tres" id="e15"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e16"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="e17"]
+[ext_resource type="Resource" path="res://data/ai/combine_meridian.tres" id="e18"]
+[ext_resource type="Resource" path="res://data/units/combine_hornet.tres" id="e19"]
+[ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="e20"]
+[ext_resource type="Script" path="res://missions/scripts/core_script.gd" id="e22"]
+[ext_resource type="Script" path="res://missions/scripts/core_rules.gd" id="e23"]
+[ext_resource type="Resource" path="res://data/units/combine_mauler.tres" id="e24"]
+
+[sub_resource type="Resource" id="wake"]
+script = ExtResource("e1")
+id = &"wake_core"
+title = "Wake the Beacon Core"
+kind = &"primary"
+type = &"core_charge"
+side = &"player"
+area_center = Vector3(0, 0, 0)
+area_radius = 16.0
+
+[sub_resource type="Resource" id="rival"]
+script = ExtResource("e1")
+id = &"rival_core"
+title = "Do not let the Combine wake it first"
+kind = &"primary"
+type = &"core_charge"
+side = &"enemy"
+passive = true
+
+[sub_resource type="Resource" id="keep"]
+script = ExtResource("e1")
+id = &"keep_lander"
+title = "Keep the Lander standing"
+kind = &"primary"
+type = &"keep_alive"
+side = &"player"
+passive = true
+defs = Array[ExtResource("e3")]([ExtResource("e2")])
+
+[sub_resource type="Resource" id="annal"]
+script = ExtResource("e1")
+id = &"read_annal"
+title = "Read the annal by the dais"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"hollow_core_annal"])
+area_center = Vector3(44, 0, -22)
+area_radius = 6.0
+
+[sub_resource type="Resource" id="sent"]
+script = ExtResource("e1")
+id = &"silence_sentinel"
+title = "Silence a Custodian Sentinel"
+kind = &"hidden"
+type = &"destroy_count"
+side = &"custodian"
+defs = Array[ExtResource("e3")]([ExtResource("e4")])
+amount = 1
+
+[sub_resource type="Resource" id="rules"]
+script = ExtResource("e23")
+core_id = &"antecedent_site_core"
+engines_needed = 4
+link_radius = 16.0
+charge_seconds = 240.0
+extra_engine_rate = 0.25
+drain_per_second = 0.0
+stage_charges = PackedFloat32Array(0.2, 0.45, 0.7, 0.9)
+stage_radii = PackedFloat32Array(45, 80, 115, 400)
+enemy_link_after_seconds = 300.0
+enemy_escort = 4
+enemy_strike = 8
+player_objective = &"wake_core"
+enemy_objective = &"rival_core"
+
+[resource]
+script = ExtResource("e0")
+id = &"hollow_finale"
+title = "The Beacon Core"
+mission_type = &"finale"
+summary = "The end of the Trail. Wake the Beacon Core on the dais before the Combine does, while every guardian on the deck comes for it."
+briefing = "This is what the beacons pointed to. The Beacon Core stands on the dais at the centre of the deck, dormant, and it draws on the engines around it.
+
+To wake it, run at least four engines and keep a Surveyor linked beside it on the dais. The Core charges while both hold, faster with every engine beyond four. If the Combine links at the same time, the dais is contested and nobody charges.
+
+The Custodians will not let it happen quietly. As the charge rises they wake in stages, the nearest first, and converge on the dais. By the end, every guardian on the deck is coming.
+
+The Combine wants the Core too. It will take engines, send its own linker to the dais and strike at yours. If it wakes the Core first, or the Lander falls, the Trail is lost."
+map_scene = ExtResource("e5")
+planet = ExtResource("planet")
+player_hq = ExtResource("e2")
+player_start = Vector3(-80, 0, 85)
+player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e7"), ExtResource("e7"), ExtResource("e8"), ExtResource("e8"), ExtResource("e20"), ExtResource("e20"), ExtResource("e20"), ExtResource("e20")])
+start_alloy = 650
+hostile_faction = 1
+hostile_hq = ExtResource("e10")
+hostile_hq_position = Vector3(84, 0, -86)
+hostile_buildings = Array[ExtResource("e13")]([ExtResource("e11"), ExtResource("e12"), ExtResource("e12")])
+hostile_building_positions = PackedVector3Array(66, 0, -88, 76, 0, -66, 98, 0, -74)
+hostile_roster = Array[ExtResource("e9")]([ExtResource("e14"), ExtResource("e14"), ExtResource("e15"), ExtResource("e15"), ExtResource("e16"), ExtResource("e16"), ExtResource("e17"), ExtResource("e24"), ExtResource("e19")])
+hostile_start = Vector3(72, 0, -74)
+commander_profile = ExtResource("e18")
+enemy_difficulty = "normal"
+objectives = Array[ExtResource("e1")]([SubResource("wake"), SubResource("rival"), SubResource("keep"), SubResource("annal"), SubResource("sent")])
+mission_script = ExtResource("e22")
+script_rules = SubResource("rules")

@@ -37,6 +37,11 @@
 [ext_resource type="Resource" path="res://data/campaign/techs/understory_optics.tres" id="e34"]
 [ext_resource type="Resource" path="res://data/campaign/techs/root_listeners.tres" id="e35"]
 [ext_resource type="Resource" path="res://data/campaign/techs/talon_plating.tres" id="e36"]
+[ext_resource type="Resource" path="res://data/campaign/route/hollow_power.tres" id="e37"]
+[ext_resource type="Resource" path="res://data/campaign/route/hollow_finale.tres" id="e38"]
+[ext_resource type="Resource" path="res://data/campaign/techs/resonance_keys.tres" id="e39"]
+[ext_resource type="Resource" path="res://data/campaign/techs/engine_bracing.tres" id="e40"]
+[ext_resource type="Resource" path="res://data/campaign/techs/custodian_hush.tres" id="e41"]
 
 [sub_resource type="Resource" id="s0"]
 script = ExtResource("e18")
@@ -259,14 +264,41 @@ discovery = &"emberfall_trail_furnace"
 description = "Furnace bearing on file"
 effects = Array[ExtResource("e22")]([SubResource("s31")])
 
+[sub_resource type="Resource" id="s33"]
+script = ExtResource("e22")
+kind = &"chart_site"
+target = &"hollow_trail_terminus"
+note = "the last beacon's site on Hollow Meridian starts charted"
+
+[sub_resource type="Resource" id="s34"]
+script = ExtResource("e21")
+id = &"carry_trail_root"
+discovery = &"verdance_trail_root"
+description = "Spire bearing on file"
+effects = Array[ExtResource("e22")]([SubResource("s33")])
+
+[sub_resource type="Resource" id="s35"]
+script = ExtResource("e22")
+kind = &"chart_site"
+target = &"hollow_core_annal"
+note = "the annal by the dais starts charted"
+
+[sub_resource type="Resource" id="s36"]
+script = ExtResource("e21")
+id = &"carry_trail_terminus"
+discovery = &"hollow_trail_terminus"
+description = "Last beacon bearing on file"
+effects = Array[ExtResource("e22")]([SubResource("s35")])
+
 [resource]
 script = ExtResource("e0")
 id = &"kessel_trail"
 title = "The Kessel Trail"
-nodes = Array[ExtResource("e19")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e4"), ExtResource("e26"), ExtResource("e27"), ExtResource("e28"), ExtResource("e32"), ExtResource("e33")])
+nodes = Array[ExtResource("e19")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e4"), ExtResource("e26"), ExtResource("e27"), ExtResource("e28"), ExtResource("e32"), ExtResource("e33"), ExtResource("e37"), ExtResource("e38")])
 start_node = &"kessel_proving"
-techs = Array[ExtResource("e20")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11"), ExtResource("e12"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e29"), ExtResource("e30"), ExtResource("e31"), ExtResource("e34"), ExtResource("e35"), ExtResource("e36")])
+techs = Array[ExtResource("e20")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11"), ExtResource("e12"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e29"), ExtResource("e30"), ExtResource("e31"), ExtResource("e34"), ExtResource("e35"), ExtResource("e36"), ExtResource("e39"), ExtResource("e40"), ExtResource("e41")])
 loadout_slots = Array[ExtResource("e17")]([SubResource("s7"), SubResource("s13"), SubResource("s20")])
-carryovers = Array[ExtResource("e21")]([SubResource("s22"), SubResource("s24"), SubResource("s26"), SubResource("s28"), SubResource("s30"), SubResource("s32")])
+carryovers = Array[ExtResource("e21")]([SubResource("s22"), SubResource("s24"), SubResource("s26"), SubResource("s28"), SubResource("s30"), SubResource("s32"), SubResource("s34"), SubResource("s36")])
 locked_at_start = Array[StringName]([&"concord_survey_lab", &"concord_lancer", &"concord_sentry", &"concord_arc"])
 lost_landing_share = 0.0
+final_node = &"hollow_finale"

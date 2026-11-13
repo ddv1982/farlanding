@@ -19,6 +19,9 @@ var current: float = 100.0
 var armour_type: StringName = DamageTable.ARMOUR_LIGHT
 ## The entity root reported in `Events.entity_damaged` (the parent by default).
 var entity: Node3D = null
+## True for something that is never destroyed (an Antecedent engine, ADR 0017): its
+## health runs down to zero and stays there, but it does not die.
+var undying: bool = false
 
 var _dead: bool = false
 
@@ -53,6 +56,8 @@ func take(amount: float, attacker: Node3D = null) -> float:
 		Events.entity_damaged.emit(root, taken, attacker)
 	if current <= 0.0:
 		current = 0.0
+		if undying:
+			return taken
 		_dead = true
 		died.emit(attacker)
 	return taken
@@ -75,5 +80,5 @@ func from_dict(data: Dictionary) -> void:
 	assert(version == SAVE_VERSION, "Unsupported Health save version")
 	max_health = data.get("max", max_health)
 	current = data.get("current", current)
-	_dead = current <= 0.0
+	_dead = current <= 0.0 and not undying
 	changed.emit(fraction())

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PropDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/prop_def.gd" id="1_def"]
+[ext_resource type="PackedScene" path="res://assets/models/antecedent/antecedent_site_core.glb" id="2_model"]
+[ext_resource type="Texture2D" path="res://assets/icons/antecedent_site_core.png" id="3_icon"]
+
+[resource]
+script = ExtResource("1_def")
+size = Vector3(12, 10, 12)
+blocks_movement = true
+blocks_sight = false
+max_health = 0
+armour_type = &"heavy"
+model = ExtResource("2_model")
+carriable = false
+id = &"antecedent_site_core"
+display_name = "Beacon Core"
+description = "The end of the Trail: the Antecedent core every beacon pointed to. It wakes when enough of the deck's engines run for one side and a Surveyor stays linked on the dais."
+faction = -1
+icon = ExtResource("3_icon")
+sound_set = &"beacon_core"

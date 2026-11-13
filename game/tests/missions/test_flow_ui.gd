@@ -15,7 +15,7 @@ func test_mission_select_shows_one_card_per_mission() -> void:
 	add_child_autofree(select)
 	select.show_catalog(_catalog)
 	assert_eq(select.card_count(), _catalog.missions.size())
-	assert_eq(select.card_count(), 8)
+	assert_eq(select.card_count(), 10)
 	watch_signals(select)
 	select._on_card_pressed(_catalog.missions[2])
 	assert_signal_emitted_with_parameters(select, "mission_chosen", [_catalog.missions[2]])

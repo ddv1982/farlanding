@@ -51,6 +51,8 @@ var saboteur: Saboteur = null
 var cloak: Cloak = null
 ## Null for units that cannot carry (an artefact).
 var carrier: Carrier = null
+## Null for units that can neither build nor scan (ADR 0017: they reactivate engines).
+var reactivator: Reactivator = null
 ## Null for units that never notice intruders (sensor 0).
 var watcher: Watcher = null
 var health: Health = null
@@ -141,6 +143,10 @@ var signature: float:
 var is_carrying: bool:
 	get:
 		return carrier != null and carrier.is_carrying()
+## True while working on an Antecedent engine. Read by audio and UI.
+var is_reactivating: bool:
+	get:
+		return reactivator != null and reactivator.is_working()
 ## True while working on a sabotage. Read by audio and UI.
 var is_sabotaging: bool:
 	get:
@@ -171,6 +177,14 @@ func _ready() -> void:
 		var carry_handler: Carrier = Carrier.new()
 		carry_handler.name = &"Carrier"
 		add_child(carry_handler)
+	if (
+		def != null
+		and (def.can_build() or def.can_scan())
+		and find_children("*", "Reactivator", false).is_empty()
+	):
+		var reactivate_handler: Reactivator = Reactivator.new()
+		reactivate_handler.name = &"Reactivator"
+		add_child(reactivate_handler)
 	for child: Node in get_children():
 		if child is Locomotion:
 			locomotion = child
@@ -188,6 +202,8 @@ func _ready() -> void:
 				saboteur = child
 			elif child is Carrier:
 				carrier = child
+			elif child is Reactivator:
+				reactivator = child
 		elif child is Health:
 			health = child
 		elif child is Weapon:

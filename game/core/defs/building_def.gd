@@ -49,6 +49,12 @@ extends EntityDef
 ## What the tapped Flux is banked as: &"flux", or &"alloy" (the Combine's Siphon burns
 ## vent Flux into Alloy, the only resource it spends).
 @export var flux_banked_as: StringName = &"flux"
+@export_group("Antecedent")
+## An Antecedent machine (Hollow Meridian's engines, ADR 0017): it stands on the map
+## from the start, belongs to nobody (the Custodians) until a faction reactivates it,
+## can be taken over and shut down but never destroyed. Its `power_output` goes to
+## whoever runs it.
+@export var machine: bool = false
 @export_group("Survey")
 ## Field options this building offers once operational (FieldOptionDefs).
 @export var field_options: Array[FieldOptionDef] = []

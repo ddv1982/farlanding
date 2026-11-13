@@ -58,6 +58,8 @@ var survey: SurveyBehaviour = null
 var retrieval: RetrieveGroup = null
 ## Venting, fleeing and siphons on an erupting planet (ADR 0015).
 var vents: VentKeeper = null
+## Reactivating, escorting and defending Antecedent engines (ADR 0017).
+var machines: MachineKeeper = null
 ## The faction's patrols when the mission has them (Verdance's Hornet watch), or null:
 ## their units are never taken into the army.
 var guards: GuardCommander = null
@@ -101,6 +103,7 @@ func setup(
 	_map_area = map_area
 	port = WorldAiPort.new(context, world, faction)
 	vents = VentKeeper.new(port, world, profile)
+	machines = MachineKeeper.new(port, world, profile)
 	knowledge = AiKnowledge.new(faction, CommanderDifficulty.ticks(profile.memory_seconds))
 	knowledge.setup_sectors(map_area, profile.sector_size, world.paths.is_terrain_walkable)
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -161,6 +164,14 @@ func _decide(tick: int) -> void:
 	if put_to_work != null:
 		_last_ordered[put_to_work.entity_id] = tick
 		_view.idle_builders.erase(put_to_work)
+	var machine_work: Array[Unit] = machines.decide(home, _view.idle_builders, _view.guards)
+	if not machine_work.is_empty():
+		_log("engine work: %d units (claim %d)" % [machine_work.size(), machines.claim_engine])
+	for unit: Unit in machine_work:
+		_last_ordered[unit.entity_id] = tick
+		_view.idle_builders.erase(unit)
+		_view.guards.erase(unit)
+		_view.army.erase(unit)
 	var actions: Array[AiAction] = brain.decide(_view)
 	for action: AiAction in actions:
 		_apply(action, tick)
@@ -470,6 +481,7 @@ func to_dict() -> Dictionary:
 		"scout": _group_dict(scout),
 		"survey": _group_dict(survey),
 		"retrieval": _group_dict(retrieval),
+		"machines": machines.to_dict(),
 	}
 
 
@@ -516,6 +528,8 @@ func from_dict(data: Dictionary) -> void:
 		survey.restore(survey_data, world.entity)
 	var retrieval_data: Dictionary = data.get("retrieval", {})
 	retrieval = _restore_retrieval(retrieval_data)
+	var machines_data: Dictionary = data.get("machines", {})
+	machines.from_dict(machines_data)
 
 
 static func _group_dict(group: AiGroup) -> Dictionary:

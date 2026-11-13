@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="CommanderProfile" format=3]
+
+[ext_resource type="Script" path="res://ai/commander_profile.gd" id="1"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="2_unit"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="3_entity"]
+[ext_resource type="Resource" path="res://data/buildings/combine_hub.tres" id="4_hub"]
+[ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="5_forge"]
+[ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="6_spire"]
+[ext_resource type="Resource" path="res://data/units/combine_scrapper.tres" id="7_scrapper"]
+[ext_resource type="Resource" path="res://data/units/combine_rigger.tres" id="8_rigger"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="9_skitter"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="10_stinger"]
+[ext_resource type="Resource" path="res://data/units/combine_mauler.tres" id="11_mauler"]
+[ext_resource type="Resource" path="res://data/ai/difficulty_easy.tres" id="12_easy"]
+[ext_resource type="Resource" path="res://data/ai/difficulty_normal.tres" id="13_normal"]
+[ext_resource type="Resource" path="res://data/ai/difficulty_hard.tres" id="14_hard"]
+
+[ext_resource type="Resource" path="res://data/units/combine_hornet.tres" id="20_hornet"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Combine deck commander"
+random_seed = 23
+hq = ExtResource("4_hub")
+factory = ExtResource("5_forge")
+defence = ExtResource("6_spire")
+harvester = ExtResource("7_scrapper")
+builder = ExtResource("8_rigger")
+scout = ExtResource("20_hornet")
+army = Array[ExtResource("2_unit")]([ExtResource("9_skitter"), ExtResource("10_stinger"), ExtResource("11_mauler"), ExtResource("20_hornet")])
+army_weights = PackedFloat32Array(0.35, 0.25, 0.15, 0.3)
+anti_heavy = ExtResource("10_stinger")
+anti_air = ExtResource("9_skitter")
+opening = Array[ExtResource("3_entity")]([ExtResource("7_scrapper"), ExtResource("7_scrapper"), ExtResource("20_hornet"), ExtResource("7_scrapper"), ExtResource("9_skitter"), ExtResource("20_hornet"), ExtResource("10_stinger")])
+harvesters_per_deposit = 2.0
+max_harvesters = 8
+max_builders = 2
+max_factories = 3
+factory_bank = 350
+poor_alloy = 150
+deposit_radius = 70.0
+base_radius = 45.0
+home_guard_size = 3
+army_cap_waves = 1.25
+max_defences = 4
+attacks_per_defence = 1
+sector_size = 24.0
+stale_seconds = 150.0
+scout_cooldown_seconds = 60.0
+memory_seconds = 40.0
+contact_radius = 30.0
+retreat_ratio = 1.6
+retreat_losses = 0.3
+gather_radius = 14.0
+regroup_spread = 26.0
+gather_timeout_seconds = 30.0
+behaviour_interval_ticks = 5
+economy_weight = 1.0
+defence_weight = 1.2
+scout_weight = 0.7
+attack_weight = 1.0
+economy_reserve = 100
+easy = ExtResource("12_easy")
+normal = ExtResource("13_normal")
+hard = ExtResource("14_hard")
+vent_at_pressure = 0.7
+vent_flee_seconds = 20.0
+machines_wanted = 5
+machine_escort = 3
+machine_takeover = true
+machine_defenders = 3

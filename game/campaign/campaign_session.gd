@@ -127,6 +127,7 @@ func resolve(result: MissionResult) -> int:
 	var route_node: RouteNodeDef = def.node(landing.node_id)
 	var was_open: Array[StringName] = _open_nodes()
 	var affordable_before: Array[StringName] = state.affordable_techs()
+	var complete_before: bool = state.is_complete()
 	var banked: int = state.resolve_landing(
 		landing.node_id, result.won, result.intel_held, result.discoveries, result.seconds
 	)
@@ -144,6 +145,8 @@ func resolve(result: MissionResult) -> int:
 			Events.advisor_alert.emit(&"campaign_tech_available")
 			break
 	save()
+	if state.is_complete() and not complete_before:
+		Events.campaign_completed.emit()
 	return banked
 
 

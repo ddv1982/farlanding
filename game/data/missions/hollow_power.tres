@@ -1,0 +1,115 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Resource" path="res://data/planets/hollow_meridian.tres" id="planet"]
+[ext_resource type="Script" path="res://missions/mission_def.gd" id="e0"]
+[ext_resource type="Script" path="res://missions/objective_def.gd" id="e1"]
+[ext_resource type="Resource" path="res://data/buildings/concord_lander.tres" id="e2"]
+[ext_resource type="Script" path="res://core/defs/entity_def.gd" id="e3"]
+[ext_resource type="Resource" path="res://data/units/custodian_sentinel.tres" id="e4"]
+[ext_resource type="PackedScene" path="res://maps/hollow_meridian_deck/hollow_meridian_deck.tscn" id="e5"]
+[ext_resource type="Resource" path="res://data/units/concord_fabricator.tres" id="e6"]
+[ext_resource type="Resource" path="res://data/units/concord_hauler.tres" id="e7"]
+[ext_resource type="Resource" path="res://data/units/concord_surveyor.tres" id="e8"]
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="e9"]
+[ext_resource type="Resource" path="res://data/buildings/combine_hub.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/buildings/combine_forge.tres" id="e11"]
+[ext_resource type="Resource" path="res://data/buildings/combine_spire.tres" id="e12"]
+[ext_resource type="Script" path="res://core/defs/building_def.gd" id="e13"]
+[ext_resource type="Resource" path="res://data/units/combine_scrapper.tres" id="e14"]
+[ext_resource type="Resource" path="res://data/units/combine_rigger.tres" id="e15"]
+[ext_resource type="Resource" path="res://data/units/combine_skitter.tres" id="e16"]
+[ext_resource type="Resource" path="res://data/units/combine_stinger.tres" id="e17"]
+[ext_resource type="Resource" path="res://data/ai/combine_meridian.tres" id="e18"]
+[ext_resource type="Resource" path="res://data/units/combine_hornet.tres" id="e19"]
+[ext_resource type="Resource" path="res://data/units/concord_ranger.tres" id="e20"]
+
+[sub_resource type="Resource" id="hold"]
+script = ExtResource("e1")
+id = &"hold_engines"
+title = "Run four engines for three minutes"
+kind = &"primary"
+type = &"hold_machines"
+side = &"player"
+amount = 4
+seconds = 180.0
+
+[sub_resource type="Resource" id="rival"]
+script = ExtResource("e1")
+id = &"rival_engines"
+title = "Keep the Combine from holding four for four minutes"
+kind = &"primary"
+type = &"hold_machines"
+side = &"enemy"
+passive = true
+amount = 4
+seconds = 240.0
+
+[sub_resource type="Resource" id="keep"]
+script = ExtResource("e1")
+id = &"keep_lander"
+title = "Keep the Lander standing"
+kind = &"primary"
+type = &"keep_alive"
+side = &"player"
+passive = true
+defs = Array[ExtResource("e3")]([ExtResource("e2")])
+
+[sub_resource type="Resource" id="trail"]
+script = ExtResource("e1")
+id = &"follow_trail"
+title = "Find the last beacon"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"hollow_trail_terminus"])
+area_center = Vector3(-100, 0, 2)
+area_radius = 7.0
+
+[sub_resource type="Resource" id="rig"]
+script = ExtResource("e1")
+id = &"read_rig"
+title = "Read the Combine survey rig"
+kind = &"secondary"
+type = &"scan_sites"
+site_ids = Array[StringName]([&"hollow_combine_survey_rig"])
+area_center = Vector3(-56, 0, -56)
+area_radius = 6.0
+
+[sub_resource type="Resource" id="sent"]
+script = ExtResource("e1")
+id = &"silence_sentinel"
+title = "Silence a Custodian Sentinel"
+kind = &"hidden"
+type = &"destroy_count"
+side = &"custodian"
+defs = Array[ExtResource("e3")]([ExtResource("e4")])
+amount = 1
+
+[resource]
+script = ExtResource("e0")
+id = &"hollow_power"
+title = "Power Up"
+mission_type = &"power"
+summary = "Hollow Meridian is a built world, and its power is still in its engines. Wake them, hold them, and keep the Combine from holding more."
+briefing = "The trail ends at Hollow Meridian: not a planet but a structure, plated decks over nothing, cut by two chasms with no floor. Four bridges cross them. At the centre, on a dais, stands the Beacon Core every beacon pointed to.
+
+There are no Reactors here. Power comes from the Antecedent engines standing on the deck. Send a Fabricator or a Surveyor to one and it wakes after a while; from then on it powers whoever runs it. The Combine can take a running engine over the same way, or shoot it until it shuts down for a while. It never breaks for good.
+
+Every engine has guardians. Waking one stirs the Custodians around it, and they go for whoever woke them: Wardens up close, and Sentinels, heavier, that strike from range and hit flyers too. The engines near the Lander are lightly watched. The ones across the bridges are not.
+
+Run four engines for three minutes in all. If the Combine holds four for four minutes first, the deck is theirs."
+map_scene = ExtResource("e5")
+planet = ExtResource("planet")
+player_hq = ExtResource("e2")
+player_start = Vector3(-80, 0, 85)
+player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e20"), ExtResource("e20"), ExtResource("e20")])
+start_alloy = 500
+hostile_faction = 1
+hostile_hq = ExtResource("e10")
+hostile_hq_position = Vector3(84, 0, -86)
+hostile_buildings = Array[ExtResource("e13")]([ExtResource("e11"), ExtResource("e12")])
+hostile_building_positions = PackedVector3Array(66, 0, -88, 76, 0, -66)
+hostile_roster = Array[ExtResource("e9")]([ExtResource("e14"), ExtResource("e14"), ExtResource("e15"), ExtResource("e15"), ExtResource("e16"), ExtResource("e16"), ExtResource("e17")])
+hostile_start = Vector3(72, 0, -74)
+commander_profile = ExtResource("e18")
+enemy_difficulty = "normal"
+objectives = Array[ExtResource("e1")]([SubResource("hold"), SubResource("rival"), SubResource("keep"), SubResource("trail"), SubResource("rig"), SubResource("sent")])

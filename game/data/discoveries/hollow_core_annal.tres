@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/antecedent_site_cache.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"hollow_core_annal"
+display_name = "The annal by the dais"
+discovery_type = &"antecedent"
+scene = ExtResource("2")
+intel_reward = 160
+scan_time = 18.0
+radius = 1.5
+leads_to = &""
+codex_title = "The annal by the dais"
+codex_text = "A list cut into the stone, in the same marks as every beacon. We can read it now. It names Kessel, Thalassa, Emberfall and Verdance, in the order we landed on them, and after them a long column of worlds we have never heard of. Below the list, a store of charge the Survey Lab can turn on a point of our choosing."
+payoff = &"unlock_option"
+unlocks_option = &"antecedent_power"
+color = Color(0.75, 0.6, 1.0, 1)

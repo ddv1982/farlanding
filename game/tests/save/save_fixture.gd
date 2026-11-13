@@ -83,6 +83,8 @@ static func mission(id: StringName) -> MissionDef:
 		"res://data/missions/emberfall_holdout.tres",
 		"res://data/missions/verdance_conquest.tres",
 		"res://data/missions/verdance_infiltration.tres",
+		"res://data/missions/hollow_power.tres",
+		"res://data/missions/hollow_finale.tres",
 	]:
 		var def: MissionDef = load(path) as MissionDef
 		if def != null and def.id == id:

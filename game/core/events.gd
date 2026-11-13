@@ -169,8 +169,8 @@ signal core_charge_changed(fraction: float)
 signal core_awakened(core: Node3D)
 
 ## The campaign shows another screen: &"title", &"star_map", &"meridian",
-## &"tech_web", &"loadout", or &"" when a landing (briefing, mission, debrief)
-## takes over.
+## &"tech_web", &"loadout", &"ending" (the campaign is complete), or &"" when a
+## landing (briefing, mission, debrief) takes over.
 signal campaign_screen_changed(screen: StringName)
 
 ## The player bought `tech` (a TechDef) on the tech web. Permanent for the campaign.
@@ -179,6 +179,10 @@ signal tech_unlocked(tech: Resource)
 ## A landing ended and its result was written into the campaign: `node` is the
 ## route node (a RouteNodeDef), `intel_banked` what the landing brought home.
 signal landing_resolved(node: Resource, won: bool, intel_banked: int)
+
+## The campaign's last landing was won: the Trail is complete (ADR 0017). The ending
+## screen follows once the debrief is closed.
+signal campaign_completed
 
 ## The campaign was written to disk (`slot` names the save).
 signal campaign_saved(slot: StringName)

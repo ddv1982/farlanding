@@ -10,7 +10,9 @@
 [ext_resource type="Resource" path="res://data/missions/emberfall_holdout.tres" id="e7"]
 [ext_resource type="Resource" path="res://data/missions/verdance_conquest.tres" id="e8"]
 [ext_resource type="Resource" path="res://data/missions/verdance_infiltration.tres" id="e9"]
+[ext_resource type="Resource" path="res://data/missions/hollow_power.tres" id="e10"]
+[ext_resource type="Resource" path="res://data/missions/hollow_finale.tres" id="e11"]
 
 [resource]
 script = ExtResource("e0")
-missions = Array[ExtResource("e4")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9")])
+missions = Array[ExtResource("e4")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11")])

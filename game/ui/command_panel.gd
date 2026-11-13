@@ -19,6 +19,9 @@ extends PanelContainer
 ## - A Flux Tap on an erupting vent (Emberfall): the vent's pressure as a bar, the
 ##   countdown of an announced eruption or of a knock-out, and the VENT button (a
 ##   controlled burst; ADR 0015).
+## - Fabricators or Surveyors on Hollow Meridian: the REACTIVATE button (ADR 0017)
+##   sends them to the nearest engine they may claim; an engine selected shows who
+##   runs it, its health and the work on it.
 ##
 ## Hints name the command button of the current mouse scheme (Settings).
 
@@ -44,6 +47,12 @@ const LAB_HINT: String = (
 const VENT_HINT: String = (
 	"VENT releases the pressure on purpose: the Tap takes a little damage and pauses"
 	+ "  ·  an eruption knocks it out"
+)
+const REACTIVATE_ICON: String = "res://assets/icons/antecedent_machine_engine.png"
+## %s = the command button.
+const REACTIVATE_HINT: String = (
+	"%s an engine to wake it or take it over  ·  REACTIVATE: the nearest one  ·  "
+	+ "waking one stirs the Custodians around it"
 )
 ## The vent button's icon once the art exists; the vent's own icon until then.
 const VENT_ICON: String = "res://assets/icons/action_vent.png"
@@ -146,6 +155,8 @@ func _rebuild() -> void:
 		_title.text = "BUILD"
 		for def: BuildingDef in _build_options():
 			_add_build_button(def)
+		if _mode.begins_with("build:"):
+			_add_reactivate_button()
 	elif _mode.begins_with("building:"):
 		var building: Building = controller.selected_building
 		_title.text = building.def.display_name.to_upper()
@@ -164,6 +175,7 @@ func _rebuild() -> void:
 		_add_stealth_button()
 	elif _mode == "scan":
 		_title.text = "SURVEYORS"
+		_add_reactivate_button()
 	elif _mode == "haul":
 		_title.text = "HAULERS"
 	_buttons.visible = _buttons.get_child_count() > 0
@@ -189,6 +201,8 @@ func _refresh() -> void:
 		_refresh_stealth()
 	elif _mode == "scan":
 		_hint.text = SCAN_HINT % _command_click()
+		if _machinery() != null:
+			_hint.text = REACTIVATE_HINT % _command_click()
 	elif _mode == "haul":
 		_hint.text = HAUL_HINT % _command_click()
 	elif _mode.begins_with("building:"):
@@ -198,6 +212,10 @@ func _refresh() -> void:
 			continue
 		if entry.has("vent"):
 			_refresh_vent_button(entry)
+			continue
+		if entry.has("reactivate"):
+			var reactivate: Button = entry["button"]
+			reactivate.disabled = _nearest_engine() == null
 			continue
 		if entry.has("option"):
 			_refresh_option(entry, pile)
@@ -225,6 +243,9 @@ func _refresh_building(building: Building) -> void:
 		)
 		_hint.text = SITE_HINT % _command_click().to_lower()
 		return
+	if building.machine != null:
+		_refresh_engine(building)
+		return
 	var producer: Producer = building.producer
 	if producer != null:
 		var low: bool = world.economy.stockpile(faction).is_low_power()
@@ -248,6 +269,32 @@ func _refresh_building(building: Building) -> void:
 		_hint.text = LAB_HINT
 		return
 	_set_status(_power_line(building.def), HudStyle.TEXT_COLOR)
+	_hint.text = building.def.description
+
+
+## An Antecedent engine's line: who runs it, its health, the work on it (ADR 0017).
+func _refresh_engine(building: Building) -> void:
+	var machine: Machine = building.machine
+	var line: String = "Dormant: nobody runs it"
+	var color: Color = HudStyle.MUTED_COLOR
+	if machine.is_shut_down():
+		line = "Shut down  ·  restarts in %d s" % ceili(machine.shutdown_left)
+		color = HudStyle.WARNING_COLOR
+	elif machine.is_running():
+		var whose: String = "ours" if building.faction == faction else "the Combine's"
+		line = (
+			"Running, %s  ·  +%d Power  ·  %d%% health"
+			% [whose, building.def.power_output, roundi(building.health.fraction() * 100.0)]
+		)
+		color = HudStyle.TEXT_COLOR if building.faction == faction else HudStyle.WARNING_COLOR
+	if machine.claimant >= 0:
+		var who: String = "us" if machine.claimant == faction else "the Combine"
+		line += "  ·  being claimed by %s %d%%" % [who, roundi(machine.progress * 100.0)]
+		_progress.visible = true
+		_progress.value = machine.progress
+	else:
+		_progress.visible = false
+	_set_status(line, color)
 	_hint.text = building.def.description
 
 
@@ -480,6 +527,57 @@ func _on_vent_pressed(building: Building) -> void:
 		return
 	var entities: Array[Node3D] = [building]
 	world.context.command_queue.push(VentCommand.new(faction, entities))
+
+
+## The MachinerySystem when the planet plays one (Hollow Meridian), else null.
+func _machinery() -> MachinerySystem:
+	return world.planet as MachinerySystem
+
+
+func _add_reactivate_button() -> void:
+	if _machinery() == null:
+		return
+	var icon: Texture2D = HudStyle.optional_icon(REACTIVATE_ICON)
+	var button: Button = HudStyle.make_button(icon, "Reactivate")
+	button.tooltip_text = (
+		"Send the selected Fabricators and Surveyors to the nearest engine they can wake"
+		+ " or take over. It then powers us. Waking one stirs the Custodians around it."
+	)
+	button.pressed.connect(_on_reactivate_pressed)
+	_buttons.add_child(button)
+	_entries.append({"reactivate": true, "button": button})
+
+
+## The engine nearest the selected workers that they may claim and we have explored.
+func _nearest_engine() -> Building:
+	var machinery: MachinerySystem = _machinery()
+	var workers: Array[Unit] = SelectionRules.able(controller.selection, Reactivator.KIND)
+	if machinery == null or workers.is_empty():
+		return null
+	var from: Vector3 = workers[0].sim_position()
+	var best: Building = null
+	var best_distance: float = INF
+	for engine: Building in machinery.engines():
+		if not machinery.can_claim(engine, faction):
+			continue
+		if world.vision != null and not world.vision.grid.is_explored(faction, engine.position):
+			continue
+		var distance: float = from.distance_to(engine.position)
+		if distance < best_distance:
+			best = engine
+			best_distance = distance
+	return best
+
+
+func _on_reactivate_pressed() -> void:
+	var engine: Building = _nearest_engine()
+	if engine == null:
+		Events.ui_feedback.emit(&"invalid")
+		return
+	var workers: Array[Node3D] = []
+	workers.assign(SelectionRules.able(controller.selection, Reactivator.KIND))
+	Events.ui_feedback.emit(&"click")
+	world.context.command_queue.push(ReactivateCommand.new(faction, workers, engine))
 
 
 func _add_stealth_button() -> void:

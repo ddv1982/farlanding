@@ -61,6 +61,12 @@ extends Resource
 ## Dormant Custodians, one position per entry of `custodian_positions`.
 @export var custodian_roster: Array[UnitDef] = []
 @export var custodian_positions: PackedVector3Array = PackedVector3Array()
+@export_group("Antecedent machines")
+## Machines standing on the map from the start (Hollow Meridian's engines, ADR 0017):
+## a BuildingDef with `machine`, one per entry of `machine_positions`. They start
+## dormant, held by nobody.
+@export var machine: BuildingDef
+@export var machine_positions: PackedVector3Array = PackedVector3Array()
 @export_group("Props")
 ## Natural cover every mission on this map has; the mission adds its own.
 @export var prop_layout: PropLayout

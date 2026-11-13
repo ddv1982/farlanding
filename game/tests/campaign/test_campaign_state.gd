@@ -19,7 +19,7 @@ func _win(node_id: StringName, intel_held: int, found: Array[StringName] = []) -
 
 
 func test_the_data_is_consistent() -> void:
-	assert_eq(_def.nodes.size(), 9)
+	assert_eq(_def.nodes.size(), 11)
 	var planets: Dictionary[StringName, bool] = {}
 	for route_node: RouteNodeDef in _def.nodes:
 		assert_not_null(route_node.mission, "%s has a mission" % route_node.id)
@@ -27,7 +27,7 @@ func test_the_data_is_consistent() -> void:
 		planets[route_node.planet.id] = true
 		for next: StringName in route_node.leads_to:
 			assert_not_null(_def.node(next), "%s leads to a real node" % route_node.id)
-	assert_eq(planets.size(), 4, "four planets on the route")
+	assert_eq(planets.size(), 5, "five planets on the route")
 	for route_node: RouteNodeDef in _def.nodes:
 		assert_false(route_node.placeholder, "%s is a real landing" % route_node.id)
 	assert_true(
@@ -38,7 +38,9 @@ func test_the_data_is_consistent() -> void:
 	assert_true(_def.node(&"emberfall_conquest").leads_to.has(&"emberfall_holdout"))
 	assert_true(_def.node(&"emberfall_holdout").leads_to.has(&"verdance_conquest"))
 	assert_true(_def.node(&"verdance_conquest").leads_to.has(&"verdance_infiltration"))
-	assert_eq(_def.techs.size(), 18, "twelve, Emberfall's three and Verdance's three")
+	assert_true(_def.node(&"verdance_infiltration").leads_to.has(&"hollow_power"))
+	assert_true(_def.node(&"hollow_power").leads_to.has(&"hollow_finale"))
+	assert_eq(_def.techs.size(), 21, "twelve, and three each for Emberfall, Verdance, Hollow")
 	var branches: Dictionary[StringName, bool] = {}
 	for tech: TechDef in _def.techs:
 		branches[tech.branch] = true

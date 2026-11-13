@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="UnitDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/unit_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/units/custodian_sentinel.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/icons/custodian_unit_sentinel.png" id="3"]
+[ext_resource type="Resource" path="res://data/weapons/sentinel_lens.tres" id="4"]
+
+[resource]
+script = ExtResource("1")
+sensor = 0.0
+armour_type = &"heavy"
+max_health = 1300
+move_speed = 2.6
+turn_speed = 120.0
+vision_range = 28.0
+radius = 1.6
+acceleration = 4.0
+weapon = ExtResource("4")
+starts_dormant = true
+wake_radius = 10.0
+guard_radius = 34.0
+id = &"custodian_sentinel"
+display_name = "Sentinel"
+description = "A heavier Antecedent guardian: a floating lens that strikes from range, at the ground and the air alike. Dormant until disturbed."
+faction = 2
+scene = ExtResource("2")
+icon = ExtResource("3")
+sound_set = &"sentinel"
+cost_alloy = 600
+cost_flux = 200
+build_time = 40.0

@@ -6,13 +6,18 @@ extends Node
 ## with an alert meter (fed with its suspicion and alert each frame, shrinking with a
 ## dust storm's sight factor; hidden with the unit when the player cannot see it) and
 ## the cloak shimmer on the player's own cloaked units, and the COVER mark on the
-## player's units under a tree crown (Verdance, ADR 0016). Reads the simulation, never
-## changes it.
+## player's units under a tree crown (Verdance, ADR 0016), and on Hollow Meridian
+## (ADR 0017) the engines' lit parts and owner colours and the Beacon Core waking (its
+## lit part as it charges, its rings turning faster with the charge). Reads the
+## simulation, never changes it.
 
 ## How fast the cloak look fades in and out, per second.
 const CLOAK_FADE: float = 3.0
 ## Markers float this far above the ground point.
 const MARKER_LIFT: float = 0.4
+## The Beacon Core's prop id, and how fast its rings turn when it is fully awake.
+const CORE_ID: StringName = &"antecedent_site_core"
+const CORE_SPIN: float = 0.9
 
 var world: SimWorld = null
 var player_faction: int = 0
@@ -21,6 +26,9 @@ var _markers: Dictionary[Objective, ObjectiveMarker] = {}
 var _cones: Dictionary[Unit, SightConeVisual] = {}
 var _cone_ranges: Dictionary[Unit, float] = {}
 var _cloaks: Dictionary[Unit, float] = {}
+var _core_dish: Node3D = null
+var _core_active: Node3D = null
+var _core_charge: float = 0.0
 
 
 func setup(p_world: SimWorld, p_player_faction: int) -> void:
@@ -33,8 +41,15 @@ func setup(p_world: SimWorld, p_player_faction: int) -> void:
 	Events.objective_failed.connect(_on_objective_changed)
 	Events.entity_sabotaged.connect(_on_entity_sabotaged)
 	Events.canopy_cover_changed.connect(_on_canopy_cover_changed)
+	Events.machine_reactivated.connect(_on_machine_changed)
+	Events.machine_lost.connect(_on_machine_changed)
+	Events.core_charge_changed.connect(_on_core_charge_changed)
 	for unit: Unit in world.units:
 		_on_entity_spawned(unit)
+	for building: Building in world.buildings:
+		if building.machine != null:
+			_show_machine(building)
+	_find_core()
 	# Emberfall: a pressure gauge over every erupting vent (placeholder look).
 	for node: ResourceNode in world.resource_nodes:
 		if node.erupts() and node.get_node_or_null(^"VentGauge") == null:
@@ -57,6 +72,8 @@ func show_restored_state() -> void:
 
 func _process(delta: float) -> void:
 	_drop_freed()
+	if _core_dish != null and is_instance_valid(_core_dish) and _core_charge > 0.0:
+		_core_dish.rotate_y(CORE_SPIN * _core_charge * delta)
 	for unit: Variant in _cones.keys():
 		var watcher: Unit = unit
 		var cone: SightConeVisual = _cones[watcher]
@@ -133,6 +150,38 @@ func _on_entity_sabotaged(building: Node3D, _saboteur: Node3D) -> void:
 		var visual: BuildingVisual = child as BuildingVisual
 		if visual != null:
 			visual.set_sabotaged(true)
+
+
+func _on_machine_changed(machine: Node3D, _faction: int) -> void:
+	var building: Building = machine as Building
+	if building != null and is_instance_valid(building):
+		_show_machine(building)
+
+
+## An engine's lit part shows while it runs, in its owner's colour.
+func _show_machine(building: Building) -> void:
+	for child: Node in building.get_children():
+		var visual: BuildingVisual = child as BuildingVisual
+		if visual != null:
+			visual.set_team_color(TeamColors.for_faction(building.faction))
+			visual.set_active(building.machine.is_running())
+
+
+func _find_core() -> void:
+	for prop: Prop in world.props:
+		if prop.def == null or prop.def.id != CORE_ID:
+			continue
+		_core_dish = prop.find_child("dish", true, false) as Node3D
+		_core_active = prop.find_child("active", true, false) as Node3D
+		if _core_active != null:
+			_core_active.visible = false
+		return
+
+
+func _on_core_charge_changed(fraction: float) -> void:
+	_core_charge = clampf(fraction, 0.0, 1.0)
+	if _core_active != null and is_instance_valid(_core_active):
+		_core_active.visible = _core_charge > 0.0
 
 
 func _on_canopy_cover_changed(unit: Node3D, covered: bool) -> void:

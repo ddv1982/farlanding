@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DiscoveryDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="1"]
+[ext_resource type="PackedScene" path="res://sim/entities/sites/antecedent_site_ruin.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"hollow_engine_schematic"
+display_name = "Engine schematic"
+discovery_type = &"antecedent"
+scene = ExtResource("2")
+intel_reward = 90
+scan_time = 12.0
+radius = 3.0
+leads_to = &""
+codex_title = "The engines were never locked"
+codex_text = "Plates set into the deck show an engine in section, the way a manual would. The engines have no owner and no lock: they answer whoever stands beside them and asks long enough. The plates also show where to ask. With what they teach, a team could wake an engine in half the time."
+payoff = &"none"
+color = Color(0.75, 0.6, 1.0, 1)
