@@ -76,6 +76,7 @@ var _landing_node: StringName = &""
 
 
 func _ready() -> void:
+	Events.campaign_save_failed.connect(_on_campaign_save_failed)
 	if campaign_def == null and ResourceLoader.exists(CAMPAIGN):
 		campaign_def = load(CAMPAIGN) as CampaignDef
 	_layer = CanvasLayer.new()
@@ -197,7 +198,12 @@ func continue_campaign() -> void:
 		var campaign_time: int = -1
 		if campaign_def != null and CampaignSession.has_save():
 			campaign_time = FileAccess.get_modified_time(CampaignSession.default_path)
-		if game.saved_at >= campaign_time:
+		# Times are whole seconds. On a tie the landing is the later of the two,
+		# unless the campaign already holds that landing's result.
+		var landing_newer: bool = game.saved_at > campaign_time
+		if game.saved_at == campaign_time:
+			landing_newer = not _campaign_has_resolved(game)
+		if landing_newer:
 			var slot: StringName = newest[0]
 			load_game(slot)
 			return
@@ -355,10 +361,15 @@ func load_game(slot: StringName) -> bool:
 		Events.ui_feedback.emit(&"invalid")
 		return false
 	campaign = session
+	var note: String = "Loaded %s." % SaveSlots.label_of(slot)
 	if session != null:
 		_landing_node = session.landing.node_id
+		# A saved landing carries the campaign as it was then. Loading it goes back
+		# to that point, and the campaign file follows at once so the two agree.
+		session.save()
+		note += " The campaign is back where this save was made."
 	start_mission(mission, modifiers, game.landing)
-	_report("Loaded %s." % SaveSlots.label_of(slot), false)
+	_report(note, false)
 	Events.campaign_loaded.emit(slot)
 	Events.ui_feedback.emit(&"load_done")
 	return true
@@ -455,6 +466,7 @@ func _on_mission_finished(result: MissionResult) -> void:
 	var banked: int = -1
 	if campaign != null and campaign.landing != null:
 		banked = campaign.resolve(result)
+		_drop_landing_saves()
 	await get_tree().create_timer(DEBRIEF_DELAY).timeout
 	if map != played or map == null:
 		return
@@ -475,6 +487,31 @@ func _on_slot_chosen(slot: StringName, saving: bool) -> void:
 		return
 	if not load_game(slot):
 		_slots.show_status(_message, _message_failed)
+
+
+## A resolved landing is over: its quicksave and landing autosave would only load
+## back into it (and Continue could pick them over the result). Manual slots stay,
+## as the player's own way back.
+func _drop_landing_saves() -> void:
+	for slot: StringName in [SaveSlots.QUICKSAVE, SaveSlots.AUTOSAVE]:
+		if not SaveSlots.exists(slot):
+			continue
+		var game: SaveGame = SaveSlots.read(slot)
+		if game != null and game.kind == SaveGame.KIND_CAMPAIGN:
+			SaveSlots.remove(slot)
+
+
+## True when the campaign file already counts the landing of `game` as won.
+func _campaign_has_resolved(game: SaveGame) -> bool:
+	if game.kind != SaveGame.KIND_CAMPAIGN or game.plan == null or campaign_def == null:
+		return false
+	var saved: CampaignSession = CampaignSession.new(campaign_def)
+	return saved.load_quietly() and saved.state.won.has(game.plan.node_id)
+
+
+func _on_campaign_save_failed(_slot: StringName) -> void:
+	_report("The campaign could not be saved. Changes since the last save may be lost.", true)
+	Events.ui_feedback.emit(&"save_failed")
 
 
 ## The campaign a saved landing belongs to, as it was when saved, with the landing in

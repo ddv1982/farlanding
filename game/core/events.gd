@@ -144,6 +144,10 @@ signal landing_resolved(node: Resource, won: bool, intel_banked: int)
 ## The campaign was written to disk (`slot` names the save).
 signal campaign_saved(slot: StringName)
 
+## The campaign could not be written to disk (`slot` names the save): what
+## changed since the last good save exists only in memory.
+signal campaign_save_failed(slot: StringName)
+
 ## A campaign or a mid-mission save was loaded from `slot`.
 signal campaign_loaded(slot: StringName)
 

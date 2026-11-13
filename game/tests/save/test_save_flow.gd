@@ -167,6 +167,56 @@ func test_a_campaign_landing_autosaves_and_loads_into_its_campaign() -> void:
 	assert_eq(_main.campaign.state.won, [&"kessel_proving"] as Array[StringName], "it counts")
 
 
+func test_loading_a_landing_puts_the_campaign_file_back_too() -> void:
+	_main.new_campaign()
+	_main.campaign.state.intel = 77
+	_main.launch(&"kessel_proving")
+	_main._briefing._on_start()
+	await wait_frames(3)
+	assert_true(_main.save_game(SaveSlots.MANUAL[0]))
+	# Later in the same campaign: more Intel, written to the campaign file.
+	_main.campaign.state.intel = 300
+	_main.campaign.save()
+	assert_true(_main.load_game(SaveSlots.MANUAL[0]))
+	await wait_frames(3)
+	var on_disk: CampaignSession = CampaignSession.new(_main.campaign_def)
+	assert_true(on_disk.load_quietly())
+	assert_eq(on_disk.state.intel, 77, "memory and the campaign file are one timeline")
+	assert_true(_message().contains("back where this save was made"))
+
+
+func test_a_resolved_landing_drops_its_quicksave_and_autosave() -> void:
+	_main.new_campaign()
+	_main.launch(&"kessel_proving")
+	_main._briefing._on_start()
+	await wait_frames(3)
+	assert_true(_main.save_game(SaveSlots.QUICKSAVE))
+	assert_true(_main.save_game(SaveSlots.MANUAL[0]))
+	_main.runner.finish(true)
+	assert_false(SaveSlots.exists(SaveSlots.QUICKSAVE), "it would load back into a won landing")
+	assert_false(SaveSlots.exists(SaveSlots.AUTOSAVE))
+	assert_true(SaveSlots.exists(SaveSlots.MANUAL[0]), "the player's own way back stays")
+	# The manual save is from the same second as the result: Continue takes the result.
+	_main.show_title()
+	_main._title.continue_pressed.emit()
+	await wait_frames(2)
+	assert_null(_main.map, "the star map, not the landing already won")
+	assert_eq(_main.campaign.state.won, [&"kessel_proving"] as Array[StringName])
+
+
+func test_a_campaign_that_cannot_be_saved_says_so() -> void:
+	_main.new_campaign()
+	_main.campaign.path = "user://no_such_folder_for_tests/deeper/campaign.cfg"
+	_feedback.clear()
+	assert_ne(_main.campaign.save(), OK)
+	assert_true(_feedback.has(&"save_failed"))
+	assert_true(_message().contains("could not be saved"))
+
+
+func _message() -> String:
+	return _main._message
+
+
 func test_continue_picks_the_newest_of_campaign_and_landing() -> void:
 	_main.new_campaign()
 	_main.launch(&"kessel_proving")

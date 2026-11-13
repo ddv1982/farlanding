@@ -42,6 +42,14 @@ func start_new() -> void:
 
 ## Loads the autosave. False (state unchanged) when there is none or it cannot be read.
 func load_saved() -> bool:
+	if not load_quietly():
+		return false
+	Events.campaign_loaded.emit(SLOT)
+	return true
+
+
+## Reads the autosave without announcing it (to look at it, not to play it).
+func load_quietly() -> bool:
 	var config: ConfigFile = ConfigFile.new()
 	if config.load(path) != OK:
 		return false
@@ -54,7 +62,6 @@ func load_saved() -> bool:
 		return false
 	state = loaded
 	landing = null
-	Events.campaign_loaded.emit(SLOT)
 	return true
 
 
@@ -65,6 +72,8 @@ func save() -> Error:
 	var error: Error = config.save(path)
 	if error == OK:
 		Events.campaign_saved.emit(SLOT)
+	else:
+		Events.campaign_save_failed.emit(SLOT)
 	return error
 
 
