@@ -351,7 +351,23 @@ func _in_group(unit: Unit) -> bool:
 	for group: AttackGroup in custodian_groups:
 		if group.has_member(unit):
 			return true
-	return strike != null and strike.has_member(unit)
+	if strike != null and strike.has_member(unit):
+		return true
+	var commander: Commander = mission.commander
+	if commander == null:
+		return false
+	# The commander's own groups keep their units, idle or not.
+	var theirs: Array[AiGroup] = [
+		commander.attack_group,
+		commander.defence_group,
+		commander.scout,
+		commander.survey,
+		commander.retrieval,
+	]
+	for group: AiGroup in theirs:
+		if group != null and group.has_member(unit):
+			return true
+	return false
 
 
 ## A last-stand group going for the Core and holding the dais.
