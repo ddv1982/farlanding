@@ -4,8 +4,16 @@ render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled, blend_a
 // clockwise with `pressure` (0..1) in twelve segments; `alarm` 0..1 turns it from
 // amber to red and makes it beat.
 
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float pressure : hint_range(0.0, 1.0) = 0.0;
+#else
 instance uniform float pressure : hint_range(0.0, 1.0) = 0.0;
+#endif
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float alarm : hint_range(0.0, 1.0) = 0.0;
+#else
 instance uniform float alarm : hint_range(0.0, 1.0) = 0.0;
+#endif
 uniform vec3 calm_color : source_color = vec3(1.0, 0.72, 0.36);
 uniform vec3 alarm_color : source_color = vec3(1.0, 0.25, 0.08);
 

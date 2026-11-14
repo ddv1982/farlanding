@@ -2,7 +2,11 @@ shader_type spatial;
 render_mode unshaded, cull_disabled, depth_test_disabled, shadows_disabled;
 // Camera-facing health bar above a unit or building. Quad UV 0..1.
 
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float health : hint_range(0.0, 1.0) = 1.0;
+#else
 instance uniform float health : hint_range(0.0, 1.0) = 1.0;
+#endif
 
 void vertex() {
 	// Billboard: keep the node's position, take the camera's orientation.

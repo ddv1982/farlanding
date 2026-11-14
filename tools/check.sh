@@ -62,6 +62,7 @@ step "Lint (gdlint $GDTOOLKIT_VERSION)"
 gdtoolkit gdlint . || fail "lint"
 
 step "Headless import"
+python3 "$ROOT/tools/prepare_import.py"
 run_godot import --import
 
 step "Script error check"

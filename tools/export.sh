@@ -3,7 +3,7 @@
 # from the presets in game/export_presets.cfg. Needs the Godot export templates of
 # exactly the engine version in use; this script never downloads them.
 #
-# Usage: tools/export.sh [macOS|Windows|Linux ...]   (default: all three)
+# Usage: tools/export.sh [macOS|Windows|Linux|Web ...]   (default: all three)
 # Env:   GODOT (default: godot)
 set -euo pipefail
 
@@ -41,18 +41,48 @@ if [ "${#presets[@]}" -eq 0 ]; then
 	presets=(macOS Windows Linux)
 fi
 
+python3 "$ROOT/tools/prepare_import.py"
+mkdir -p "$BUILD/logs"
+import_log="$BUILD/logs/export-import.log"
+status=0
+perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "${EXPORT_TIMEOUT:-1800}" \
+	"$GODOT" --headless --path "$GAME" --import >"$import_log" 2>&1 || status=$?
+sed -e $'s/\x1b\[[0-9;]*m//g' "$import_log" >"$import_log.txt"
+cat "$import_log.txt"
+[ "$status" -eq 0 ] || fail "export import failed (status $status; $import_log)"
+if grep -E '^(SCRIPT ERROR|ERROR|WARNING|USER ERROR|USER WARNING):' "$import_log.txt" \
+	| grep -Ev '^ERROR: \[GUT\] Could not get version info' >/dev/null; then
+	fail "export import reported errors or warnings ($import_log)"
+fi
+
 for preset in "${presets[@]}"; do
 	case "$preset" in
 		macOS) out="$BUILD/macos/Farlanding.zip" ;;
 		Windows) out="$BUILD/windows/Farlanding.exe" ;;
 		Linux) out="$BUILD/linux/Farlanding.x86_64" ;;
-		*) fail "unknown preset '$preset' (macOS, Windows or Linux)" ;;
+		Web) out="$BUILD/web/index.html" ;;
+		WebDiagnostics) out="$BUILD/web-diagnostics/index.html" ;;
+		*) fail "unknown preset '$preset' (macOS, Windows, Linux or Web)" ;;
 	esac
-	mkdir -p "$(dirname "$out")"
+	if [[ "$preset" == Web* ]]; then
+		rm -rf "$(dirname "$out")"
+	fi
+	mkdir -p "$(dirname "$out")" "$BUILD/logs"
+	log="$BUILD/logs/export-$preset.log"
 	printf '\n==> Exporting %s to %s\n' "$preset" "${out#"$ROOT"/}"
-	"$GODOT" --headless --path "$GAME" --export-release "$preset" "$out" \
-		|| fail "export of $preset failed"
+	status=0
+	perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "${EXPORT_TIMEOUT:-1800}" \
+		"$GODOT" --headless --path "$GAME" --export-release "$preset" "$out" >"$log" 2>&1 || status=$?
+	sed -e $'s/\x1b\[[0-9;]*m//g' "$log" >"$log.txt"
+	cat "$log.txt"
+	[ "$status" -eq 0 ] || fail "export of $preset failed (status $status; $log)"
+	if grep -E '^(SCRIPT ERROR|ERROR|WARNING|USER ERROR|USER WARNING):' "$log.txt" >/dev/null; then
+		fail "export of $preset reported errors or warnings ($log)"
+	fi
 	[ -e "$out" ] || fail "export of $preset produced no $out"
+	if [[ "$preset" == Web* ]]; then
+		python3 "$ROOT/tools/web_manifest.py" "$(dirname "$out")" --preset "$preset"
+	fi
 done
 
 printf '\nExports are in %s\n' "$BUILD"

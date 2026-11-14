@@ -49,7 +49,8 @@ func _build() -> void:
 	_add_button(_menu, "HOW TO PLAY", how_to_play_pressed)
 	_add_button(_menu, "SETTINGS", settings_pressed)
 	_add_button(_menu, "CREDITS", credits_pressed)
-	_add_button(_menu, "QUIT", quit_pressed)
+	if not OS.has_feature("web"):
+		_add_button(_menu, "QUIT", quit_pressed)
 	_new_campaign = VBoxContainer.new()
 	_new_campaign.add_theme_constant_override(&"separation", 10)
 	_new_campaign.visible = false

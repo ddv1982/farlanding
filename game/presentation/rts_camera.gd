@@ -65,6 +65,9 @@ func _notification(what: int) -> void:
 		_mouse_inside = true
 	elif what == NOTIFICATION_WM_MOUSE_EXIT:
 		_mouse_inside = false
+		_dragging = false
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_dragging = false
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -44,5 +44,5 @@ func show_progress(progress: float, claimant: int) -> void:
 	visible = _working and _engine != null and _engine.is_visible_to_player
 	if not _working:
 		return
-	set_instance_shader_parameter(&"progress", clampf(progress, 0.0, 1.0))
-	set_instance_shader_parameter(&"ring_color", TeamColors.for_faction(claimant))
+	ShaderParameters.set_value(self, &"progress", clampf(progress, 0.0, 1.0))
+	ShaderParameters.set_value(self, &"ring_color", TeamColors.for_faction(claimant))

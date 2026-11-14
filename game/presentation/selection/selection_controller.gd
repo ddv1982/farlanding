@@ -99,6 +99,16 @@ func _exit_tree() -> void:
 	_show_cursor(&"")
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_MOUSE_EXIT:
+		_pressing = false
+		_box_dragging = false
+		if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+			_shift_latched = false
+		if _box != null:
+			_box.visible = false
+
+
 func _input(event: InputEvent) -> void:
 	var mouse_event: InputEventMouse = event as InputEventMouse
 	if mouse_event != null:

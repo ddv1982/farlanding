@@ -124,6 +124,7 @@ var _vent: Node3D
 
 
 func before_each() -> void:
+	seed(1729)
 	_mix = MixScene.new()
 	# Positional players only mix with a camera in the viewport (the game always
 	# has one; the test runner does not).

@@ -114,6 +114,8 @@ var path: String = PATH
 func _ready() -> void:
 	KeyBindings.install()
 	load_from(path)
+	if OS.has_feature("web"):
+		fullscreen = false
 	apply_display()
 
 
@@ -375,3 +377,12 @@ static func _nearest(value: Variant, choices: Array[float], fallback: Variant) -
 		if is_equal_approx(choice, number):
 			return choice
 	return fallback
+
+
+func _process(_delta: float) -> void:
+	if not OS.has_feature("web") or not is_inside_tree():
+		return
+	var actual: bool = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	if fullscreen != actual:
+		fullscreen = actual
+		_changed()

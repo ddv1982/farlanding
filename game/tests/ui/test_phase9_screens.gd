@@ -262,3 +262,18 @@ static func _key(keycode: Key) -> InputEventKey:
 	event.keycode = keycode
 	event.pressed = true
 	return event
+
+
+func test_short_subtitle_panel_fits_its_single_line() -> void:
+	Settings.subtitles = true
+	Settings.subtitle_size = &"normal"
+	var line: SubtitleLine = SubtitleLine.new()
+	add_child_autofree(line)
+	line.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	line.size = Vector2(1280, 720)
+	line.show_line(&"advisor", "New objective.", 4.0)
+	for frame: int in 4:
+		await get_tree().process_frame
+	var band: PanelContainer = line.get("_band")
+	assert_lt(band.size.y, 80.0, "one line must not cover the battlefield")
+	assert_gt(band.size.x, 100.0)

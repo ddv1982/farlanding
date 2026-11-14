@@ -29,7 +29,7 @@ static func create(width: float, above: float) -> HealthBar:
 ## 1 = full health, 0 = dead.
 func set_fraction(fraction: float) -> void:
 	_fraction = clampf(fraction, 0.0, 1.0)
-	set_instance_shader_parameter(&"health", _fraction)
+	ShaderParameters.set_value(self, &"health", _fraction)
 	_refresh()
 
 

@@ -3,8 +3,16 @@ render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled, blend_a
 // Ground sweep under a site being scanned. Quad UV 0..1; progress 0..1 fills
 // an arc round the rim while pulses travel outward.
 
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform vec3 ring_color : source_color = vec3(0.35, 0.92, 1.0);
+#else
 instance uniform vec3 ring_color : source_color = vec3(0.35, 0.92, 1.0);
+#endif
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float progress : hint_range(0.0, 1.0) = 0.0;
+#else
 instance uniform float progress : hint_range(0.0, 1.0) = 0.0;
+#endif
 
 void fragment() {
 	vec2 p = UV * 2.0 - 1.0;

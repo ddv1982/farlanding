@@ -2,11 +2,23 @@ shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled, blend_add;
 // One-shot ground pulse where an order was given. `progress` runs 0 -> 1.
 
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform vec3 marker_color : source_color = vec3(0.4, 1.0, 0.5);
+#else
 instance uniform vec3 marker_color : source_color = vec3(0.4, 1.0, 0.5);
+#endif
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float progress : hint_range(0.0, 1.0) = 0.0;
+#else
 instance uniform float progress : hint_range(0.0, 1.0) = 0.0;
+#endif
 // An attack order: a cross inside a broken ring, so it differs from a move in
 // shape and not only in colour and size.
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform bool attack = false;
+#else
 instance uniform bool attack = false;
+#endif
 
 void fragment() {
 	vec2 p = UV * 2.0 - 1.0;

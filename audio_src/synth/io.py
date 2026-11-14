@@ -1,4 +1,4 @@
-"""File output: 16-bit WAV (with TPDF dither) and Ogg Vorbis through ffmpeg."""
+"""File output: 16-bit WAV (with TPDF dither), Ogg Vorbis, and MP3 through ffmpeg."""
 
 from __future__ import annotations
 
@@ -71,3 +71,20 @@ def read_any(path: Path, channels: int) -> np.ndarray:
     ).stdout
     x = np.frombuffer(out, dtype="<f4").astype(np.float64).reshape(-1, channels).T
     return x[0] if channels == 1 else x
+
+
+def write_mp3(path: Path, x: np.ndarray, seed: int) -> None:
+    """Encode one-shots; sample-exact loops keep their existing WAV format."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        source = Path(tmp) / "source.wav"
+        write_wav(source, x, seed)
+        subprocess.run([
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source),
+            "-c:a", "libmp3lame", "-q:a", "2", "-map_metadata", "-1",
+            "-fflags", "+bitexact", "-flags:a", "+bitexact", str(path),
+        ], check=True)
+
+
+def write_audio(path: Path, x: np.ndarray, seed: int) -> None:
+    {".wav": write_wav, ".ogg": write_ogg, ".mp3": write_mp3}[path.suffix](path, x, seed)

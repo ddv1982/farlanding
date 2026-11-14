@@ -62,4 +62,7 @@ def load_all() -> list[Sound]:
         stealth, thalassa, units, verdance, vertical_slice, weapons, weather, world,
     )
 
+    for entry in REGISTRY:
+        if entry.fmt == "wav" and not entry.loop:
+            entry.fmt = "mp3"
     return REGISTRY

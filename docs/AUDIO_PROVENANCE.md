@@ -36,7 +36,7 @@ reads anything. Every recipe is a function `(rng) -> samples`, and its random ge
 from a CRC-32 of the sound's id (`recipes/__init__.py`).
 
 **Result: every audio file in `game/assets/audio` is generated purely by synthesis.** The 601
-`.wav` and `.ogg` files there correspond one to one to the 601 manifest entries, and each one
+`.wav`, `.mp3` and `.ogg` files there correspond one to one to the 601 manifest entries, and each one
 re-renders to the same bytes (below).
 
 ## Tools and licences
@@ -84,3 +84,21 @@ whose recipes had changed, and `--check` afterwards reported 601 of 601 identica
 depend on the pinned versions above. A different NumPy or SciPy can change floating-point
 rounding, and a different FFmpeg can change the Ogg bytes (WAV files are written by Python's
 own `wave` module). If you upgrade one, rebuild, listen, and commit the new manifest.
+
+## MP3 one-shots
+
+Non-looping WAV recipes now render deterministic MP3 through FFmpeg's `libmp3lame`
+encoder at VBR quality 2. The generator, SoundEvent paths, Godot import UIDs, and
+manifest agree on those replacements. There are 408 MP3 one-shots. The 36
+sample-exact WAV loops retain their format; the 157 Ogg files are unchanged.
+No external recordings or services were introduced.
+
+```sh
+uv run --python 3.12 --with numpy==2.5.4 --with scipy==1.18.1 audio_src/build.py --format mp3
+uv run --python 3.12 --with numpy==2.5.4 --with scipy==1.18.1 audio_src/build.py --check --format mp3
+```
+
+The first command analyses decoded MP3 output for loudness, clipping, duration,
+DC offset and subsonic energy. The second reproduces file hashes without writing
+assets. Rebuilds require FFmpeg with `libmp3lame` as well as the existing Vorbis
+encoder. Godot's native and browser playback checks cover the encoded files.

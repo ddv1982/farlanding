@@ -195,10 +195,11 @@ func _emit(
 	particles.process_material = process
 	particles.draw_pass_1 = quad
 	particles.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(particles)
-	particles.global_position = at
 	particles.emitting = true
-	get_tree().create_timer(seconds + 0.3).timeout.connect(particles.queue_free)
+	var effect: GeometryInstance3D = ParticleEffects.for_platform(particles)
+	add_child(effect)
+	effect.global_position = at
+	get_tree().create_timer(seconds + 0.3).timeout.connect(effect.queue_free)
 
 
 ## Counts an effect against the budget; false when the budget is used up.
@@ -210,7 +211,7 @@ func _claim(seconds: float) -> bool:
 	return true
 
 
-func _trail(color: Color, seconds: float, size: float) -> GPUParticles3D:
+func _trail(color: Color, seconds: float, size: float) -> GeometryInstance3D:
 	var key: String = "%s/%s" % [color, size]
 	if not _trail_looks.has(key):
 		var made := _burst_process(0.0, 0.3, Vector3(0, 0.4, 0), 0.5, 1.0)
@@ -228,7 +229,7 @@ func _trail(color: Color, seconds: float, size: float) -> GPUParticles3D:
 	trail.process_material = process
 	trail.draw_pass_1 = quad
 	trail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return trail
+	return ParticleEffects.for_platform(trail)
 
 
 func _solid(mesh: Mesh, color: Color, at: Vector3) -> MeshInstance3D:

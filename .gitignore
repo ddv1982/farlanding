@@ -29,3 +29,9 @@ Thumbs.db
 
 # Balance harness output (tools/balance.sh)
 /out/
+
+# Browser test dependencies and evidence
+node_modules/
+tools/web_tests/test-results/
+tools/web_tests/playwright-report/
+.audit/

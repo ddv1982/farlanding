@@ -131,6 +131,8 @@ func _place() -> void:
 		font.get_string_size(_text.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size()).x
 	)
 	_text.custom_minimum_size.x = minf(ceilf(width) + 2.0, MAX_TEXT_WIDTH)
+	_text.size.x = _text.custom_minimum_size.x
+	await get_tree().process_frame
 	_band.reset_size()
 	var screen: Vector2 = size
 	_band.position = Vector2((screen.x - _band.size.x) * 0.5, screen.y - BOTTOM_GAP - _band.size.y)

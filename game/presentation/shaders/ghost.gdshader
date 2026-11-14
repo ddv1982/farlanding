@@ -3,7 +3,11 @@ render_mode unshaded, cull_back, depth_draw_opaque, shadows_disabled, blend_mix;
 // Translucent preview of a building being placed: cyan when the spot is valid,
 // red when it is not.
 
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform vec3 ghost_color : source_color = vec3(0.25, 0.95, 1.0);
+#else
 instance uniform vec3 ghost_color : source_color = vec3(0.25, 0.95, 1.0);
+#endif
 
 void fragment() {
 	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.0);

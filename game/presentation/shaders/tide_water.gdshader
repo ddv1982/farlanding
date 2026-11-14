@@ -24,6 +24,9 @@ void vertex() {
 void fragment() {
 	// Depth of the water under this pixel, from the scene behind it.
 	float scene_depth = texture(depth_texture, SCREEN_UV).r;
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	scene_depth = scene_depth * 2.0 - 1.0;
+#endif
 	vec4 behind = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, scene_depth, 1.0);
 	behind.xyz /= behind.w;
 	float thickness = max(VERTEX.z - behind.z, 0.0);

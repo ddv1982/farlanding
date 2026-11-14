@@ -55,7 +55,7 @@ Field notes explain each new thing the first time you meet it.
 | Ctrl+1–9 / 1–9 | store / recall a control group |
 | WASD, arrows, screen edge, middle drag | pan · wheel: zoom · Q/E: turn |
 | C | codex · F1: all controls · F3: debug overlay |
-| F5 / F9 | quicksave / quickload |
+| F5 / F9 (native), K / L (Web) | quicksave / quickload |
 | Esc or P | pause menu: resume, save, load, settings, how to play, restart, quit |
 
 These are the default keys: every one can be rebound per mouse scheme under
@@ -113,3 +113,59 @@ Rebuild generated assets:
 blender -b -P art/pipeline/build_all.py
 uv run --python 3.12 --with numpy==2.5.4 --with scipy==1.18.1 audio_src/build.py
 ```
+
+## Play in a desktop browser
+
+Use Godot **4.7.2.stable**, Python **3.11+**, WebAssembly and WebGL2. Install the
+matching templates in the editor, or install just the verified Web templates:
+
+```sh
+tools/install_godot_templates.sh
+tools/export.sh Web
+python3 tools/web_manifest.py build/web --verify
+python3 tools/serve_web.py build/web
+```
+
+Open **http://127.0.0.1:8060** and click **Play Farlanding**. Keep the terminal
+running; Ctrl-C stops the server. Opening `index.html` as a local file will not work.
+The server binds only to this computer and supplies the headers needed by threads.
+
+Web uses threaded Stream audio to preserve mixer effects. The local server supplies
+the isolation headers that this requires.
+
+Web uses **K/L** for quicksave/quickload. Settings and landings stay in this browser
+at this origin. Wait for the saved confirmation before reloading. Denied storage
+or failed persistence produces a warning. Clearing site data or changing the port
+or origin can make existing progress unavailable. Fullscreen requires a user
+click. Leaving the tab pauses the mission; resume explicitly when returning.
+Keyboard and mouse are required. Mobile and hosting are outside this milestone.
+
+Every successful CI `web` job publishes `farlanding-web-<commit>` in the run's
+Artifacts section. Download and extract it, then run the same manifest verification
+and serving commands from the extracted root. The artifact includes `build/web/`
+and the two Python tools. `manifest.json` identifies the commit, engine, headers,
+and every bundle file's hash. It describes required HTTP headers; a ZIP has none.
+
+### Browser checks
+
+Node **20+** is needed only for testing. Export diagnostics separately:
+
+```sh
+tools/export.sh Web WebDiagnostics
+cd tools/web_tests
+npm ci
+npx playwright install chromium
+npm test
+WEB_BROAD=1 npm test
+WEB_AUDIO_QA=1 npm test -- --grep real-mixer
+WEB_PERFORMANCE=1 npm test -- --grep 233-unit
+WEB_BROWSER=firefox npm test
+```
+
+Install Firefox or WebKit with `npx playwright install firefox webkit` before using
+those browser names. The suite starts loopback servers on 8070/8071, uses fresh
+profiles, and has no automatic retries. It retains console/network logs, state,
+screenshots, video and traces on failures. The broad mission matrix also runs from
+CI's manual **Run workflow** action. `WebDiagnostics` is for testing only; play the
+release under `build/web`. Browser versions and acceptance evidence are tracked in
+[the Web results](docs/WEB_CI_RESULTS.md).

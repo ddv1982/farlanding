@@ -5,6 +5,16 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      broad:
+        description: Run every mission in Chromium
+        type: boolean
+        default: false
+      audio:
+        description: Run the full real-mixer audio suite in Chromium
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -36,13 +46,13 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/godot
-          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64-${{ env.GODOT_SHA512 }}
 
       - name: Download Godot ${{ env.GODOT_VERSION }}
         if: steps.godot-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/godot
-          curl -fsSL -o "$RUNNER_TEMP/$GODOT_ZIP" \
+          curl -fsSL --retry 3 --connect-timeout 30 --max-time 300 -o "$RUNNER_TEMP/$GODOT_ZIP" \
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${GODOT_ZIP}"
           echo "$GODOT_SHA512  $RUNNER_TEMP/$GODOT_ZIP" | sha512sum --check
           unzip -q "$RUNNER_TEMP/$GODOT_ZIP" -d ~/godot
@@ -54,3 +64,112 @@ jobs:
           export GODOT="$HOME/godot/godot"
           "$GODOT" --version
           tools/check.sh
+
+  web:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: Cache Godot
+        id: godot-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64-${{ env.GODOT_SHA512 }}
+
+      - name: Download Godot ${{ env.GODOT_VERSION }}
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -fsSL --retry 3 --connect-timeout 30 --max-time 300 -o "$RUNNER_TEMP/$GODOT_ZIP" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${GODOT_ZIP}"
+          echo "$GODOT_SHA512  $RUNNER_TEMP/$GODOT_ZIP" | sha512sum --check
+          unzip -q "$RUNNER_TEMP/$GODOT_ZIP" -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+
+      - name: Cache Web export templates
+        id: template-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/share/godot/export_templates/4.7.2.stable
+          key: templates-web-4.7.2-${{ hashFiles('tools/install_godot_templates.sh') }}
+
+      - name: Install verified Web templates
+        if: steps.template-cache.outputs.cache-hit != 'true'
+        run: tools/install_godot_templates.sh
+
+      - name: Verify Web tooling
+        run: python3 -m unittest discover -s tools -p test_web_tools.py
+
+      - name: Export browser bundles
+        timeout-minutes: 30
+        env:
+          GODOT: /home/runner/godot/godot
+        run: |
+          tools/export.sh Web WebDiagnostics
+          python3 tools/web_manifest.py build/web --verify
+          python3 tools/web_manifest.py build/web-diagnostics --verify
+
+      - name: Upload playable browser artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: farlanding-web-${{ github.sha }}
+          path: |
+            build/web/
+            tools/serve_web.py
+            tools/web_manifest.py
+          if-no-files-found: error
+          retention-days: 14
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tools/web_tests/package-lock.json
+
+      - name: Install browser test tools
+        working-directory: tools/web_tests
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Browser gameplay
+        working-directory: tools/web_tests
+        timeout-minutes: 10
+        run: npm test
+
+      - name: Every mission in browser
+        if: github.event_name == 'workflow_dispatch' && inputs.broad
+        working-directory: tools/web_tests
+        timeout-minutes: 30
+        env:
+          WEB_BROAD: '1'
+        run: npm test
+
+      - name: Full browser audio qualification
+        if: github.event_name == 'workflow_dispatch' && inputs.audio
+        working-directory: tools/web_tests
+        timeout-minutes: 15
+        env:
+          WEB_AUDIO_QA: '1'
+        run: npm test -- --grep real-mixer
+
+      - name: Upload browser evidence and export logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: farlanding-web-evidence-${{ github.sha }}
+          path: |
+            build/logs/
+            tools/web_tests/test-results/
+            tools/web_tests/playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
