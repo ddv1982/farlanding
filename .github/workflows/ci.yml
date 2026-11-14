@@ -18,7 +18,7 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -56,7 +56,7 @@ jobs:
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${GODOT_ZIP}"
           echo "$GODOT_SHA512  $RUNNER_TEMP/$GODOT_ZIP" | sha512sum --check
           unzip -q "$RUNNER_TEMP/$GODOT_ZIP" -d ~/godot
-          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          mv "$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$HOME/godot/godot"
           chmod +x ~/godot/godot
 
       - name: Run checks
@@ -92,7 +92,7 @@ jobs:
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${GODOT_ZIP}"
           echo "$GODOT_SHA512  $RUNNER_TEMP/$GODOT_ZIP" | sha512sum --check
           unzip -q "$RUNNER_TEMP/$GODOT_ZIP" -d ~/godot
-          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          mv "$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$HOME/godot/godot"
           chmod +x ~/godot/godot
 
       - name: Cache Web export templates
@@ -107,7 +107,9 @@ jobs:
         run: tools/install_godot_templates.sh
 
       - name: Verify Web tooling
-        run: python3 -m unittest discover -s tools -p test_web_tools.py
+        run: |
+          python3 -m unittest discover -s tools -p test_web_tools.py
+          python3 -m unittest discover -s tools -p test_vercel_deploy.py
 
       - name: Export browser bundles
         timeout-minutes: 30
@@ -122,6 +124,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: farlanding-web-${{ github.sha }}
+          overwrite: true
           path: |
             build/web/
             tools/serve_web.py
@@ -131,7 +134,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: tools/web_tests/package-lock.json
 
@@ -167,9 +170,101 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: farlanding-web-evidence-${{ github.sha }}
+          overwrite: true
           path: |
             build/logs/
             tools/web_tests/test-results/
             tools/web_tests/playwright-report/
           if-no-files-found: warn
+          retention-days: 14
+
+  deploy-production:
+    name: Deploy production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    environment:
+      name: production
+      url: ${{ vars.VERCEL_PRODUCTION_URL }}
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: tools/web_tests/package-lock.json
+
+      - name: Prepare the tested release for Vercel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 tools/prepare_vercel.py --repository "$GITHUB_REPOSITORY" \
+            --run-id "$GITHUB_RUN_ID" --commit "$GITHUB_SHA"
+
+      - name: Pull Vercel environment information
+        run: npx --yes vercel@65.16.0 pull --cwd .vercel-source --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build the tested artifact on Vercel
+        id: deployment
+        run: |
+          npx --yes vercel@65.16.0 deploy --cwd .vercel-source --yes --prod --skip-domain \
+            --json --token="$VERCEL_TOKEN" > "$RUNNER_TEMP/deployment.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          deployment = json.loads((Path(os.environ['RUNNER_TEMP']) / 'deployment.json').read_text())['deployment']
+          assert deployment['readyState'] == 'READY'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('url=' + deployment['url'] + '\n')
+          PY
+
+      - name: Install hosted browser test runtime
+        working-directory: tools/web_tests
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Verify the staged game before promotion
+        working-directory: tools/web_tests
+        env:
+          WEB_DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+          WEB_DEPLOYMENT_COMMIT: ${{ github.sha }}
+          WEB_DEPLOYMENT_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: npx playwright test --config playwright.deployment.config.cjs
+
+      - name: Promote production
+        env:
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+        run: npx --yes vercel@65.16.0 promote "$DEPLOYMENT_URL" --yes --token="$VERCEL_TOKEN"
+
+      - name: Verify the public production domain
+        working-directory: tools/web_tests
+        env:
+          WEB_DEPLOYMENT_URL: ${{ vars.VERCEL_PRODUCTION_URL }}
+          WEB_DEPLOYMENT_COMMIT: ${{ github.sha }}
+          WEB_DEPLOYMENT_PUBLIC_ONLY: '1'
+        run: npx playwright test --config playwright.deployment.config.cjs
+
+      - name: Upload hosted browser evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: farlanding-production-evidence-${{ github.sha }}
+          overwrite: true
+          path: |
+            tools/web_tests/test-results/
+            tools/web_tests/playwright-report/
+          if-no-files-found: ignore
           retention-days: 14

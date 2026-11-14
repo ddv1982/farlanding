@@ -6,6 +6,7 @@
     "test": "playwright test"
   },
   "type": "commonjs",
+  "engines": { "node": "26.x" },
   "devDependencies": {
     "@playwright/test": "1.65.1"
   },

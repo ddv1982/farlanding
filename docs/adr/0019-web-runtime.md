@@ -10,7 +10,8 @@ player-node playback enums use a different numbering.
 Serve on loopback for development. Threaded exports need a secure context and
 `Cross-Origin-Opener-Policy: same-origin` plus
 `Cross-Origin-Embedder-Policy: require-corp`. Localhost qualifies. Future hosting
-must supply these headers and the WebAssembly MIME type. No hosting is configured.
+must supply these headers and the WebAssembly MIME type. Vercel CI deployment is
+described in [ADR 0020](0020-vercel-ci-deployment.md).
 
 ## Reasons
 
