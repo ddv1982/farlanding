@@ -59,10 +59,11 @@ func test_rejected_browser_fullscreen_request_refreshes_without_saving() -> void
 	fresh._on_web_fullscreen_changed([false])
 	assert_false(fresh.fullscreen)
 	assert_false(fresh._web_fullscreen_pending)
-	assert_signal_emit_count(fresh, "changed", 1, "the checkbox must refresh on rejection")
+	assert_signal_emit_count(fresh, "fullscreen_reconciled", 1, "refresh the rejected checkbox")
+	assert_signal_not_emitted(fresh, "changed", "no save means no browser storage confirmation")
 	assert_false(FileAccess.file_exists(PATH), "unchanged settings must not be written")
 	fresh._on_web_fullscreen_changed([false])
-	assert_signal_emit_count(fresh, "changed", 1, "duplicate events stay silent")
+	assert_signal_emit_count(fresh, "fullscreen_reconciled", 1, "duplicate events stay silent")
 	fresh.free()
 
 

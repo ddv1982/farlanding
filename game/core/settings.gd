@@ -11,6 +11,8 @@ extends Node
 ## missing, older or damaged file keeps the defaults for whatever it lacks.
 
 signal changed
+## Refresh controls after a browser request without announcing a saved change.
+signal fullscreen_reconciled
 
 const PATH: String = "user://settings.cfg"
 const SECTION_AUDIO: String = "audio"
@@ -400,4 +402,4 @@ func _on_web_fullscreen_changed(arguments: Array) -> void:
 		_changed()
 	elif was_pending:
 		# Reconcile the optimistic checkbox after rejection without writing to disk.
-		changed.emit()
+		fullscreen_reconciled.emit()
