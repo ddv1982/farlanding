@@ -292,6 +292,8 @@ func build_view(tick: int) -> CommanderView:
 		view.building_counts[building.def.id] = view.building_counts.get(building.def.id, 0) + 1
 		if building.is_under_construction:
 			view.sites.append(building)
+			# It draws nothing until it stands: its power is spoken for already.
+			view.power_free -= building.def.power_use
 		elif building.producer != null:
 			view.producers.append(building)
 			for queued: UnitDef in building.producer.queue:

@@ -331,7 +331,7 @@ func _build_defence(view: CommanderView, actions: Array[AiAction]) -> void:
 	# A lost factory's power is kept for it (found by the balance harness, ADR 0018: on
 	# Hollow Meridian towers took the last of the HQ's power for good).
 	var kept: int = 0
-	if profile.factory != null and not _has_finished(view, profile.factory):
+	if profile.factory != null and view.count_of(profile.factory) == 0:
 		kept = profile.factory.power_use
 	if profile.defence.power_use + kept > view.power_free:
 		return
@@ -547,13 +547,3 @@ static func _queued_now(actions: Array[AiAction], maker: Building) -> int:
 		if action.kind == AiAction.PRODUCE and action.building == maker:
 			count += 1
 	return count
-
-
-## True if a `def` of ours stands finished (one still being built draws no power yet,
-## so the power it will need is still kept for it).
-static func _has_finished(view: CommanderView, def: BuildingDef) -> bool:
-	var unfinished: int = 0
-	for site: Building in view.sites:
-		if site.def == def:
-			unfinished += 1
-	return view.count_of(def) > unfinished
