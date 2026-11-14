@@ -485,7 +485,7 @@ func quickload() -> bool:
 
 ## Opens the pause menu: the sim clock and the camera stop.
 func open_pause() -> void:
-	if map == null or paused:
+	if map == null or paused or _debrief.visible:
 		return
 	paused = true
 	_hints.suspended = true
@@ -768,7 +768,7 @@ func _on_storage_confirmed(slot: StringName, success: bool) -> void:
 	if not success:
 		_report("Browser storage could not confirm the save. Keep this tab open.", true)
 		Events.ui_feedback.emit(&"save_failed")
-	elif slot != &"settings" and slot != CampaignSession.SLOT:
+	elif slot not in [&"settings", CampaignSession.SLOT, SaveSlots.AUTOSAVE]:
 		_report("Saved to %s." % SaveSlots.label_of(slot), false)
 		Events.ui_feedback.emit(&"save_done")
 

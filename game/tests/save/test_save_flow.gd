@@ -93,6 +93,15 @@ func _world() -> SimWorld:
 	return _main.runner.world
 
 
+func test_browser_autosave_confirmation_is_silent_but_failures_are_reported() -> void:
+	_main._on_storage_confirmed(SaveSlots.AUTOSAVE, true)
+	assert_false(_feedback.has(&"save_done"), "landing autosaves stay silent")
+	_main._on_storage_confirmed(SaveSlots.QUICKSAVE, true)
+	assert_true(_feedback.has(&"save_done"), "manual saves still confirm durability")
+	_main._on_storage_confirmed(SaveSlots.AUTOSAVE, false)
+	assert_true(_feedback.has(&"save_failed"), "autosave failures still warn the player")
+
+
 func test_f5_quicksaves_and_f9_quickloads() -> void:
 	await _start(&"conquest")
 	await wait_frames(20)
