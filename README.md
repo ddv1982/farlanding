@@ -165,7 +165,8 @@ WEB_BROWSER=firefox npm test
 Install Firefox or WebKit with `npx playwright install firefox webkit` before using
 those browser names. The suite starts loopback servers on 8070/8071, uses fresh
 profiles, and has no automatic retries. It retains console/network logs, state,
-screenshots, video and traces on failures. The broad mission matrix also runs from
-CI's manual **Run workflow** action. `WebDiagnostics` is for testing only; play the
-release under `build/web`. Browser versions and acceptance evidence are tracked in
-[the Web results](docs/WEB_CI_RESULTS.md).
+screenshots and traces on failures; `WEB_RECORD=1` enables video capture. Video is
+opt-in to avoid competing with software WebGL on CI runners. The broad mission
+matrix also runs from CI's manual **Run workflow** action. `WebDiagnostics` is for
+testing only; play the release under `build/web`. Browser versions and acceptance
+evidence are tracked in [the Web results](docs/WEB_CI_RESULTS.md).

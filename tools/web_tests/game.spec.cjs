@@ -71,6 +71,8 @@ test('release starts on WebGL2 and uses real menu input', async ({ page }, info)
 });
 
 test('worker orders construction production and saves survive reload', async ({ page }, info) => {
+  // Three simulation waits plus two launches need a bounded software-rendering budget.
+  test.setTimeout(480000);
   test.setTimeout(240000);
   await page.addInitScript(captureAudio);
   await boot(page, 'http://127.0.0.1:8071/?mission=conquest');
@@ -97,6 +99,15 @@ test('worker orders construction production and saves survive reload', async ({ 
   await expect.poll(async () => (await state(page)).buildings.some(b => b.kind === 'concord_reactor' && !b.constructing), { timeout: 90000 }).toBe(true);
   await page.keyboard.press('Escape');
   await button(page, 'RESUME');
+  // Clear the construction worker from the hauling route before picking the Hauler.
+  // Their selection spheres can overlap after a long software-rendered build.
+  await page.mouse.click(...(await state(page)).ground[1], { delay: 80 });
+  await expect.poll(async () => {
+    const current = await state(page);
+    const builder = current.units.find(u => u.id === worker.id);
+    const hauler = current.units.find(u => u.kind === 'concord_hauler');
+    return Math.hypot(builder.position[0] - hauler.position[0], builder.position[2] - hauler.position[2]);
+  }).toBeGreaterThan(6);
   const hauler = await entity(page, 'units', u => u.kind === 'concord_hauler');
   await expect.poll(async () => (await state(page)).selected).toContain(hauler.id);
   const deposit = (await state(page)).deposits.find(d => d.remaining > 0 && d.pixel[0] > 850 && d.pixel[0] < 1100 && d.pixel[1] > 200);

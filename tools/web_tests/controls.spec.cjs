@@ -20,15 +20,15 @@ async function option(page, label) {
   await page.mouse.click(popup.position[0] + popup.size[0] / 2, popup.position[1] + popup.size[1] * (index + 0.5) / popup.items.length, { delay: 80 });
 }
 
-test('menus remain navigable at supported viewports and UI scales', async ({ page }, info) => {
-  await boot(page);
-  for (const viewport of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
-    await page.setViewportSize(viewport);
-    await expect.poll(async () => {
-      const settings = (await state(page)).buttons.find(item => item.text === 'SETTINGS');
-      return settings ? Math.abs(settings.pixel[0] - viewport.width / 2) : 999;
-    }).toBeLessThan(30);
-    for (const scale of [1, 1.15, 1.3]) {
+for (const viewport of [{ width: 1280, height: 720 }, { width: 1920, height: 1080 }]) {
+  for (const scale of [1, 1.15, 1.3]) {
+    test(`menus remain navigable at ${viewport.width}x${viewport.height} and ${Math.round(scale * 100)}% UI scale`, async ({ page }, info) => {
+      await page.setViewportSize(viewport);
+      await boot(page);
+      await expect.poll(async () => {
+        const settings = (await state(page)).buttons.find(item => item.text === 'SETTINGS');
+        return settings ? Math.abs(settings.pixel[0] - viewport.width / 2) : 999;
+      }).toBeLessThan(30);
       await button(page, 'SETTINGS');
       await button(page, 'ACCESSIBILITY');
       await button(page, `${Math.round((await state(page)).ui_scale * 100)}%`);
@@ -43,10 +43,10 @@ test('menus remain navigable at supported viewports and UI scales', async ({ pag
       await button(page, 'BACK');
       await expect.poll(async () => (await state(page)).buttons.some(item => item.text === 'ACCESSIBILITY')).toBe(false);
       await expect.poll(async () => (await state(page)).screen).toBe('title');
-    }
+      expect(await page.evaluate(() => window.farlanding.errors)).toEqual([]);
+    });
   }
-  expect(await page.evaluate(() => window.farlanding.errors)).toEqual([]);
-});
+}
 
 test('modern mouse scheme accepts movement and persists across reload', async ({ page }) => {
   await boot(page, '?mission=conquest');

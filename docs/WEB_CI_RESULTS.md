@@ -28,6 +28,27 @@ dirty, so a working-tree build is not represented as a committed release.
 - Actual Safari on macOS reached the title, mission list, briefing, Kessel landing,
   and Fabricator selection. This is smoke coverage; it is not full Safari campaign
   or perceptual audio qualification.
+- A 30.4-minute Chromium session completed 29 landing, worker-command, quicksave,
+  and return-to-title cycles. This used the earlier working-tree export, before
+  the PR review fixes. JavaScript heap readings increased from about 177MB to
+  386MB; this is usability soak evidence, not memory-leak qualification.
+
+The first hosted software-WebGL run exhausted the three-minute timeout while
+the combined six-case menu matrix was still passing assertions. The whole suite
+then hit its ten-minute step limit. Each viewport/scale pair now has its own
+isolated test, video capture is opt-in, and the browser step allows 30 minutes.
+Screenshots and failure traces remain enabled; assertion thresholds and retries
+are unchanged. The combined construction/gathering/production/save-reload case
+allows eight minutes overall for its multiple simulation waits and two launches.
+
+Software-rendered gameplay also reproduced a test click hitting the construction
+worker instead of the adjacent Hauler. The test now moves the finished builder
+clear through normal mouse input before selecting the Hauler; production picking
+and gameplay rules are unchanged.
+
+The local software-WebGL suite passed 17 cases; the affected gameplay case then
+passed separately after that input-flow correction, taking 2.4 minutes. This is
+targeted revalidation, not a claim of a repeated full-suite run.
 
 ## Export defects found by these checks
 

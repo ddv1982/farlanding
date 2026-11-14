@@ -5,7 +5,7 @@ module.exports = defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     viewport: { width: 1280, height: 720 },
-    screenshot: 'only-on-failure', trace: 'retain-on-failure', video: process.env.WEB_RECORD ? 'on' : 'retain-on-failure',
+    screenshot: 'only-on-failure', trace: 'retain-on-failure', video: process.env.WEB_RECORD ? 'on' : 'off',
     launchOptions: { args: process.platform === 'darwin' && !process.env.WEB_SOFTWARE ? ['--use-angle=metal'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
   },
   projects: [{ name: process.env.WEB_BROWSER || 'chromium', use: { browserName: process.env.WEB_BROWSER || 'chromium' } }],
