@@ -60,7 +60,20 @@ unchanged. All 18 browser cases subsequently passed locally with software WebGL
 in 4.8 minutes, including settings persistence and the complete build/save flow.
 The 1920x1080 menu cases dropped from about 39 to 17 seconds locally. This improves
 responsiveness by sacrificing scene resolution and shadows; UI resolution stays
-unchanged. Hosted CI must still validate the revised default.
+unchanged.
+
+Hosted CI subsequently passed on `5ea70b6`: the native check job, all 18 browser
+cases (12.7 minutes), and Seer review were green in
+[run 43612674648](https://github.com/ddv1982/farlanding/actions/runs/43612674648).
+All inline findings were resolved. The final follow-up only records this evidence.
+
+The downloaded release artifact identifies GitHub's tested merge commit
+`f376e989bb714e09e18ae8927ba9691e4131a5b8`, with a clean source tree. Its complete
+nine-file inventory passed hash verification using the included tool. Served with
+the included server, it launched cold in 4.46 seconds and warm in 2.49 seconds on
+the same M4/Chromium session, then reached a Kessel landing through real menu input
+with no browser errors. These are observed startup timings on an active desktop,
+not a hardware-independent performance guarantee.
 
 ## Export defects found by these checks
 
