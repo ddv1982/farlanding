@@ -381,3 +381,14 @@ takes about 126 s; shortening it belongs to the audio lane.
 - Not from this lane: the `check_scripts` step of `tools/check.sh` reports leaked
   objects at exit on a clean HEAD as well (since the settings/UI commit), so the gate
   stops there until that is fixed.
+
+### A guard check that was tried and taken back
+
+Review of the Hollow Meridian follow-up pointed out that the engine keeper samples
+visibility only three quarters of the way out to the guard radius, so a guardian at the
+edge can go unseen and a worker is sent in alone. Requiring sight of the whole radius
+was tried: over four Normal seeds Power Up still won 4 of 4 (median 23:12), but the
+finale fell from 3 wins and 1 timeout to 1 win and 3 timeouts, because a worker's own
+sight never covers the full radius and every engine then waited for an escort. The
+looser check stays. Its cost is one worker now and then; the engine is avoided for three
+minutes after a worker dies there.
