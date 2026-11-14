@@ -5,6 +5,8 @@ extends GutTest
 ## not about to burst. It reads only public knowledge (AiPort.vent_dangers) and acts only
 ## through Commands.
 
+const SIPHON: String = "res://data/buildings/combine_flux_siphon.tres"
+
 var _f: CombatFixture
 var _rule: EruptionRule
 var _rich: ResourceNodeDef
@@ -101,7 +103,7 @@ func test_a_vent_far_off_bursting_does_not_move_anyone() -> void:
 
 
 func test_it_builds_a_siphon_on_a_known_calm_vent_near_home() -> void:
-	var siphon: BuildingDef = load("res://data/buildings/combine_flux_siphon.tres")
+	var siphon: BuildingDef = load(SIPHON)
 	_profile.extractor = siphon
 	_profile.extractors_wanted = 1
 	_f.world.economy.stockpile(1).alloy = 1000
@@ -142,3 +144,23 @@ func _state(pressure: float) -> Dictionary:
 			}
 		},
 	}
+
+
+func test_a_refused_vent_is_left_alone_for_a_while() -> void:
+	# Found by the balance harness (ADR 0018): a Tap refused on a vent was placed again
+	# every decision, holding a builder forever and stalling the whole build order.
+	var siphon: BuildingDef = load(SIPHON)
+	_profile.extractor = siphon
+	_profile.extractors_wanted = 1
+	_f.world.economy.stockpile(1).alloy = 1000
+	_f.world.spawn_resource_node(_f.base.vent, Vector3(-40, 0, -60))
+	# Something it has not seen stands on the vent: the placement is refused.
+	_f.world.spawn_building(_f.hq, 0, Vector3(-40, 0, -58), true)
+	var rig: Unit = _f.spawn(_f.base.fabricator, 1, Vector3(-50, 0, -50))
+	_start()
+	assert_eq(_keeper.decide(Vector3(-60, 0, -60), [rig]), rig, "it tries once")
+	_f.tick()
+	assert_eq(_f.world.buildings_of(1).size(), 1, "refused: only its HQ stands")
+	assert_null(_keeper.decide(Vector3(-60, 0, -60), [rig]), "not again right away")
+	_f.tick(VentKeeper.RETRY_TICKS)
+	assert_eq(_keeper.decide(Vector3(-60, 0, -60), [rig]), rig, "but later")

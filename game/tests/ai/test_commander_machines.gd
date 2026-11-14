@@ -66,6 +66,11 @@ func _builder(at: Vector3) -> Unit:
 	return _f.spawn(_f.base.fabricator, 1, at)
 
 
+## One armed unit by home: a claim needs at least one escort (ADR 0018).
+func _escort() -> Array[Unit]:
+	return [_f.spawn(_f.combat.soldier, 1, HOME + Vector3(0, 0, 14))]
+
+
 func test_nothing_happens_without_the_rule_or_when_it_wants_no_engines() -> void:
 	_engine(Vector3(-40, 0, -40))
 	var builder: Unit = _builder(HOME + Vector3(8, 0, 0))
@@ -84,8 +89,8 @@ func test_it_reactivates_the_nearest_engine_it_has_explored() -> void:
 	var builder: Unit = _builder(HOME + Vector3(8, 0, 8))
 	_explore(Vector3(-40, 0, -40))
 	assert_false(_f.world.vision.grid.is_explored(1, unexplored.position), "never seen")
-	var used: Array[Unit] = _keeper.decide(HOME, [builder], [])
-	assert_eq(used, [builder] as Array[Unit])
+	var used: Array[Unit] = _keeper.decide(HOME, [builder], _escort())
+	assert_true(used.has(builder))
 	_f.tick()
 	assert_eq(builder.reactivator.target, near, "the one it knows of")
 	_seconds(8.0)
@@ -100,9 +105,10 @@ func test_one_claim_at_a_time() -> void:
 	var first: Unit = _builder(HOME + Vector3(8, 0, 8))
 	var second: Unit = _builder(HOME + Vector3(-8, 0, 8))
 	_explore(Vector3(-40, 0, -55))
-	assert_eq(_keeper.decide(HOME, [first, second], []).size(), 1)
+	var escort: Array[Unit] = _escort()
+	assert_eq(_keeper.decide(HOME, [first, second], escort.duplicate()).size(), 2, "one + escort")
 	_f.tick(2)
-	assert_eq(_keeper.decide(HOME, [second], []).size(), 0, "the first claim runs")
+	assert_eq(_keeper.decide(HOME, [second], _escort()).size(), 0, "the first claim runs")
 
 
 func test_it_escorts_a_builder_to_a_guarded_engine_and_skips_a_fortress() -> void:
@@ -138,7 +144,7 @@ func test_it_takes_over_the_players_engine() -> void:
 	engine.machine.set_state(Machine.RUNNING)
 	var builder: Unit = _builder(HOME + Vector3(8, 0, 8))
 	_explore(Vector3(-40, 0, -40))
-	_keeper.decide(HOME, [builder], [])
+	_keeper.decide(HOME, [builder], _escort())
 	_f.tick()
 	assert_eq(builder.reactivator.target, engine)
 	_seconds(14.0)
@@ -150,7 +156,7 @@ func test_it_takes_over_the_players_engine() -> void:
 	other.machine.set_state(Machine.RUNNING)
 	_explore(Vector3(-30, 0, -60))
 	var spare: Unit = _builder(HOME + Vector3(-8, 0, 8))
-	assert_eq(_keeper.decide(HOME, [spare], []), [] as Array[Unit], "not when told not to")
+	assert_eq(_keeper.decide(HOME, [spare], _escort()), [] as Array[Unit], "not when told not to")
 
 
 func test_it_defends_an_engine_of_its_own_under_attack() -> void:
@@ -178,10 +184,28 @@ func test_its_claim_saves_and_loads() -> void:
 	_start()
 	var builder: Unit = _builder(HOME + Vector3(8, 0, 8))
 	_explore(Vector3(-40, 0, -40))
-	_keeper.decide(HOME, [builder], [])
+	_keeper.decide(HOME, [builder], _escort())
 	var saved: Dictionary = _keeper.to_dict()
 	var restored: MachineKeeper = MachineKeeper.new(_port, _f.world, _profile)
 	restored.from_dict(saved)
 	assert_eq(restored.claim_engine, engine.entity_id)
 	assert_eq(restored.claim_worker, builder.entity_id)
 	assert_eq(restored.to_dict(), saved)
+
+
+func test_no_lone_worker_and_no_second_worker_where_one_died() -> void:
+	# Found by the balance harness (ADR 0018): builders went one after another, often
+	# alone, to engines whose guards had just killed the last one.
+	var engine: Building = _engine(Vector3(-40, 0, -40))
+	_start()
+	_explore(Vector3(-40, 0, -40))
+	var first: Unit = _builder(HOME + Vector3(8, 0, 8))
+	assert_eq(_keeper.decide(HOME, [first], []), [] as Array[Unit], "no escort, no claim")
+	assert_true(_keeper.decide(HOME, [first], _escort()).has(first), "with one, it goes")
+	first.health.take(10000.0, null)
+	_f.tick()
+	var second: Unit = _builder(HOME + Vector3(-8, 0, 8))
+	assert_false(_keeper.decide(HOME, [second], _escort()).has(second), "not into the same guns")
+	_seconds(MachineKeeper.FAILED_CLAIM_TICKS / 10.0 + 1.0)
+	assert_true(_keeper.decide(HOME, [second], _escort()).has(second), "later, again")
+	assert_eq(engine.machine.is_dormant(), true)

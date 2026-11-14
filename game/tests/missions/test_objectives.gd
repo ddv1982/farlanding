@@ -34,6 +34,21 @@ func test_destroy_all_counts_every_enemy_but_custodians() -> void:
 	assert_eq(objective.state, Objective.STATE_DONE, "the Warden does not count")
 
 
+func test_destroy_all_leaves_out_unarmed_stragglers_once_the_base_is_gone() -> void:
+	var hauler_def: UnitDef = _f.combat.soldier.duplicate() as UnitDef
+	hauler_def.weapon = null
+	_f.spawn(hauler_def, 1, Vector3(0, 0, 0))
+	var hq: Building = _f.world.spawn_building(_f.combat.hq, 1, Vector3(30, 0, 0), true)
+	var objective: Objective = _start(
+		MissionFixture.objective(&"kill", ObjectiveDef.TYPE_DESTROY_ALL)
+	)
+	_f.tick(2)
+	assert_true(objective.is_active(), "the base stands")
+	hq.health.take(10000.0, null)
+	_f.tick(2)
+	assert_eq(objective.state, Objective.STATE_DONE, "an unarmed straggler does not count")
+
+
 func test_destroy_all_with_types_only_counts_those() -> void:
 	_f.spawn(_f.combat.soldier, 1, Vector3(0, 0, 0))
 	var tank: Unit = _f.spawn(_f.combat.tank, 1, Vector3(10, 0, 0))

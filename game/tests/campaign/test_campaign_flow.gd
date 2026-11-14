@@ -168,7 +168,7 @@ func test_the_second_landing_is_changed_by_the_first() -> void:
 	assert_eq(_main.screen, &"loadout")
 	assert_true(_main._meridian.loadout().choose(&"escort", &"escort_rangers"))
 	assert_true(_feedback.has(&"loadout_change"))
-	assert_eq(_main.campaign.state.intel, 400 - 60 - 60)
+	assert_eq(_main.campaign.state.intel, 400 - 90 - 130, "the lab and racks (ADR 0018 costs)")
 	var reloaded: CampaignSession = CampaignSession.new(_main.campaign_def)
 	assert_true(reloaded.load_saved(), "purchases autosave")
 	assert_eq(reloaded.state.techs, [&"survey_lab", &"hauler_racks"] as Array[StringName])

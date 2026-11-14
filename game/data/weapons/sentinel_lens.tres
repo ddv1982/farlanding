@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = &"sentinel_lens"
 display_name = "Sentinel lens"
-damage = 60.0
+damage = 50.0
 damage_type = &"heavy"
 splash_radius = 2.5
 hits_air = true

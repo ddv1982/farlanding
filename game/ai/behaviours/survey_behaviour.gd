@@ -35,12 +35,7 @@ func add(unit: Unit) -> void:
 
 func tick(sim_tick: int) -> void:
 	prune()
-	for unit: Variant in _assigned.keys():
-		if not members.has(unit):
-			_assigned.erase(unit)
-	for unit: Variant in _shy_until.keys():
-		if not members.has(unit):
-			_shy_until.erase(unit)
+	_forget_gone()
 	var sites: Array[Node3D] = port.open_sites()
 	for unit: Unit in members:
 		_step(unit, sites, sim_tick)
@@ -71,6 +66,21 @@ func _step(unit: Unit, sites: Array[Node3D], sim_tick: int) -> void:
 	_assigned[unit] = site
 	scans_started += 1
 	port.push(ScanCommand.new(faction_of_port(), [unit] as Array[Node3D], site))
+
+
+## Drops bookkeeping for units no longer in the group. A freed unit cannot be looked
+## up or erased in a typed dictionary (Godot reports an error per call and keeps the
+## key), so the dictionaries are rebuilt from the members that remain.
+func _forget_gone() -> void:
+	var assigned: Dictionary[Unit, Node3D] = {}
+	var shy: Dictionary[Unit, int] = {}
+	for unit: Unit in members:
+		if _assigned.has(unit) and is_instance_valid(_assigned[unit]):
+			assigned[unit] = _assigned[unit]
+		if _shy_until.has(unit):
+			shy[unit] = _shy_until[unit]
+	_assigned = assigned
+	_shy_until = shy
 
 
 ## The nearest open site no other member is on.

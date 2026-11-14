@@ -42,6 +42,7 @@
 [ext_resource type="Resource" path="res://data/campaign/techs/resonance_keys.tres" id="e39"]
 [ext_resource type="Resource" path="res://data/campaign/techs/engine_bracing.tres" id="e40"]
 [ext_resource type="Resource" path="res://data/campaign/techs/custodian_hush.tres" id="e41"]
+[ext_resource type="Resource" path="res://data/campaign/techs/talon_frames.tres" id="e_talon_frames"]
 
 [sub_resource type="Resource" id="s0"]
 script = ExtResource("e18")
@@ -296,9 +297,9 @@ id = &"kessel_trail"
 title = "The Kessel Trail"
 nodes = Array[ExtResource("e19")]([ExtResource("e1"), ExtResource("e2"), ExtResource("e3"), ExtResource("e4"), ExtResource("e26"), ExtResource("e27"), ExtResource("e28"), ExtResource("e32"), ExtResource("e33"), ExtResource("e37"), ExtResource("e38")])
 start_node = &"kessel_proving"
-techs = Array[ExtResource("e20")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11"), ExtResource("e12"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e29"), ExtResource("e30"), ExtResource("e31"), ExtResource("e34"), ExtResource("e35"), ExtResource("e36"), ExtResource("e39"), ExtResource("e40"), ExtResource("e41")])
+techs = Array[ExtResource("e20")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e9"), ExtResource("e10"), ExtResource("e11"), ExtResource("e12"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e29"), ExtResource("e30"), ExtResource("e31"), ExtResource("e34"), ExtResource("e35"), ExtResource("e36"), ExtResource("e39"), ExtResource("e40"), ExtResource("e41"), ExtResource("e_talon_frames")])
 loadout_slots = Array[ExtResource("e17")]([SubResource("s7"), SubResource("s13"), SubResource("s20")])
 carryovers = Array[ExtResource("e21")]([SubResource("s22"), SubResource("s24"), SubResource("s26"), SubResource("s28"), SubResource("s30"), SubResource("s32"), SubResource("s34"), SubResource("s36")])
-locked_at_start = Array[StringName]([&"concord_survey_lab", &"concord_lancer", &"concord_sentry", &"concord_arc"])
+locked_at_start = Array[StringName]([&"concord_survey_lab", &"concord_lancer", &"concord_sentry", &"concord_arc", &"concord_talon"])
 lost_landing_share = 0.0
 final_node = &"hollow_finale"

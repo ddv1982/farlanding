@@ -6,12 +6,12 @@
 script = ExtResource("1")
 id = &"sentry_repeater"
 display_name = "Twin repeater"
-damage = 10.0
+damage = 12.0
 damage_type = &"light"
 hits_air = true
 splash_radius = 0.0
 max_range = 20.0
-cooldown = 0.8
+cooldown = 0.7
 salvo = 2
 salvo_spacing = 0.8
 projectile_speed = 70.0

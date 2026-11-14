@@ -15,10 +15,10 @@ takeover_seconds = 24.0
 progress_decay = 0.05
 work_range = 3.0
 shutdown_seconds = 45.0
-disturb_radius = 32.0
+disturb_radius = 26.0
 chase_distance = 40.0
 locked_buildings = Array[StringName]([&"concord_reactor"])
-headquarters_power_scale = 0.5
+headquarters_power_scale = 0.7
 alert_seconds = 10.0
 
 [resource]

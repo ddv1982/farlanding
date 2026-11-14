@@ -23,10 +23,10 @@
 [sub_resource type="Resource" id="s0"]
 script = ExtResource("e1")
 id = &"bank_intel"
-title = "Bank 300 Intel before the dust storm"
+title = "Bank 250 Intel before the dust storm"
 kind = &"primary"
 type = &"gather_intel"
-amount = 300
+amount = 250
 deadline_seconds = 900
 
 [sub_resource type="Resource" id="s1"]
@@ -82,19 +82,19 @@ script = ExtResource("e0")
 id = &"survey"
 title = "Before the Storm"
 mission_type = &"survey"
-summary = "Race the Combine for the basin's signals: bank 300 Intel before the storm."
-briefing = "A dust storm is building over the Kessel basin and will bury every signal in it within fifteen minutes. The orbital scan shows a dozen unresolved contacts.\n\nScan them and bank 300 Intel before the storm arrives. Intel spent at the Survey Lab no longer counts, so spend it only if it buys you time. The Combine does not want us here: expect raiders after your Surveyors and your base, not a war.\n\nThey are surveying too: their Riggers scan the same signals for the Combine. If they bank 250 Intel before you bank yours, the basin is theirs. Riggers are unarmed and must walk to every site."
+summary = "Race the Combine for the basin's signals: bank 250 Intel before the storm."
+briefing = "A dust storm is building over the Kessel basin and will bury every signal in it within fifteen minutes. The orbital scan shows a dozen unresolved contacts.\n\nScan them and bank 250 Intel before the storm arrives. Intel spent at the Survey Lab no longer counts, so spend it only if it buys you time. The Combine does not want us here: expect raiders after your Surveyors and your base, not a war.\n\nThey are surveying too: their Riggers scan the same signals for the Combine. If they bank 250 Intel before you bank yours, the basin is theirs. Riggers are unarmed and must walk to every site."
 map_scene = ExtResource("e4")
 planet = ExtResource("planet")
 player_hq = ExtResource("e2")
 player_start = Vector3(-80, 0, 85)
-player_roster = Array[ExtResource("e8")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7"), ExtResource("e7")])
+player_roster = Array[ExtResource("e8")]([ExtResource("e5"), ExtResource("e6"), ExtResource("e7")])
 hostile_faction = 1
 hostile_hq = ExtResource("e9")
 hostile_hq_position = Vector3(66, 0, -95)
 hostile_buildings = Array[ExtResource("e12")]([ExtResource("e10"), ExtResource("e11")])
 hostile_building_positions = PackedVector3Array(47, 0, -92, 54, 0, -79)
-hostile_roster = Array[ExtResource("e8")]([ExtResource("e13"), ExtResource("e13"), ExtResource("e14"), ExtResource("e15"), ExtResource("e15"), ExtResource("e16")])
+hostile_roster = Array[ExtResource("e8")]([ExtResource("e13"), ExtResource("e13"), ExtResource("e14"), ExtResource("e14"), ExtResource("e14"), ExtResource("e15"), ExtResource("e15"), ExtResource("e16")])
 hostile_start = Vector3(56, 0, -84)
 commander_profile = ExtResource("e17")
 enemy_difficulty = "normal"

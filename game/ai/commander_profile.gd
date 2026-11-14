@@ -26,6 +26,11 @@ extends Resource
 ## Unit that shoots flying units (ADR 0016): its weight grows with the share of flyers
 ## seen in the enemy army, and it is made even when not in `army`.
 @export var anti_air: UnitDef
+## Building that adds power capacity (the Concord Reactor), or null when the HQ's
+## power is enough (the Combine Hub). One is built whenever free power falls below
+## `power_margin`.
+@export var power_plant: BuildingDef
+@export_range(0, 100, 1) var power_margin: int = 6
 @export_group("Opening")
 ## Build order played first, step by step in this order: a unit is queued at a
 ## producer that makes it, a building is placed by a builder. A step waits until it is

@@ -69,19 +69,20 @@ func test_waves_come_for_the_lander_and_grow() -> void:
 		runner.started_tick + CommanderDifficulty.ticks(630.0),
 		"the surge is scheduled"
 	)
-	assert_eq(script.wave_roster(0).size(), 3)
-	assert_eq(script.wave_roster(7).size(), 12, "the last wave is the largest")
+	# Wave sizes and times from the Phase 9 balance pass (ADR 0018).
+	assert_eq(script.wave_roster(0).size(), 2)
+	assert_eq(script.wave_roster(7).size(), 8, "the last wave is the largest")
 	assert_eq(map.world.units_of(1).size(), 0, "no enemy yet")
 	var warned: bool = await _f.run_until(
-		map, func() -> bool: return _alerts.has(&"wave_incoming"), 450
+		map, func() -> bool: return _alerts.has(&"wave_incoming"), 750
 	)
 	assert_true(warned, "the first wave is announced")
 	assert_eq(script.waves_sent, 0, "ahead of it")
 	var sent: bool = await _f.run_until(map, func() -> bool: return script.waves_sent == 1, 250)
-	assert_true(sent, "the first wave arrives at 1:00")
+	assert_true(sent, "the first wave arrives at 1:30")
 	await _f.run(map, 2)
 	var wave: Array[Unit] = map.world.units_of(1)
-	assert_eq(wave.size(), 3)
+	assert_eq(wave.size(), 2)
 	assert_eq(script.groups.size(), 1, "one group per wave")
 	var group: AttackGroup = script.groups[0]
 	assert_eq(group.mode, AttackGroup.MODE_LAST_STAND, "it never turns back")
@@ -116,3 +117,15 @@ func test_losing_the_lander_loses_the_holdout() -> void:
 
 static func _flat(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
+func test_wave_sizes_follow_the_commander_level() -> void:
+	var rules: WaveRules = WaveRules.new()
+	rules.wave_seconds = PackedFloat32Array([60, 120])
+	rules.wave_sizes = PackedInt32Array([4, 10])
+	assert_eq(rules.wave_size(1), 10, "Normal plays the sizes as listed")
+	assert_lt(rules.wave_size(1, &"easy"), 10, "Easy is gentler")
+	assert_gt(rules.wave_size(1, &"hard"), 10, "Hard is harsher")
+	assert_eq(rules.wave_size(5, &"hard"), 0, "no such wave")
+	rules.wave_sizes = PackedInt32Array([1])
+	assert_eq(rules.wave_size(0, &"easy"), 1, "never below one unit")

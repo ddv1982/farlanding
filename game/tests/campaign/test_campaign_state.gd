@@ -40,7 +40,9 @@ func test_the_data_is_consistent() -> void:
 	assert_true(_def.node(&"verdance_conquest").leads_to.has(&"verdance_infiltration"))
 	assert_true(_def.node(&"verdance_infiltration").leads_to.has(&"hollow_power"))
 	assert_true(_def.node(&"hollow_power").leads_to.has(&"hollow_finale"))
-	assert_eq(_def.techs.size(), 21, "twelve, and three each for Emberfall, Verdance, Hollow")
+	assert_eq(
+		_def.techs.size(), 22, "twelve, three each for Emberfall, Verdance, Hollow, Talon Frames"
+	)
 	var branches: Dictionary[StringName, bool] = {}
 	for tech: TechDef in _def.techs:
 		branches[tech.branch] = true
@@ -98,11 +100,12 @@ func test_a_lost_share_banks_that_fraction() -> void:
 func test_buying_spends_intel_and_needs_the_requirements() -> void:
 	assert_eq(_state.tech_state(&"survey_lab"), CampaignState.TECH_AVAILABLE)
 	assert_false(_state.buy(&"survey_lab"), "no Intel yet")
-	_win(&"kessel_proving", 200)
+	# Costs from the Phase 9 economy pass (ADR 0018): the lab 90, Deep Scan 200.
+	_win(&"kessel_proving", 300)
 	assert_eq(_state.tech_state(&"survey_lab"), CampaignState.TECH_AFFORDABLE)
 	assert_eq(_state.tech_state(&"deep_scan"), CampaignState.TECH_LOCKED, "needs the lab")
 	assert_true(_state.buy(&"survey_lab"))
-	assert_eq(_state.intel, 140)
+	assert_eq(_state.intel, 210)
 	assert_eq(_state.tech_state(&"survey_lab"), CampaignState.TECH_OWNED)
 	assert_false(_state.buy(&"survey_lab"), "once only")
 	assert_eq(_state.tech_state(&"deep_scan"), CampaignState.TECH_AFFORDABLE)

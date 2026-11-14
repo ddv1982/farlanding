@@ -37,6 +37,10 @@ const SOURCE_CELL: float = 8.0
 ## A site the placement rules refused (something it had not seen was in the way) is
 ## not tried again for this long, in sim ticks.
 const REFUSED_SITE_TICKS: int = 1200
+## Seconds before a new retrieval squad goes out after one was wiped out.
+const RETRIEVE_RETRY_SECONDS: float = 60.0
+## A retrieval squad grows to at most this many times the profile's size.
+const MAX_RETRIEVE_SCALE: int = 3
 
 var context: MissionContext
 var world: SimWorld
@@ -78,6 +82,10 @@ var last_behaviour_usec: int = 0
 var max_behaviour_usec: int = 0
 ## Waves and their sizes so far (play-testing).
 var wave_sizes: Array[int] = []
+## Retrieval squads wiped out before they brought the prop home. Each one lost makes
+## the next squad bigger and later (RETRIEVE_RETRY_SECONDS), so it stops feeding
+## small squads into guards (found by the balance harness, ADR 0018).
+var retrievals_lost: int = 0
 
 var _phase: int = 0
 var _map_area: Rect2 = Rect2()
@@ -85,6 +93,8 @@ var _last_ordered: Dictionary[int, int] = {}
 var _view: CommanderView = null
 ## Footprints of sites the placement rules refused -> sim tick they are forgotten.
 var _refused_sites: Dictionary[Rect2, int] = {}
+## Sim tick before which no new retrieval squad is sent (after one was lost).
+var _retrieve_after_tick: int = 0
 
 
 ## Starts commanding `p_faction` in `p_world`. `difficulty_id` is &"easy", &"normal"
@@ -162,11 +172,13 @@ func _decide(tick: int) -> void:
 	_staff_retrieval(tick)
 	perceive(tick)
 	_view = build_view(tick)
-	var put_to_work: Unit = vents.decide(home, _view.idle_builders)
+	var spare: Array[Unit] = spare_builders(_view)
+	var put_to_work: Unit = vents.decide(home, spare)
 	if put_to_work != null:
 		_last_ordered[put_to_work.entity_id] = tick
 		_view.idle_builders.erase(put_to_work)
-	var machine_work: Array[Unit] = machines.decide(home, _view.idle_builders, _view.guards)
+		spare.erase(put_to_work)
+	var machine_work: Array[Unit] = machines.decide(home, spare, _view.guards)
 	if not machine_work.is_empty():
 		_log("engine work: %d units (claim %d)" % [machine_work.size(), machines.claim_engine])
 	for unit: Unit in machine_work:
@@ -199,6 +211,11 @@ func _tick_behaviours(tick: int) -> void:
 	if scout != null and scout.finished:
 		scout = null
 	if retrieval != null and retrieval.finished:
+		retrieval.prune()
+		if retrieval.members.is_empty() and is_instance_valid(retrieval.cargo):
+			retrievals_lost += 1
+			_retrieve_after_tick = tick + CommanderDifficulty.ticks(RETRIEVE_RETRY_SECONDS)
+			_log("retrieval squad lost (%d so far)" % retrievals_lost)
 		retrieval = null
 	last_behaviour_usec = Time.get_ticks_usec() - started
 	max_behaviour_usec = maxi(max_behaviour_usec, last_behaviour_usec)
@@ -266,6 +283,7 @@ func build_view(tick: int) -> CommanderView:
 	view.power_free = pile.power_produced - pile.power_used
 	view.home = home
 	view.staging = staging
+	view.locked = FactionPerks.of(world.perks, faction).locked
 	for building: Building in world.buildings_of(faction):
 		if building.is_dead:
 			continue
@@ -409,6 +427,7 @@ func _make_scout(unit: Unit) -> ScoutBehaviour:
 
 func _launch(action: AiAction) -> void:
 	var last_stand: bool = action.reason == &"last_stand"
+	var searching: bool = last_stand or action.reason == &"hunt"
 	var target: Vector3 = action.position
 	if target == Vector3.INF:
 		target = knowledge.next_scout_point(staging, home, port.now(), 0)
@@ -419,7 +438,8 @@ func _launch(action: AiAction) -> void:
 		AttackGroup.MODE_LAST_STAND if last_stand else AttackGroup.MODE_ATTACK,
 		target,
 		staging,
-		staging
+		staging,
+		searching
 	)
 	attack_group.start()
 	wave_sizes.append(action.units.size())
@@ -442,17 +462,18 @@ func _make_attack(
 	mode: StringName,
 	target: Vector3,
 	group_home: Vector3,
-	group_staging: Vector3
+	group_staging: Vector3,
+	searching: bool = false
 ) -> AttackGroup:
 	var made: AttackGroup = AttackGroup.new(
 		port, profile, units, mode, target, group_home, group_staging
 	)
 	if mode == AttackGroup.MODE_DEFEND:
 		return made
-	var last_stand: bool = mode == AttackGroup.MODE_LAST_STAND
+	var search: bool = searching or mode == AttackGroup.MODE_LAST_STAND
 	made.next_target = func(from: Vector3) -> Vector3:
 		var next: Vector3 = knowledge.attack_target(from, port.now())
-		if next == Vector3.INF and last_stand:
+		if next == Vector3.INF and search:
 			# Searching: the sector just reached is done for a while.
 			knowledge.block_sector_at(from, port.now() + UNREACHABLE_TICKS)
 			next = knowledge.next_scout_point(from, home, port.now(), 0)
@@ -484,6 +505,8 @@ func to_dict() -> Dictionary:
 		"scout": _group_dict(scout),
 		"survey": _group_dict(survey),
 		"retrieval": _group_dict(retrieval),
+		"retrievals_lost": retrievals_lost,
+		"retrieve_after": _retrieve_after_tick,
 		"machines": machines.to_dict(),
 	}
 
@@ -531,6 +554,8 @@ func from_dict(data: Dictionary) -> void:
 		survey.restore(survey_data, world.entity)
 	var retrieval_data: Dictionary = data.get("retrieval", {})
 	retrieval = _restore_retrieval(retrieval_data)
+	retrievals_lost = data.get("retrievals_lost", 0)
+	_retrieve_after_tick = data.get("retrieve_after", 0)
 	var machines_data: Dictionary = data.get("machines", {})
 	machines.from_dict(machines_data)
 
@@ -570,6 +595,29 @@ func _restore_scout(data: Dictionary) -> ScoutBehaviour:
 	return restored
 
 
+## Idle builders the vent and engine keepers may send away: none while the base has
+## lost its factory, can power a new one and has only one builder (found by the
+## balance harness, ADR 0018: on Hollow Meridian the only Fabricator went from engine
+## to engine while the base, its factories destroyed, sat on thousands of Alloy).
+func spare_builders(view: CommanderView) -> Array[Unit]:
+	var factory: BuildingDef = profile.factory
+	if (
+		factory != null
+		and view.builders.size() <= 1
+		and view.count_of(factory) == 0
+		and factory.power_use <= view.power_free
+		and not view.builders_of(factory).is_empty()
+	):
+		return []
+	return view.idle_builders.duplicate()
+
+
+## Squad size for the next retrieval: the profile's, plus as much again per squad
+## lost, up to MAX_RETRIEVE_SCALE times.
+func retrieve_squad_size() -> int:
+	return profile.retrieve_squad_size * mini(1 + retrievals_lost, MAX_RETRIEVE_SCALE)
+
+
 ## Sends a squad of idle armed units for a carriable prop it knows of (Recovery),
 ## once the profile's delay has passed; keeps the squad's home up to date.
 func _staff_retrieval(tick: int) -> void:
@@ -584,8 +632,9 @@ func _staff_retrieval(tick: int) -> void:
 	for prop: Prop in port.known_cargo():
 		wanted = prop
 		break
-	if wanted == null:
+	if wanted == null or tick < _retrieve_after_tick:
 		return
+	var size: int = retrieve_squad_size()
 	var busy: Dictionary[Unit, bool] = {}
 	for group: AiGroup in [attack_group, defence_group, scout, survey]:
 		if group != null:
@@ -593,13 +642,14 @@ func _staff_retrieval(tick: int) -> void:
 				busy[unit] = true
 	var squad: Array[Unit] = []
 	for unit: Unit in world.units_of(faction):
-		if squad.size() >= profile.retrieve_squad_size:
+		if squad.size() >= size:
 			break
 		if unit.is_dead or unit.weapon == null or busy.has(unit) or unit.is_dormant:
 			continue
 		if unit.orders != null and unit.orders.is_idle():
 			squad.append(unit)
-	if squad.is_empty():
+	# The first squad goes with whoever is free; after a loss it waits for its size.
+	if squad.is_empty() or (retrievals_lost > 0 and squad.size() < size):
 		return
 	retrieval = RetrieveGroup.new(port, profile, squad, wanted)
 	retrieval.home = home

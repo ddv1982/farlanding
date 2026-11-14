@@ -67,8 +67,18 @@ run_godot import --import
 step "Script error check"
 run_godot check_scripts -s res://tests/check_scripts.gd
 
-step "Unit tests (GUT)"
-run_godot tests -s res://addons/gut/gut_cmdln.gd
+# Most tests only wait on frames and physics frames, so they run without real-time
+# frame sync (--fixed-fps: every frame is 1/60 s of game time, drawn as fast as the
+# machine allows), about four times faster. The audio tests listen to the real mixer,
+# which needs wall-clock time, so they run on their own (ADR 0018).
+GUT_ARGS=(-s res://addons/gut/gut_cmdln.gd -gconfig= -gexit -glog=1)
+GUT_FAST="$(cd "$GAME" && find tests -name 'test_*.gd' -not -path 'tests/audio/*' | sort | sed 's|^|res://|' | paste -sd, -)"
+
+step "Unit tests (GUT, simulated time: all but audio)"
+run_godot tests --fixed-fps 60 "${GUT_ARGS[@]}" -gtest="$GUT_FAST"
+
+step "Unit tests (GUT, real time: audio)"
+run_godot tests_audio "${GUT_ARGS[@]}" -gdir=res://tests/audio -ginclude_subdirs -gprefix=test_ -gsuffix=.gd
 
 step "Boot smoke test (main scene)"
 run_godot boot --quit-after 30

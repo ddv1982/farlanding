@@ -111,7 +111,7 @@ const PLANET_SCENES: Dictionary[StringName, Array] = {
 }
 
 ## Scene -> integrated Master loudness (LUFS), kept across this script's tests.
-static var measured: Dictionary[StringName, float] = {}
+var measured: Dictionary[StringName, float] = {}
 
 var _mix: MixScene
 ## Bus -> what its capture recorded in the last scene.

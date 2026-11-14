@@ -89,6 +89,17 @@ func test_the_nearest_lifts_it_and_the_rest_escort() -> void:
 	assert_almost_eq(prop.sim_position().z, 20.0, 1.0, "it goes where its carrier goes")
 
 
+func test_a_fast_unit_carries_no_faster_than_the_cap() -> void:
+	var fast_def: UnitDef = _f.combat.soldier.duplicate() as UnitDef
+	fast_def.move_speed = 13.0
+	var fast: Unit = _f.spawn(fast_def, 0, Vector3.ZERO)
+	var prop: Prop = _artefact(Vector3(3, 0, 0))
+	_carry(0, [fast] as Array[Node3D], prop)
+	_seconds(3.0)
+	assert_true(fast.is_carrying, "it lifted the artefact")
+	assert_almost_eq(fast.locomotion.mover.max_speed, Carrier.MAX_SPEED, 0.01, "capped")
+
+
 func test_a_free_artefact_is_a_carry_target() -> void:
 	var prop: Prop = _artefact()
 	var unit: Unit = _soldier(0, Vector3.ZERO)

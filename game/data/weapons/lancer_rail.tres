@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = &"lancer_rail"
 display_name = "Rail lance"
-damage = 42.0
+damage = 52.0
 damage_type = &"pierce"
 splash_radius = 0.0
 max_range = 18.0
