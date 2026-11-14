@@ -110,6 +110,7 @@ var missions_won: PackedStringArray = PackedStringArray()
 ## Where settings are saved (tests point it elsewhere).
 var path: String = PATH
 var _web_fullscreen_callback: JavaScriptObject
+var _web_fullscreen_pending: bool = false
 
 
 func _ready() -> void:
@@ -228,6 +229,7 @@ func set_fullscreen(enabled: bool) -> void:
 		return
 	if OS.has_feature("web"):
 		# The browser confirms this asynchronous request through fullscreenchange.
+		_web_fullscreen_pending = true
 		DisplayServer.window_set_mode(
 			DisplayServer.WINDOW_MODE_FULLSCREEN if enabled else DisplayServer.WINDOW_MODE_WINDOWED
 		)
@@ -391,6 +393,11 @@ static func _nearest(value: Variant, choices: Array[float], fallback: Variant) -
 
 func _on_web_fullscreen_changed(arguments: Array) -> void:
 	var actual: bool = arguments[0]
+	var was_pending: bool = _web_fullscreen_pending
+	_web_fullscreen_pending = false
 	if fullscreen != actual:
 		fullscreen = actual
 		_changed()
+	elif was_pending:
+		# Reconcile the optimistic checkbox after rejection without writing to disk.
+		changed.emit()

@@ -33,6 +33,16 @@ func after_each() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 
 
+func test_rejected_fullscreen_request_restores_the_panel_checkbox() -> void:
+	Settings.fullscreen = false
+	var panel: SettingsPanel = SettingsPanel.new()
+	add_child_autofree(panel)
+	panel._fullscreen.set_pressed_no_signal(true)
+	Settings._web_fullscreen_pending = true
+	Settings._on_web_fullscreen_changed([false])
+	assert_false(panel._fullscreen.button_pressed, "the rejected request restores the checkbox")
+
+
 func test_every_setting_is_saved_and_loaded_back() -> void:
 	Settings.set_volume(&"master_volume", 0.4)
 	Settings.set_volume(&"music_volume", 0.3)

@@ -51,6 +51,21 @@ func test_the_scheme_persists() -> void:
 	assert_eq(Settings.control_scheme, Settings.SCHEME_MODERN)
 
 
+func test_rejected_browser_fullscreen_request_refreshes_without_saving() -> void:
+	var fresh := SETTINGS_SCRIPT.new()
+	fresh.path = PATH
+	fresh._web_fullscreen_pending = true
+	watch_signals(fresh)
+	fresh._on_web_fullscreen_changed([false])
+	assert_false(fresh.fullscreen)
+	assert_false(fresh._web_fullscreen_pending)
+	assert_signal_emit_count(fresh, "changed", 1, "the checkbox must refresh on rejection")
+	assert_false(FileAccess.file_exists(PATH), "unchanged settings must not be written")
+	fresh._on_web_fullscreen_changed([false])
+	assert_signal_emit_count(fresh, "changed", 1, "duplicate events stay silent")
+	fresh.free()
+
+
 func test_an_unknown_scheme_falls_back_to_classic() -> void:
 	var config: ConfigFile = ConfigFile.new()
 	config.set_value("controls", "control_scheme", "telepathy")
