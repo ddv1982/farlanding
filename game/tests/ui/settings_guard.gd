@@ -27,6 +27,7 @@ const KEYS: Array[String] = [
 	"game_speed",
 	"difficulty",
 	"hints_seen",
+	"missions_won",
 	"path",
 ]
 

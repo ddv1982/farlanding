@@ -104,6 +104,9 @@ var difficulty: StringName = Difficulty.NORMAL
 var bindings: KeyBindings = KeyBindings.new()
 ## Tutorial hints this profile has seen (each shows once).
 var hints_seen: PackedStringArray = PackedStringArray()
+## Ids of the single missions (MissionDef.id) this profile has won: each opens the
+## next one in the mission select (MissionCatalog.is_open).
+var missions_won: PackedStringArray = PackedStringArray()
 ## Where settings are saved (tests point it elsewhere).
 var path: String = PATH
 
@@ -129,6 +132,7 @@ func save_to(target: String = "") -> Error:
 	config.set_value(SECTION_DISPLAY, "quality", String(quality))
 	config.set_value(SECTION_DISPLAY, "render_scale", render_scale)
 	config.set_value(SECTION_HINTS, "seen", hints_seen)
+	config.set_value(SECTION_GAME, "missions_won", missions_won)
 	for key: StringName in OPTIONS:
 		var value: Variant = get(key)
 		config.set_value(OPTIONS[key], String(key), str(value) if value is StringName else value)
@@ -165,6 +169,9 @@ func load_from(source: String = "") -> void:
 	render_scale = clampf(scale, MIN_RENDER_SCALE, 1.0)
 	var seen: PackedStringArray = config.get_value(SECTION_HINTS, "seen", PackedStringArray())
 	hints_seen = seen
+	# Older files have no list: nothing won yet.
+	var won: PackedStringArray = config.get_value(SECTION_GAME, "missions_won", PackedStringArray())
+	missions_won = won
 	for key: StringName in OPTIONS:
 		var fallback: Variant = get(key)
 		var stored: Variant = config.get_value(OPTIONS[key], String(key), fallback)
@@ -282,6 +289,19 @@ func mark_hint_seen(id: StringName) -> void:
 	if has_seen_hint(id):
 		return
 	hints_seen.append(String(id))
+	_changed()
+
+
+## True once this profile has won the mission `id` (MissionDef.id).
+func has_won_mission(id: StringName) -> bool:
+	return missions_won.has(String(id))
+
+
+## Remembers that the mission `id` was won (saved at once).
+func mark_mission_won(id: StringName) -> void:
+	if id == &"" or has_won_mission(id):
+		return
+	missions_won.append(String(id))
 	_changed()
 
 

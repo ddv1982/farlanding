@@ -3,7 +3,7 @@ extends MenuScreen
 ## The first screen: Continue (when an autosave exists), New campaign, Single missions
 ## (the mission select), How to play, Settings, Credits and Quit. New campaign first
 ## asks for the difficulty (remembered in the settings for next time); START emits
-## `new_campaign_pressed`.
+## `new_campaign_pressed`. On a short window the menu buttons scroll under the name.
 
 signal new_campaign_pressed
 signal continue_pressed
@@ -13,8 +13,12 @@ signal quit_pressed
 signal how_to_play_pressed
 signal credits_pressed
 
+## Space kept free above and below the column, px.
+const SCREEN_MARGIN: int = 24
+
 var _continue: Button
 var _menu: VBoxContainer
+var _menu_scroll: ScrollContainer
 var _new_campaign: VBoxContainer
 var _picker: DifficultyPicker
 
@@ -23,8 +27,8 @@ func _build() -> void:
 	var centre := CenterContainer.new()
 	add_child(centre)
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", 10)
+	var column := FitColumn.new(10)
+	column.outer_margin = SCREEN_MARGIN * 2
 	centre.add_child(column)
 	column.add_child(HudStyle.make_label(12, HudStyle.ACCENT_COLOR, "THE CONCORD SURVEY"))
 	column.add_child(HudStyle.make_label(52, HudStyle.TEXT_COLOR, "Farlanding"))
@@ -36,7 +40,7 @@ func _build() -> void:
 	column.add_child(gap)
 	_menu = VBoxContainer.new()
 	_menu.add_theme_constant_override(&"separation", 10)
-	column.add_child(_menu)
+	_menu_scroll = column.add_scroll(_menu)
 	_continue = _add_button(_menu, "CONTINUE", continue_pressed)
 	var start: Button = HudStyle.make_menu_button("NEW CAMPAIGN", 280.0)
 	start.pressed.connect(show_new_campaign)
@@ -83,7 +87,7 @@ func open(can_continue: bool) -> void:
 func show_new_campaign() -> void:
 	Events.ui_feedback.emit(&"click")
 	_picker.set_level(Settings.difficulty)
-	_menu.visible = false
+	_menu_scroll.visible = false
 	_new_campaign.visible = true
 
 
@@ -94,7 +98,7 @@ func picker() -> DifficultyPicker:
 
 func _show_menu() -> void:
 	_new_campaign.visible = false
-	_menu.visible = true
+	_menu_scroll.visible = true
 
 
 func _add_button(column: BoxContainer, caption: String, pressed: Signal) -> Button:

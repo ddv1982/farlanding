@@ -2,10 +2,14 @@ class_name DebriefPanel
 extends CenterContainer
 ## The debrief after a mission: won or lost, every known objective's result (in
 ## words as well as colour), the difficulty, the time taken, Intel earned and
-## losses, then Retry or Back to missions.
+## losses, then Retry or Back to missions. On a short window the objectives and the
+## report scroll; the verdict and the buttons stay in view.
 
 signal retry_pressed
 signal back_pressed
+
+## Space kept free above and below the panel, px.
+const SCREEN_MARGIN: float = 24.0
 
 var _title: Label
 var _mission: Label
@@ -21,23 +25,28 @@ func _ready() -> void:
 	var panel: PanelContainer = HudStyle.make_panel()
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(panel)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", 10)
+	var column := FitColumn.new(10)
 	column.custom_minimum_size = Vector2(460, 0)
+	column.outer_margin = (
+		SCREEN_MARGIN * 2 + panel.get_theme_stylebox(&"panel").get_minimum_size().y
+	)
 	panel.add_child(column)
 	_title = HudStyle.make_label(40, HudStyle.TEXT_COLOR)
 	column.add_child(_title)
 	_mission = HudStyle.make_label(13, HudStyle.MUTED_COLOR)
 	column.add_child(_mission)
-	column.add_child(HudStyle.make_label(11, HudStyle.MUTED_COLOR, "OBJECTIVES"))
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override(&"separation", 10)
+	column.add_scroll(body)
+	body.add_child(HudStyle.make_label(11, HudStyle.MUTED_COLOR, "OBJECTIVES"))
 	_objectives = VBoxContainer.new()
 	_objectives.add_theme_constant_override(&"separation", 3)
-	column.add_child(_objectives)
-	column.add_child(HudStyle.make_label(11, HudStyle.MUTED_COLOR, "REPORT"))
+	body.add_child(_objectives)
+	body.add_child(HudStyle.make_label(11, HudStyle.MUTED_COLOR, "REPORT"))
 	_stats = GridContainer.new()
 	_stats.columns = 2
 	_stats.add_theme_constant_override(&"h_separation", 24)
-	column.add_child(_stats)
+	body.add_child(_stats)
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_END
 	buttons.add_theme_constant_override(&"separation", 10)

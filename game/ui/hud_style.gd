@@ -213,7 +213,10 @@ static func make_menu_button(caption: String, width: float = 240.0) -> Button:
 static func _button_style(color: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
-	style.border_color = Color(1, 1, 1, 0.08)
+	# The border is the fill colour lightened, at the fill's own alpha. A see-through
+	# white border stacks on the fill where the two meet in the rounded corners and
+	# shows there as bright specks.
+	style.border_color = color.lightened(0.08)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(3)
 	style.set_content_margin_all(6)
