@@ -1,17 +1,51 @@
 import hashlib
+import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from urllib.error import HTTPError
 import zipfile
 
-from vercel_build import unpack
+from vercel_build import download, unpack
+import prepare_vercel
 
 COMMIT = 'a' * 40
 ROOT = Path(__file__).resolve().parent.parent
 
 
 class VercelDeployTest(unittest.TestCase):
+    def test_preparation_persists_identity_not_expiring_urls_or_tokens(self):
+        metadata = {'artifacts': [{'id': 42, 'name': f'farlanding-web-{COMMIT}', 'expired': False,
+                                  'workflow_run': {'id': 99}, 'digest': 'sha256:' + 'a' * 64}]}
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            with patch.dict('os.environ', {'GH_TOKEN': 'test-job-token'}), \
+                    patch('prepare_vercel.urlopen', return_value=io.BytesIO(json.dumps(metadata).encode())) as get:
+                prepare_vercel.prepare('owner/repo', '99', COMMIT, output)
+            get.assert_called_once()
+            config = json.loads((output / 'artifact.json').read_text())
+            self.assertEqual(set(config), {'repository', 'artifact_id', 'sha256', 'commit'})
+            self.assertEqual(config['artifact_id'], 42)
+            self.assertNotIn('test-job-token', (output / 'artifact.json').read_text())
+
+    def test_build_resolves_a_fresh_redirect_and_does_not_forward_the_token(self):
+        config = {'repository': 'owner/repo', 'artifact_id': 42}
+        url = 'https://artifact.example/download?signature=fresh'
+        redirect = HTTPError('https://api.github.com', 302, 'Found', {'Location': url}, None)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / 'archive.zip'
+            with patch('vercel_build.build_opener') as opener, \
+                    patch('vercel_build.urlopen', return_value=io.BytesIO(b'archive')) as get:
+                opener.return_value.open.side_effect = redirect
+                download(config, 'test-job-token', output)
+                request = opener.return_value.open.call_args.args[0]
+                self.assertEqual(request.full_url, 'https://api.github.com/repos/owner/repo/actions/artifacts/42/zip')
+                self.assertEqual(request.get_header('Authorization'), 'Bearer test-job-token')
+                get.assert_called_once_with(url, timeout=180)
+            self.assertEqual(output.read_bytes(), b'archive')
+
     def archive(self, directory, *, preset='Web', dirty=False, corrupt=False, extra=False):
         files = {name: name.encode() for name in ('index.html', 'index.js', 'index.wasm', 'index.pck')}
         manifest = {'commit': COMMIT, 'dirty': dirty, 'preset': preset,

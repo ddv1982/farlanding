@@ -218,9 +218,11 @@ jobs:
 
       - name: Build the tested artifact on Vercel
         id: deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           npx --yes vercel@65.16.0 deploy --cwd .vercel-source --yes --prod --skip-domain \
-            --json --token="$VERCEL_TOKEN" > "$RUNNER_TEMP/deployment.json"
+            --build-env "GH_TOKEN=$GH_TOKEN" --json --token="$VERCEL_TOKEN" > "$RUNNER_TEMP/deployment.json"
           python3 - <<'PY'
           import json, os
           from pathlib import Path

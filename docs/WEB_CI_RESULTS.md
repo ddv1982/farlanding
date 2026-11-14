@@ -145,6 +145,13 @@ without a plan upgrade. The hosted browser smoke reached a Kessel landing with n
 browser errors. It reproduced missing audio worklets on a protected deployment
 until the automation bypass cookie was enabled; the corrected check passed.
 
+Review also caught GitHub's one-minute artifact-redirect lifetime. Preparation now
+stores only artifact identity and digest; the build resolves the URL immediately
+before downloading with a job-scoped read-only token. Six deployment-tool tests
+cover that handoff and rejection of incorrect/dirty/diagnostic/corrupt releases.
+The revised download path also retrieved and verified the real nine-file artifact
+locally. It does not forward authorization to the redirected storage host.
+
 Production promotion is wired into CI after native/browser gates and the staged
 hosted game check. A separate unauthenticated check verifies the stable production
 domain after promotion. See [ADR 0020](adr/0020-vercel-ci-deployment.md) for the

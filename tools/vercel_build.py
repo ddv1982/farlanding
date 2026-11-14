@@ -2,11 +2,40 @@
 """Vercel build: unpack the verified GitHub CI release, never rebuild the game."""
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import shutil
 import tempfile
-from urllib.request import urlopen
+from urllib.error import HTTPError
+from urllib.request import build_opener, HTTPRedirectHandler, Request, urlopen
 import zipfile
+
+
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def download(config, token, archive):
+    # Resolve GitHub's one-minute redirect only when the build is ready to fetch it.
+    api = f'https://api.github.com/repos/{config["repository"]}/actions/artifacts/{config["artifact_id"]}/zip'
+    request = Request(api, headers={'Authorization': f'Bearer {token}',
+                                   'Accept': 'application/vnd.github+json',
+                                   'X-GitHub-Api-Version': '2022-11-28'})
+    try:
+        response = build_opener(NoRedirect).open(request, timeout=30)
+        response.close()
+        raise ValueError('Expected an artifact download redirect')
+    except HTTPError as error:
+        if error.code != 302:
+            raise
+        signed_url = error.headers['Location']
+        error.close()
+    if not signed_url.startswith('https://'):
+        raise ValueError('Artifact redirect must use HTTPS')
+    # The job token goes only to GitHub, never to the redirected storage host.
+    with urlopen(signed_url, timeout=180) as response, archive.open('wb') as dest:
+        shutil.copyfileobj(response, dest)
 
 
 def file_digest(path):
@@ -51,12 +80,9 @@ def unpack(archive, output, expected_digest, expected_commit):
 
 def main():
     config = json.loads(Path('artifact.json').read_text())
-    if not config['url'].startswith('https://'):
-        raise ValueError('Artifact download must use HTTPS')
     with tempfile.TemporaryDirectory() as temporary:
         archive = Path(temporary) / 'release.zip'
-        with urlopen(config['url'], timeout=180) as response, archive.open('wb') as dest:
-            shutil.copyfileobj(response, dest)
+        download(config, os.environ['GH_TOKEN'], archive)
         unpack(archive, Path('public'), config['sha256'], config['commit'])
 
 

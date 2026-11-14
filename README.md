@@ -184,9 +184,12 @@ do not deploy. Both the CI Node steps and the Vercel project use Node 26.x.
 The Vercel Hobby project uses the same team and CI-controlled deployment policy as
 Space Explorer. Its Git auto-deploys are disabled. Because the exported game exceeds
 Hobby's 100 MB CLI source-upload limit, CI uploads a small build script referring
-to that run's tested GitHub artifact. Vercel downloads the short-lived artifact URL
-and verifies both GitHub's archive digest and the release's file inventory and
-commit before publishing any files. Godot is not rebuilt on Vercel.
+to that run's tested GitHub artifact by ID and digest. Vercel resolves a fresh
+download URL when its build starts, using that CI job's short-lived GitHub token
+as a build-only secret with repository contents/Actions read permissions. It is
+never stored in source files or public assets and is not forwarded to artifact
+storage. The build verifies GitHub's archive digest and the release's complete
+file inventory and commit. Godot is not rebuilt on Vercel.
 
 CI first creates an unaliased production deployment and runs real browser input
 against it, including the isolation headers and WebAssembly MIME type. Only a
@@ -201,8 +204,8 @@ credentials are not recorded. `VERCEL_PRODUCTION_URL` is a repository variable.
 The deployment uses the GitHub `production` environment and Vercel CLI 65.16.0.
 
 Deploy through CI rather than rebuilding an old deployment in the Vercel dashboard:
-the artifact download URL expires. Rerun the deployment job in a push-to-`main`
-workflow while its tested artifact is retained, or rerun that entire push workflow
+the job's GitHub token expires when that job finishes. Rerun the deployment job in
+a push-to-`main` workflow while its tested artifact is retained, or rerun that entire push workflow
 to create a fresh artifact. Manual **Run workflow** runs remain test-only.
-Existing ready deployments can still be promoted
-or rolled back without downloading the source artifact again.
+Existing ready deployments can still be promoted or rolled back without
+downloading the source artifact again.

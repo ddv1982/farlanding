@@ -7,15 +7,9 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-from urllib.error import HTTPError
-from urllib.request import build_opener, HTTPRedirectHandler, Request, urlopen
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
-
-
-class NoRedirect(HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        return None
 
 
 def prepare(repository, run_id, commit, output):
@@ -36,23 +30,13 @@ def prepare(repository, run_id, commit, output):
     digest = artifact.get('digest', '')
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
         raise ValueError('GitHub did not supply a SHA-256 archive digest')
-    # Never send the GitHub token to the redirected artifact storage host.
-    request = Request(f"{api}/artifacts/{artifact['id']}/zip", headers=headers)
-    try:
-        build_opener(NoRedirect).open(request, timeout=30)
-        raise ValueError('Expected an artifact download redirect')
-    except HTTPError as error:
-        if error.code != 302:
-            raise
-        signed_url = error.headers['Location']
-    if not signed_url.startswith('https://'):
-        raise ValueError('Artifact redirect must use HTTPS')
     output.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / 'vercel.json', output / 'vercel.json')
     shutil.copyfile(ROOT / 'tools/vercel_build.py', output / 'build.py')
     (output / '.vercelignore').write_text('public/\n.vercel/\n')
     (output / 'artifact.json').write_text(json.dumps({
-        'url': signed_url, 'sha256': digest.removeprefix('sha256:'), 'commit': commit,
+        'repository': repository, 'artifact_id': artifact['id'],
+        'sha256': digest.removeprefix('sha256:'), 'commit': commit,
     }))
     print(f'Prepared Vercel source for tested artifact {artifact["id"]} at {commit}')
 
