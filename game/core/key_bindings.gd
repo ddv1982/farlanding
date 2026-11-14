@@ -158,6 +158,11 @@ static func event_of(code: String) -> InputEventKey:
 	var key: Key = value as Key
 	if value <= 0 or _reserved(key):
 		return null
+	# A number no keyboard has (a damaged settings file) is not a key: a key is a
+	# character on the basic plane or one of the engine's special keys.
+	var special: bool = value >= KEY_SPECIAL and value < KEY_SPECIAL + 0x10000
+	if not special and (value < KEY_SPACE or value > 0xFFFF):
+		return null
 	var event: InputEventKey = InputEventKey.new()
 	match code[0]:
 		"k":

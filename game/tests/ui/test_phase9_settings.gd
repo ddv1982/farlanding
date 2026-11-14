@@ -176,3 +176,9 @@ static func _key(keycode: Key) -> InputEventKey:
 	event.keycode = keycode
 	event.pressed = true
 	return event
+
+
+func test_a_key_code_no_keyboard_has_is_refused() -> void:
+	assert_null(KeyBindings.event_of("k999999"), "not a key")
+	assert_null(KeyBindings.event_of("p999999"))
+	assert_not_null(KeyBindings.event_of(KeyBindings.default_of(&"quicksave")), "F5 still is")
