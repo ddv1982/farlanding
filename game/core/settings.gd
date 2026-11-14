@@ -117,6 +117,11 @@ var _web_fullscreen_pending: bool = false
 
 func _ready() -> void:
 	KeyBindings.install()
+	# Conservative Web defaults keep software WebGL and modest GPUs responsive.
+	# Load afterwards so the player's saved graphics choices take precedence.
+	if OS.has_feature("web"):
+		quality = QUALITY_LOW
+		render_scale = MIN_RENDER_SCALE
 	load_from(path)
 	if OS.has_feature("web"):
 		fullscreen = false

@@ -38,6 +38,7 @@ func _process(delta: float) -> void:
 	)
 	var data: Dictionary = {
 		"quality": Settings.quality,
+		"render_scale": Settings.render_scale,
 		"scheme": Settings.control_scheme,
 		"ui_scale": Settings.ui_scale,
 		"fullscreen": Settings.fullscreen,

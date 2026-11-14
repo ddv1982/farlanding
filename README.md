@@ -133,6 +133,10 @@ The server binds only to this computer and supplies the headers needed by thread
 Web uses threaded Stream audio to preserve mixer effects. The local server supplies
 the isolation headers that this requires.
 
+Fresh Web profiles start at low graphics quality and 50% 3D render scale to keep
+modest GPUs and software WebGL responsive. Menus render at full resolution. Adjust
+both in Settings; saved choices override these defaults. Native defaults stay high.
+
 Web uses **K/L** for quicksave/quickload. Settings and landings stay in this browser
 at this origin. Wait for the saved confirmation before reloading. Denied storage
 or failed persistence produces a warning. Clearing site data or changing the port

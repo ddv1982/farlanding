@@ -81,6 +81,8 @@ test('worker orders construction production and saves survive reload', async ({ 
   expect((await state(page)).music_layers).toBe((await state(page)).music_source_layers);
   expect((await state(page)).music_volumes).toBe((await state(page)).music_source_layers);
   expect((await state(page)).audio_playback).toBe('stream');
+  expect((await state(page)).quality).toBe('low');
+  expect((await state(page)).render_scale).toBe(0.5);
   await page.evaluate(() => {
     const original = confirmFile;
     window.saveChecks = [];

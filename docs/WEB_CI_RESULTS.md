@@ -52,6 +52,16 @@ The local software-WebGL suite passed 17 cases; the affected gameplay case then
 passed separately after that input-flow correction, taking 2.4 minutes. This is
 targeted revalidation, not a claim of a repeated full-suite run.
 
+The next hosted run still starved at high/100% defaults: a constructed Reactor
+remained unfinished after only 202 simulation ticks, and a correct settings file
+reached IndexedDB after the acknowledgement deadline. Fresh Web profiles now
+default to low/50%, with saved choices taking precedence and native defaults
+unchanged. All 18 browser cases subsequently passed locally with software WebGL
+in 4.8 minutes, including settings persistence and the complete build/save flow.
+The 1920x1080 menu cases dropped from about 39 to 17 seconds locally. This improves
+responsiveness by sacrificing scene resolution and shadows; UI resolution stays
+unchanged. Hosted CI must still validate the revised default.
+
 ## Export defects found by these checks
 
 Godot 4.7.2's text-to-binary resource conversion discarded authored packed music

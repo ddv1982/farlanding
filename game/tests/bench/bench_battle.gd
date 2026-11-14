@@ -69,6 +69,8 @@ func _ready() -> void:
 	add_child(_map)
 	Events.sim_ticked.connect(_on_sim_ticked)
 	if OS.has_feature("web"):
+		# Keep the reference benchmark comparable when fresh-profile defaults change.
+		get_viewport().scaling_3d_scale = 1.0
 		GraphicsSettings.apply(_map, Settings.QUALITY_MEDIUM)
 		_map.camera.center_on(Vector3.ZERO)
 		JavaScriptBridge.eval("window.farlanding.ready = true")

@@ -32,6 +32,15 @@ The editor MCP runtime probe remains packaged with its autoload and dependencies
 It registers only when EngineDebugger is active, so release exports have no MCP
 command channel. Excluding its script alone would create a dangling autoload.
 
+## Graphics defaults
+
+Fresh Web profiles start with low quality and 50% 3D render scale. Native defaults
+remain high/100%, and saved graphics choices take precedence on either platform.
+This trades scene sharpness and shadows for responsiveness; UI resolution is
+unchanged. Hosted software WebGL at the original high defaults starved simulation
+ticks and delayed IndexedDB acknowledgement beyond its deadline even when the
+correct file eventually persisted.
+
 ## Preserve authored export data
 
 Keep `editor/export/convert_text_resources_to_binary=false`. Godot 4.7.2's binary
