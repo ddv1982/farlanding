@@ -12,6 +12,17 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def deployment_url(response):
+    """Accept Vercel's agent envelope and ordinary --json deployment response."""
+    deployment = response.get('deployment', response)
+    if not isinstance(deployment, dict) or deployment.get('readyState') != 'READY':
+        raise ValueError('Vercel did not return a ready deployment')
+    url = deployment.get('url')
+    if not isinstance(url, str) or not url.startswith('https://') or any(c.isspace() for c in url):
+        raise ValueError('Vercel did not return a valid HTTPS deployment URL')
+    return url
+
+
 def prepare(repository, run_id, commit, output):
     token = os.environ.get('GH_TOKEN') or os.environ.get('GITHUB_TOKEN')
     if not token:
