@@ -103,19 +103,24 @@ func dismiss_card() -> void:
 	Events.ui_feedback.emit(&"hint_dismiss")
 
 
-## `text` with {command} and {select} filled in for the current mouse scheme.
+## `text` with {command}, {select} and {deselect} filled in for the current mouse
+## scheme, and every {key_<action>} with the key bound to it now (KeyBindings).
 static func fill(text: String) -> String:
 	var classic: bool = Settings.control_scheme == Settings.SCHEME_CLASSIC
-	return (
-		text
-		. format(
-			{
-				"command": "Left-click" if classic else "Right-click",
-				"select": "Left-click",
-				"deselect": "Right-click" if classic else "Left-click empty ground",
-			}
-		)
+	var values: Dictionary = KeyBindings.key_names()
+	values["command"] = "Left-click" if classic else "Right-click"
+	values["select"] = "Left-click"
+	values["deselect"] = "Right-click" if classic else "Left-click empty ground"
+	values["pan_keys"] = (
+		"%s%s%s%s"
+		% [
+			KeyBindings.label(&"camera_pan_forward_alt"),
+			KeyBindings.label(&"camera_pan_left_alt"),
+			KeyBindings.label(&"camera_pan_back_alt"),
+			KeyBindings.label(&"camera_pan_right_alt"),
+		]
 	)
+	return text.format(values)
 
 
 func _show(hint: HintDef) -> void:

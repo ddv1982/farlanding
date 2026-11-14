@@ -1,8 +1,9 @@
 class_name MeridianScreen
 extends MenuScreen
 ## Aboard the Meridian (PLAN 1): the ship's overview (banked Intel, landings made, the
-## codex, and what the next landing will bring), the tech web and the loadout, as
-## tabs. STAR MAP goes back.
+## codex, what the next landing will bring, and the campaign's difficulty, which may
+## change here between landings), the tech web and the loadout, as tabs. STAR MAP
+## goes back.
 
 signal star_map_pressed
 ## A tab was shown: TAB_OVERVIEW (&"meridian"), TAB_TECH (&"tech_web") or TAB_LOADOUT
@@ -21,6 +22,8 @@ var _intel: Label
 var _pages: Dictionary[StringName, Control] = {}
 var _tab_buttons: Dictionary[StringName, Button] = {}
 var _overview_text: Label
+var _overview: VBoxContainer
+var _picker: DifficultyPicker
 var _tech: TechWebView
 var _loadout: LoadoutView
 
@@ -56,15 +59,21 @@ func _build() -> void:
 	body.add_theme_stylebox_override(&"panel", HudStyle.panel_style())
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	rows.add_child(body)
+	_overview = VBoxContainer.new()
+	_overview.add_theme_constant_override(&"separation", 14)
 	_overview_text = HudStyle.make_label(14, HudStyle.TEXT_COLOR)
 	_overview_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_overview_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_overview.add_child(_overview_text)
+	_picker = DifficultyPicker.new()
+	_picker.chosen.connect(_on_difficulty_chosen)
+	_overview.add_child(_picker)
 	_tech = TechWebView.new()
 	_tech.name = &"TechWeb"
 	_tech.tech_bought.connect(func(_id: StringName) -> void: _refresh_header())
 	_loadout = LoadoutView.new()
 	_loadout.name = &"Loadout"
-	for page: Array in [[TAB_OVERVIEW, _overview_text], [TAB_TECH, _tech], [TAB_LOADOUT, _loadout]]:
+	for page: Array in [[TAB_OVERVIEW, _overview], [TAB_TECH, _tech], [TAB_LOADOUT, _loadout]]:
 		var page_id: StringName = page[0]
 		var control: Control = page[1]
 		body.add_child(control)
@@ -100,6 +109,8 @@ func show_tab(tab_id: StringName) -> void:
 			Events.ui_feedback.emit(&"loadout_open")
 		_:
 			_overview_text.text = overview_text()
+			if session != null:
+				_picker.set_level(session.state.difficulty)
 			Events.ui_feedback.emit(&"click")
 	tab_shown.emit(tab_id)
 
@@ -146,6 +157,18 @@ func overview_text() -> String:
 	if not locked.is_empty():
 		lines.append("·  Not cleared yet: " + ", ".join(locked))
 	return "\n".join(lines)
+
+
+## The difficulty choice (tests).
+func picker() -> DifficultyPicker:
+	return _picker
+
+
+func _on_difficulty_chosen(level: StringName) -> void:
+	if session != null:
+		session.set_difficulty(level)
+		Settings.set_option(&"difficulty", level)
+		_picker.set_level(session.state.difficulty)
 
 
 func _refresh_header() -> void:

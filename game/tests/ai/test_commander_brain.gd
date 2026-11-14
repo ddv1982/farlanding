@@ -209,3 +209,55 @@ func _produced_at(actions: Array[AiAction], building: Building) -> int:
 		if action.kind == AiAction.PRODUCE and action.building == building:
 			count += 1
 	return count
+
+
+func test_where_builders_wake_engines_a_second_builder_comes_early() -> void:
+	# Found by the balance harness (ADR 0018): with one builder, engine work took it
+	# from the base for good.
+	_f.profile.opening = []
+	_f.profile.max_builders = 2
+	var view: CommanderView = _f.base_view(1000, _hub, _forge)
+	view.unit_counts = {_f.builder.id: 1, _f.harvester.id: 8}
+	var produce_builder: String = "%s:%s" % [AiAction.PRODUCE, _f.builder.id]
+	assert_false(_kinds(_f.brain().decide(view)).has(produce_builder), "one factory: one builder")
+	_f.profile.machines_wanted = 2
+	view = _f.base_view(1000, _hub, _forge)
+	view.unit_counts = {_f.builder.id: 1, _f.harvester.id: 8}
+	assert_true(_kinds(_f.brain().decide(view)).has(produce_builder), "engines: a second")
+
+
+func test_the_last_builder_stays_home_while_the_factory_is_down() -> void:
+	var commander: Commander = Commander.new()
+	commander.profile = _f.profile
+	var builder: Unit = _f.unit(_f.builder, Vector3(4, 0, 4))
+	var view: CommanderView = _f.base_view(1000, _hub, _forge)
+	view.builders = [builder]
+	view.idle_builders = [builder]
+	view.building_counts.erase(_f.forge.id)
+	assert_eq(commander.spare_builders(view), [] as Array[Unit], "it rebuilds the factory")
+	view.building_counts[_f.forge.id] = 1
+	assert_eq(commander.spare_builders(view), [builder] as Array[Unit], "base whole: free")
+	view.building_counts.erase(_f.forge.id)
+	view.power_free = 0
+	assert_eq(commander.spare_builders(view), [builder] as Array[Unit], "no power to rebuild")
+	commander.free()
+
+
+func test_a_big_army_with_nothing_known_goes_hunting() -> void:
+	# Found by the balance harness (ADR 0018): won wars timed out while the army sat at
+	# home and the last Riggers hid where nobody had looked lately.
+	var brain: CommanderBrain = _f.brain()
+	var view: CommanderView = _f.base_view(0, _hub, _forge)
+	view.tick = CommanderDifficulty.ticks(120.0)
+	view.unit_counts = {_f.harvester.id: 4, _f.builder.id: 1}
+	view.building_counts[_f.forge.id] = 3
+	view.explored_share = 1.0
+	# Home guard 2 + one and a half first waves (6): eight soldiers.
+	view.guards = _f.soldiers(7, Vector3(0, 0, 30))
+	assert_eq(_attacks(brain.decide(view)), 0, "not yet big enough")
+	view.guards = _f.soldiers(8, Vector3(0, 0, 30))
+	var actions: Array[AiAction] = brain.decide(view)
+	assert_eq(_attacks(actions), 1)
+	assert_eq(_attack(actions).reason, &"hunt")
+	assert_eq(_attack(actions).position, Vector3.INF, "it searches")
+	assert_eq(_attack(actions).units.size(), 6, "the home guard stays")

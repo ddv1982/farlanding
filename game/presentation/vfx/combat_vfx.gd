@@ -8,13 +8,14 @@ extends Node3D
 ## `impact_size` (metres; 0 = sparks only). Reads `faction` and
 ## `is_visible_to_player` from entities when they have them.
 
-const CONCORD_COLOR := Color(0.35, 0.92, 1.0)
-const COMBINE_COLOR := Color(0.25, 1.0, 0.55)
 const SHELL_COLOR := Color(1.0, 0.55, 0.15)
 const FIRE_COLOR := Color(1.0, 0.62, 0.2)
 const SMOKE_COLOR := Color(0.10, 0.08, 0.07, 0.62)
 ## Brightness above 1 so the glow post-effect picks effects up.
 const GLOW := 3.0
+## Fewer flashes: flash discs shrink to this share and dim to this brightness.
+const REDUCED_FLASH_SIZE := 0.5
+const REDUCED_FLASH_BRIGHTNESS := 0.35
 ## Effects alive at once; beyond this new ones are skipped, not queued.
 const MAX_EFFECTS := 80
 const SCORCH_SECONDS := 14.0
@@ -25,6 +26,12 @@ var _fire_particles: StandardMaterial3D
 var _smoke_particles: StandardMaterial3D
 var _core_particles: StandardMaterial3D
 var _live: int = 0
+## Projectile looks are shared, not rebuilt per shot: a mesh per shape, a material per
+## colour, a trail look per colour (building them was the largest cost of a big fight
+## when rendered, ADR 0018).
+var _meshes: Dictionary[String, Mesh] = {}
+var _solid_materials: Dictionary[Color, StandardMaterial3D] = {}
+var _trail_looks: Dictionary[String, Array] = {}
 
 
 func _ready() -> void:
@@ -56,12 +63,26 @@ func _on_projectile_launched(projectile: Node3D, weapon: Resource) -> void:
 	var color: Color = _faction_color(projectile)
 	match style:
 		&"shell":
-			projectile.add_child(_solid(_sphere(0.16), SHELL_COLOR, Vector3.ZERO))
+			projectile.add_child(_solid(_shape(&"shell"), SHELL_COLOR, Vector3.ZERO))
 			projectile.add_child(_trail(SMOKE_COLOR, 0.5, 0.5))
 		&"lance":
-			projectile.add_child(_solid(_capsule(0.045, 2.6), color, Vector3(0, 0, 0.9)))
+			projectile.add_child(_solid(_shape(&"lance"), color, Vector3(0, 0, 0.9)))
 		_:
-			projectile.add_child(_solid(_capsule(0.07, 0.9), color, Vector3(0, 0, 0.3)))
+			projectile.add_child(_solid(_shape(&"bolt"), color, Vector3(0, 0, 0.3)))
+
+
+## The shared mesh of a projectile style.
+func _shape(style: StringName) -> Mesh:
+	var key: String = String(style)
+	if not _meshes.has(key):
+		match style:
+			&"shell":
+				_meshes[key] = _sphere(0.16)
+			&"lance":
+				_meshes[key] = _capsule(0.045, 2.6)
+			_:
+				_meshes[key] = _capsule(0.07, 0.9)
+	return _meshes[key]
 
 
 func _on_projectile_impacted(weapon: Resource, at: Vector3, victim: Node3D) -> void:
@@ -92,9 +113,13 @@ func _on_entity_died(entity: Node3D) -> void:
 
 
 ## A brief bright disc, e.g. a muzzle flash.
+## With fewer flashes (Settings.reduce_flashes) it is smaller and dimmer.
 func flash(at: Vector3, color: Color, size: float, seconds: float) -> void:
 	if not _claim(seconds):
 		return
+	if Settings.reduce_flashes:
+		size *= REDUCED_FLASH_SIZE
+		color = Color(color.r, color.g, color.b) * REDUCED_FLASH_BRIGHTNESS
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * size
 	var disc := MeshInstance3D.new()
@@ -186,11 +211,17 @@ func _claim(seconds: float) -> bool:
 
 
 func _trail(color: Color, seconds: float, size: float) -> GPUParticles3D:
-	var process := _burst_process(0.0, 0.3, Vector3(0, 0.4, 0), 0.5, 1.0)
-	process.color_ramp = _ramp(color, Color(color, 0))
-	var quad := QuadMesh.new()
-	quad.size = Vector2.ONE * size
-	quad.material = _smoke_particles
+	var key: String = "%s/%s" % [color, size]
+	if not _trail_looks.has(key):
+		var made := _burst_process(0.0, 0.3, Vector3(0, 0.4, 0), 0.5, 1.0)
+		made.color_ramp = _ramp(color, Color(color, 0))
+		var made_quad := QuadMesh.new()
+		made_quad.size = Vector2.ONE * size
+		made_quad.material = _smoke_particles
+		_trail_looks[key] = [made, made_quad]
+	var look: Array = _trail_looks[key]
+	var process: ParticleProcessMaterial = look[0]
+	var quad: QuadMesh = look[1]
 	var trail := GPUParticles3D.new()
 	trail.amount = 10
 	trail.lifetime = seconds
@@ -201,10 +232,13 @@ func _trail(color: Color, seconds: float, size: float) -> GPUParticles3D:
 
 
 func _solid(mesh: Mesh, color: Color, at: Vector3) -> MeshInstance3D:
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	# Brighter than the scene so it blooms, but not so bright it washes to white.
-	material.albedo_color = Color(color.r * 1.7, color.g * 1.7, color.b * 1.7)
+	if not _solid_materials.has(color):
+		var made := StandardMaterial3D.new()
+		made.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		# Brighter than the scene so it blooms, but not so bright it washes to white.
+		made.albedo_color = Color(color.r * 1.7, color.g * 1.7, color.b * 1.7)
+		_solid_materials[color] = made
+	var material: StandardMaterial3D = _solid_materials[color]
 	var part := MeshInstance3D.new()
 	part.mesh = mesh
 	part.material_override = material
@@ -333,9 +367,10 @@ static func _hidden(entity: Node3D) -> bool:
 static func _faction_color(entity: Node3D) -> Color:
 	if is_instance_valid(entity):
 		var faction: Variant = entity.get(&"faction")
-		if faction is int and faction != 0:
-			return COMBINE_COLOR
-	return CONCORD_COLOR
+		if faction is int:
+			var faction_id: int = faction
+			return TeamColors.shot_color(faction_id)
+	return TeamColors.shot_color(TeamColors.PLAYER)
 
 
 static func _float(resource: Resource, property: StringName, fallback: float) -> float:

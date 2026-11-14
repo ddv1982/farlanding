@@ -35,7 +35,7 @@ func test_a_vent_mid_warning_a_knocked_out_tap_and_the_waves_round_trip() -> voi
 	var map: LandingMap = await _land(def)
 	var world: SimWorld = map.world
 	var script: WaveScript = map.runner.script_instance as WaveScript
-	var sent: bool = await _f.run_until(map, func() -> bool: return script.waves_sent == 1, 700)
+	var sent: bool = await _f.run_until(map, func() -> bool: return script.waves_sent == 1, 1000)
 	assert_true(sent, "the first wave is out")
 	SaveFixture.toughen(map.runner.player_hq, 50000.0)
 	var tap_def: BuildingDef = load("res://data/buildings/concord_flux_tap.tres")

@@ -21,6 +21,8 @@ const STORM_SOON_SECONDS: float = 25.0
 const STORM_RECALL: float = 0.5
 ## A "press" wave leaving in a storm needs at least this many units.
 const STORM_WAVE_MIN: int = 2
+## With no target known, a free army this many times the next wave goes out hunting.
+const HUNT_SHARE: float = 1.5
 
 var profile: CommanderProfile
 var difficulty: CommanderDifficulty
@@ -61,6 +63,7 @@ func decide(view: CommanderView) -> Array[AiAction]:
 	_answer_threat(view, actions)
 	_mind_the_weather(view, actions)
 	_keep_surveyors(view, actions)
+	_keep_power(view, actions)
 	if memory.opening_index < profile.opening.size():
 		_play_opening(view, actions)
 		return actions
@@ -77,6 +80,7 @@ func decide(view: CommanderView) -> Array[AiAction]:
 				_scout(view, actions)
 			GoalScorer.ATTACK:
 				_attack(view, actions)
+	_hunt(view, actions)
 	_build_army(view, actions)
 	return actions
 
@@ -244,8 +248,11 @@ func _try_unit(
 func _try_building(
 	view: CommanderView, def: BuildingDef, reason: StringName, actions: Array[AiAction]
 ) -> StringName:
-	if view.builders_of(def).is_empty() or def.power_use > view.power_free:
+	if view.builders_of(def).is_empty():
 		return &"skip"
+	if def.power_use > view.power_free:
+		# With a power plant to build, the step waits for the power instead.
+		return &"wait" if _can_add_power(view) else &"skip"
 	if not can_afford(def) or memory.is_backed_off(def, view.tick):
 		return &"wait"
 	var action: AiAction = _build(view, def, view.home, reason)
@@ -253,6 +260,24 @@ func _try_building(
 		return &"wait"
 	actions.append(action)
 	return &"done"
+
+
+## Builds the profile's power plant when free power runs low (one at a time).
+func _keep_power(view: CommanderView, actions: Array[AiAction]) -> void:
+	if not _can_add_power(view) or view.power_free >= profile.power_margin:
+		return
+	for site: Building in view.sites:
+		if site.def == profile.power_plant:
+			return
+	for action: AiAction in actions:
+		if action.kind == AiAction.BUILD and action.def == profile.power_plant:
+			return
+	_try_step(view, profile.power_plant, &"power", actions)
+
+
+## True if the profile has a power plant the faction may build.
+func _can_add_power(view: CommanderView) -> bool:
+	return profile.power_plant != null and not view.builders_of(profile.power_plant).is_empty()
 
 
 func _grow_economy(view: CommanderView, actions: Array[AiAction]) -> void:
@@ -269,9 +294,12 @@ func _grow_economy(view: CommanderView, actions: Array[AiAction]) -> void:
 		and view.sites.is_empty()
 	):
 		_try_step(view, profile.factory, &"economy", actions)
+	# A second builder once the base has grown, or at once where builders also wake
+	# engines (they are away a lot).
+	var factories_for_builder: int = 1 if profile.machines_wanted > 0 else 2
 	if (
 		view.count_of(profile.builder) < profile.max_builders
-		and view.count_of(profile.factory) >= 2
+		and view.count_of(profile.factory) >= factories_for_builder
 	):
 		_try_step(view, profile.builder, &"economy", actions)
 
@@ -312,6 +340,33 @@ func _scout(view: CommanderView, actions: Array[AiAction]) -> void:
 		if maker.producer.queue.has(profile.scout):
 			return
 	_try_step(view, profile.scout, &"scout", actions)
+
+
+## A big free army with no target it knows of (the last enemy buildings hide where
+## it has not looked lately) goes out searching sectors, as a last stand would, instead
+## of idling at home (found by the balance harness, ADR 0018: won wars timed out with a
+## few Riggers left unseen). It knows only what it explores itself.
+func _hunt(view: CommanderView, actions: Array[AiAction]) -> void:
+	if view.has_target or view.attack_active:
+		return
+	if view.tick < CommanderDifficulty.ticks(difficulty.first_attack_seconds):
+		return
+	if (
+		view.tick - memory.last_attack_tick
+		< CommanderDifficulty.ticks(difficulty.attack_interval_seconds)
+	):
+		return
+	var free: Array[Unit] = _free_army(view)
+	if free.size() < ceili(difficulty.wave_size(memory.waves_launched) * HUNT_SHARE):
+		return
+	var hunt: AiAction = AiAction.new(AiAction.ATTACK, &"hunt")
+	hunt.units = free
+	hunt.position = Vector3.INF
+	actions.append(hunt)
+	for unit: Unit in free:
+		view.guards.erase(unit)
+	view.attack_active = true
+	memory.last_attack_tick = view.tick
 
 
 ## Launches the next wave when the free army is big enough. Sometimes (a mistake) a
@@ -369,13 +424,25 @@ func _build_army(view: CommanderView, actions: Array[AiAction]) -> void:
 	if last_scores.get(GoalScorer.ECONOMY, 0.0) >= 0.3:
 		reserve = profile.economy_reserve
 	for maker: Building in view.producers:
-		if maker.def != profile.factory or maker.producer == null:
+		if maker.producer == null or not _makes_army(maker):
 			continue
 		while maker.producer.queue.size() + _queued_now(actions, maker) < FACTORY_QUEUE:
-			var choice: UnitDef = pick_army_unit(view.enemy_heavy_share, view.enemy_air_share)
+			var choice: UnitDef = pick_army_unit(
+				view.enemy_heavy_share, view.enemy_air_share, maker.producer.options
+			)
 			if choice == null or _alloy - choice.cost_alloy < reserve or not can_afford(choice):
 				return
 			actions.append(_produce(view, maker, choice, &"army"))
+
+
+## True for the factory and any other producer that makes a unit of the army mix.
+func _makes_army(maker: Building) -> bool:
+	if maker.def == profile.factory:
+		return true
+	for def: UnitDef in profile.army:
+		if maker.producer.options.has(def):
+			return true
+	return false
 
 
 ## Free army size at which factories pause (see CommanderProfile.army_cap_waves).
@@ -387,13 +454,18 @@ func army_cap() -> int:
 ## One unit type from the army mix, weighted; the anti-heavy unit counts more the more
 ## heavy armour the enemy fields, the anti-air unit the more flyers it fields (made
 ## even when it is not in the mix: once flyers are seen, half the picks or more).
-func pick_army_unit(heavy_share: float, air_share: float = 0.0) -> UnitDef:
+## With `options`, only units among them are picked (what one producer makes).
+func pick_army_unit(
+	heavy_share: float, air_share: float = 0.0, options: Array[UnitDef] = []
+) -> UnitDef:
 	var total: float = 0.0
 	var weights: Array[float] = []
 	var mix: Array[UnitDef] = profile.army.duplicate()
 	var anti_air: UnitDef = profile.anti_air
 	if anti_air != null and air_share > 0.0 and not mix.has(anti_air):
 		mix.append(anti_air)
+	if not options.is_empty():
+		mix = mix.filter(func(def: UnitDef) -> bool: return options.has(def))
 	for def: UnitDef in mix:
 		var weight: float = profile.weight_of(def)
 		if def == profile.anti_heavy:

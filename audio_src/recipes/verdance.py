@@ -92,7 +92,9 @@ def amb_verdance_leaves(rng: np.random.Generator) -> np.ndarray:
     n = N_LEAVES
     gust = (0.5 + 0.5 * dsp.smooth_random(n, rng, 0.06)) ** 1.6
     drift = dsp.smooth_random(n, rng, 0.03)
-    hush = _wide(n, rng, dsp.pink, 0.15)
+    # Half shared between the channels: still wide, and the codec's channel
+    # coupling lifts its fidelity clear of the build's minimum (Phase 9).
+    hush = _wide(n, rng, dsp.pink, 0.55)
     hush = dsp.periodic(dsp.sweep, hush, "bp", 1100.0 + 1300.0 * gust, 0.6, block=256) * (0.25 + 0.5 * gust)
     hush = np.stack([hush[0] * (1.0 - 0.3 * drift), hush[1] * (1.0 + 0.3 * drift)])
     # Kept below the top octave: a broadband hiss up there is what the codec

@@ -60,8 +60,8 @@ amount = 1
 
 [sub_resource type="Resource" id="rules"]
 script = ExtResource("e20")
-wave_seconds = PackedFloat32Array(60, 150, 240, 330, 420, 510, 600, 680)
-wave_sizes = PackedInt32Array(3, 4, 5, 6, 7, 8, 10, 12)
+wave_seconds = PackedFloat32Array(90, 180, 270, 350, 430, 510, 590, 670)
+wave_sizes = PackedInt32Array(2, 3, 4, 4, 5, 6, 7, 8)
 roster = Array[ExtResource("e9")]([ExtResource("e16"), ExtResource("e16"), ExtResource("e17"), ExtResource("e16"), ExtResource("e17"), ExtResource("e18")])
 entry_points = PackedVector3Array(80, 0, -72, 52, 0, 44, -56, 0, -24)
 warning_seconds = 20.0
@@ -83,9 +83,10 @@ planet = ExtResource("planet")
 player_hq = ExtResource("e2")
 player_start = Vector3(0, 0, -2)
 player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e10"), ExtResource("e7"), ExtResource("e7"), ExtResource("e7"), ExtResource("e7"), ExtResource("e7"), ExtResource("e8")])
-start_alloy = 650
+start_alloy = 1200
 start_flux = 120
 hostile_faction = 1
+enemy_difficulty = "normal"
 mission_script = ExtResource("e19")
 script_rules = SubResource("rules")
 objectives = Array[ExtResource("e1")]([SubResource("s0"), SubResource("s1"), SubResource("s2"), SubResource("s3")])

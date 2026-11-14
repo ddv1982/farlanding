@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = &"arc_howitzer"
 display_name = "Howitzer"
-damage = 70.0
+damage = 80.0
 damage_type = &"heavy"
 splash_radius = 4.5
 max_range = 40.0

@@ -3,15 +3,19 @@ extends OrderHandler
 ## Lets a unit pick up a carriable prop (an Antecedent artefact, ADR 0014) and carry
 ## it. A `carry` order walks to the prop and lifts it; the order then ends and the
 ## unit carries it wherever it is sent. While carrying, the unit moves at
-## SPEED_FACTOR and does not fight. It drops the prop where it stands when it dies
-## (anyone may pick it up again). A prop another unit of the same faction carries is
-## left alone; one an enemy carries must be won back by killing the carrier.
+## SPEED_FACTOR (never faster than MAX_SPEED) and does not fight. It drops the prop
+## where it stands when it dies (anyone may pick it up again). A prop another unit of
+## the same faction carries is left alone; one an enemy carries must be won back by
+## killing the carrier.
 
 const KIND: StringName = &"carry"
 ## A prop is lifted from this far beyond the unit's and the prop's radius.
 const REACH: float = 2.0
 ## Top speed while carrying is multiplied by this.
 const SPEED_FACTOR: float = 0.6
+## Nobody carries faster than this (m/s): a Ranger's pace when carrying. Without it a
+## Kite ran an artefact across Thalassa in under two minutes (ADR 0018).
+const MAX_SPEED: float = 3.6
 ## Path attempts to reach the prop before giving up.
 const MAX_ATTEMPTS: int = 3
 
@@ -25,6 +29,13 @@ var _cargo_id: int = -1
 
 func handles() -> Array[StringName]:
 	return [KIND]
+
+
+## Speed scale of a `def` unit while it carries.
+static func speed_scale(def: UnitDef) -> float:
+	if def == null or def.move_speed <= 0.0:
+		return SPEED_FACTOR
+	return minf(SPEED_FACTOR, MAX_SPEED / def.move_speed)
 
 
 ## True while it carries something.
@@ -83,7 +94,7 @@ func pick_up(prop: Prop, announce: bool = true) -> void:
 	prop.lifted = true
 	var previous: int = prop.last_faction
 	prop.last_faction = unit.faction
-	unit.locomotion.set_extra_scale(&"carrying", SPEED_FACTOR)
+	unit.locomotion.set_extra_scale(&"carrying", speed_scale(unit.def))
 	prop.carried_changed.emit(unit)
 	if not announce:
 		return

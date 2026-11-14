@@ -15,6 +15,7 @@ turn_speed = 300.0
 vision_range = 26.0
 radius = 1.2
 hovers = true
+can_carry = false
 acceleration = 18.0
 id = &"concord_kite"
 display_name = "Kite"

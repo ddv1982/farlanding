@@ -13,3 +13,4 @@ max_instances = 1
 cooldown = 0.5
 positional = false
 max_distance = 0.0
+subtitle = "Secondary objective complete."

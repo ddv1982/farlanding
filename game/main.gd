@@ -1,7 +1,14 @@
 class_name Main
 extends Node
-## The game's flow (PLAN 1, 2.6; Phases 5 to 7). The title screen offers New campaign,
-## Continue, Single missions, Settings and Quit.
+## The game's flow (PLAN 1, 2.6; Phases 5 to 9). The title screen offers Continue,
+## New campaign (after a difficulty choice), Single missions, How to play, Settings,
+## Credits and Quit. How to play and the credits are an InfoPanel over any screen;
+## the Advisor's subtitles (SubtitleLine) sit under every menu.
+##
+## Difficulty (Difficulty): a new campaign takes the one chosen on the title and keeps
+## it in its state (the Meridian may change it); a single mission is played at the one
+## chosen on the mission list, carried in its LandingModifiers and its saves. Single
+## missions also run at the game speed of the settings; campaign landings at 1.
 ##
 ## Campaign (ADR 0012): the star map (pick an open landing, LAUNCH) and the Meridian
 ## (overview, tech web, loadout), then the landing's briefing, the mission and the
@@ -20,7 +27,8 @@ extends Node
 ## ending screen, which returns to the title; Continue on a finished campaign opens it
 ## again.
 ##
-## Saved landings (ADR 0013): F5 quicksaves and F9 quickloads in a mission, the pause
+## Saved landings (ADR 0013): the quicksave and quickload keys (F5 and F9 unless
+## rebound) work in a mission, the pause
 ## menu saves into and loads from any slot, a campaign landing is autosaved as it
 ## starts, and the title's Continue picks the newest of the campaign autosave and the
 ## saved landings. A save that cannot be loaded is refused before anything in play
@@ -69,6 +77,8 @@ var _debrief: DebriefPanel
 var _ending: EndingScreen
 var _pause: PauseMenu
 var _settings: SettingsPanel
+var _info: InfoPanel
+var _subtitles: SubtitleLine
 var _hints: TutorialHints
 var _slots: SaveLoadPanel
 var _notice: SaveNotice
@@ -76,6 +86,8 @@ var _notice: SaveNotice
 var _message: String = ""
 var _message_failed: bool = false
 var _backdrop_path: String = ""
+## The screen the credits were opened over.
+var _screen_before_credits: StringName = &""
 ## The route node of the campaign landing briefed or played.
 var _landing_node: StringName = &""
 
@@ -95,6 +107,8 @@ func _ready() -> void:
 	_title.continue_pressed.connect(continue_campaign)
 	_title.missions_pressed.connect(show_select)
 	_title.settings_pressed.connect(open_settings)
+	_title.how_to_play_pressed.connect(func() -> void: _info.open_how_to_play())
+	_title.credits_pressed.connect(open_credits)
 	_title.quit_pressed.connect(func() -> void: get_tree().quit())
 	_select = MissionSelect.new()
 	_select.name = &"MissionSelect"
@@ -127,6 +141,7 @@ func _ready() -> void:
 	_ending.name = &"Ending"
 	_layer.add_child(_ending)
 	_ending.title_pressed.connect(show_title)
+	_ending.credits_pressed.connect(open_credits)
 	_hints = TutorialHints.new()
 	_hints.name = &"TutorialHints"
 	_layer.add_child(_hints)
@@ -137,6 +152,7 @@ func _ready() -> void:
 	_layer.add_child(_pause)
 	_pause.resume_pressed.connect(resume)
 	_pause.settings_pressed.connect(open_settings)
+	_pause.how_to_play_pressed.connect(func() -> void: _info.open_how_to_play())
 	_pause.restart_pressed.connect(_on_restart)
 	_pause.quit_pressed.connect(_back_from_landing)
 	_pause.save_pressed.connect(func() -> void: _slots.open(true))
@@ -151,7 +167,17 @@ func _ready() -> void:
 	_settings = SettingsPanel.new()
 	_settings.name = &"Settings"
 	_layer.add_child(_settings)
+	_info = InfoPanel.new()
+	_info.name = &"Info"
+	_layer.add_child(_info)
+	_info.closed.connect(_on_info_closed)
+	# Under the menus: the Advisor's lines over the map (and the debrief).
+	_subtitles = SubtitleLine.new()
+	_subtitles.name = &"Subtitles"
+	_layer.add_child(_subtitles)
+	_layer.move_child(_subtitles, 0)
 	Settings.changed.connect(_apply_graphics)
+	Settings.changed.connect(_apply_speed)
 	_select.show_catalog(catalog)
 	show_title()
 
@@ -160,16 +186,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key: InputEventKey = event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
-	# Raw keys (no input actions: project.godot is not edited while the editor is open).
-	if key.keycode == KEY_F5 and map != null and not paused:
+	# Named actions the player may rebind (KeyBindings; Esc always pauses).
+	if key.is_action_pressed(&"quicksave", false, true) and map != null and not paused:
 		quicksave()
 		get_viewport().set_input_as_handled()
 		return
-	if key.keycode == KEY_F9 and map != null and not paused:
+	if key.is_action_pressed(&"quickload", false, true) and map != null and not paused:
 		quickload()
 		get_viewport().set_input_as_handled()
 		return
-	if key.keycode != KEY_ESCAPE:
+	if key.keycode != KEY_ESCAPE and not key.is_action_pressed(&"pause_menu", false, true):
 		return
 	# Anything in the map that wanted Esc (cancel placement, close the codex) had it.
 	if map != null and not paused and not _debrief.visible:
@@ -194,6 +220,8 @@ func new_campaign() -> void:
 		return
 	campaign = CampaignSession.new(campaign_def)
 	campaign.start_new()
+	# The difficulty chosen on the title (remembered in the settings).
+	campaign.set_difficulty(Settings.difficulty)
 	show_star_map()
 
 
@@ -334,6 +362,7 @@ func start_mission(
 	if hud != null:
 		hud.menu_requested.connect(open_pause)
 	_apply_graphics()
+	_apply_speed()
 	_hints.begin_mission(mission)
 
 
@@ -353,7 +382,7 @@ func save_game(slot: StringName) -> bool:
 	if problem == "" and snapshot is Dictionary:
 		var landing_data: Dictionary = snapshot
 		var game: SaveGame = SaveGame.capture(
-			current, landing_data, runner.elapsed_seconds(), campaign
+			current, landing_data, runner.elapsed_seconds(), campaign, _single_difficulty()
 		)
 		problem = SaveSlots.write(slot, game)
 	if problem != "":
@@ -383,6 +412,8 @@ func load_game(slot: StringName) -> bool:
 			problem = "The campaign of this save cannot be read."
 		else:
 			modifiers = LandingBuilder.build(session.def, session.landing)
+	elif problem == "":
+		modifiers = single_modifiers(game.difficulty)
 	if problem != "":
 		_report(problem, true)
 		Events.ui_feedback.emit(&"invalid")
@@ -400,6 +431,13 @@ func load_game(slot: StringName) -> bool:
 	Events.campaign_loaded.emit(slot)
 	Events.ui_feedback.emit(&"load_done")
 	return true
+
+
+## What a single mission brings: nothing but the difficulty `level` it is played at.
+static func single_modifiers(level: StringName) -> LandingModifiers:
+	var modifiers: LandingModifiers = LandingModifiers.new()
+	modifiers.difficulty = Difficulty.sanitize(level)
+	return modifiers
 
 
 func quicksave() -> bool:
@@ -430,9 +468,19 @@ func resume() -> void:
 	_hints.suspended = false
 	_settings.visible = false
 	_slots.visible = false
+	_info.visible = false
 	_pause.visible = false
 	_set_map_running(true)
 	Events.ui_feedback.emit(&"pause_close")
+
+
+## The credits over the title or the ending; the screen is &"credits" meanwhile
+## (its music plays).
+func open_credits() -> void:
+	if screen != &"credits":
+		_screen_before_credits = screen
+	_info.open_credits()
+	_set_screen(&"credits")
 
 
 ## Shows the settings (over the title, the mission select or the pause menu).
@@ -441,9 +489,11 @@ func open_settings() -> void:
 
 
 ## Starts the briefed mission: a campaign landing gets its modifiers.
-func _land(mission: MissionDef) -> void:
+## `level`: the difficulty a single mission keeps (a restart); empty takes the
+## player's current choice.
+func _land(mission: MissionDef, level: StringName = &"") -> void:
 	if campaign == null:
-		start_mission(mission)
+		start_mission(mission, single_modifiers(Settings.difficulty if level == &"" else level))
 		return
 	if campaign.state.current_node != _landing_node and not campaign.select(_landing_node):
 		show_star_map()
@@ -477,8 +527,11 @@ func _back_from_landing() -> void:
 
 
 func _on_restart() -> void:
+	# A restarted single mission keeps the level it was being played at (a loaded
+	# save's, which may differ from the level chosen for new missions).
+	var level: StringName = _single_difficulty() if runner != null else &""
 	resume()
-	_land(current)
+	_land(current, level)
 
 
 func _set_map_running(running: bool) -> void:
@@ -570,8 +623,13 @@ func _report(text: String, failed: bool) -> void:
 		print("Main: %s" % text)
 
 
+func _on_info_closed() -> void:
+	if screen == &"credits":
+		_set_screen(_screen_before_credits)
+
+
 func _on_retry() -> void:
-	_land(current)
+	_land(current, _single_difficulty() if runner != null else &"")
 
 
 ## Shows `page` (or nothing) of the full-screen menus; hides the others.
@@ -585,6 +643,20 @@ func _set_screen(next: StringName) -> void:
 		return
 	screen = next
 	Events.campaign_screen_changed.emit(next)
+
+
+## The difficulty of the single mission in play (Normal otherwise).
+func _single_difficulty() -> StringName:
+	var level: StringName = &""
+	if runner != null and runner.modifiers != null:
+		level = runner.modifiers.difficulty
+	return Difficulty.sanitize(level)
+
+
+## A single mission runs at the game speed the player chose; a campaign landing at 1.
+func _apply_speed() -> void:
+	if runner != null and runner.context != null:
+		runner.context.sim_clock.speed = Settings.game_speed if campaign == null else 1.0
 
 
 func _apply_graphics() -> void:
@@ -631,6 +703,7 @@ func _close_map() -> void:
 		_pause.visible = false
 		_settings.visible = false
 		_slots.visible = false
+		_info.visible = false
 		Events.ui_feedback.emit(&"pause_close")
 	_hints.end_mission()
 	runner = null

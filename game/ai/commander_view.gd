@@ -62,6 +62,8 @@ var surveyor_count: int = 0
 var survey_open: bool = false
 var attack_active: bool = false
 var defence_active: bool = false
+## Entity type ids the faction may not build or produce in this landing (its perks).
+var locked: Dictionary[StringName, bool] = {}
 
 
 ## Own count of `def` (buildings or units, including queued units).
@@ -91,9 +93,11 @@ func producers_of(def: UnitDef) -> Array[Building]:
 	return result
 
 
-## Builders that can build `def`, idle ones first.
+## Builders that can build `def`, idle ones first (none when `def` is locked).
 func builders_of(def: BuildingDef) -> Array[Unit]:
 	var result: Array[Unit] = []
+	if def == null or locked.has(def.id):
+		return result
 	for unit: Unit in idle_builders:
 		if unit.def.builds.has(def):
 			result.append(unit)

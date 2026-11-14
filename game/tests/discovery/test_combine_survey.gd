@@ -84,3 +84,22 @@ func test_the_player_loses_the_race_when_the_combine_banks_its_target() -> void:
 	assert_eq(objective.state, Objective.STATE_FAILED, "they banked theirs first")
 	assert_not_null(mission.result, "the mission is over")
 	assert_false(mission.result.won, "and lost")
+
+
+func test_a_surveyor_killed_and_freed_is_forgotten_cleanly() -> void:
+	# Found by the balance harness (ADR 0018): a freed surveyor stayed a key of the
+	# typed bookkeeping dictionaries and every survey tick logged errors for it.
+	_f.discovery.site(_f.discovery.discovery(&"near"), Vector3(10, 0, 0))
+	_f.discovery.site(_f.discovery.discovery(&"far"), Vector3(40, 0, 0))
+	var a: Unit = _f.spawn(_rigger, 1, Vector3(0, 0, 0))
+	var b: Unit = _f.spawn(_rigger, 1, Vector3(2, 0, 0))
+	var survey: SurveyBehaviour = _survey([a, b])
+	_run(survey, 10)
+	a.health.take(10000.0)
+	await get_tree().process_frame
+	assert_false(is_instance_valid(a), "the dead surveyor was freed")
+	_run(survey, 120)
+	assert_eq(survey.members.size(), 1, "only the living surveyor is left")
+	var assigned: Dictionary = survey.to_dict()["assigned"]
+	assert_lte(assigned.size(), 1, "the dead one's site was let go")
+	assert_eq(_f.discovery.pile(1).intel, 100, "the survivor scanned both sites")

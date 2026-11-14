@@ -102,19 +102,19 @@ briefing = "Verdance, the next world along the trail: a mossy basin under the cr
 
 The canopy is everything here. A ground unit under a crown is hidden from the air and from far away: an enemy sees it only from close by on the ground, and for a few seconds after it fires. It still sees out as well as ever. The Combine flies Hornets, rotor drones that hunt in the open and see nothing under the trees, and their approaches are watched.
 
-Move through the groves, not the lanes. The Foundry builds the Talon, our own gunship: it flies over ridges and the stream, hits ground and air, and cannot see under the crowns either. Only guns that shoot up hit flyers: Rangers and Sentries do, Lancers, Bulwarks and Arcs do not. Take the Combine base apart. The trail runs on into a grove in the north-west."
+Move through the groves, not the lanes. With Talon Frames cleared aboard the Meridian, the Foundry builds the Talon, our own gunship: it flies over ridges and the stream, hits ground and air, and cannot see under the crowns either. Only guns that shoot up hit flyers: Rangers and Sentries do, Lancers, Bulwarks and Arcs do not. Take the Combine base apart. The trail runs on into a grove in the north-west."
 map_scene = ExtResource("e5")
 planet = ExtResource("planet")
 player_hq = ExtResource("e2")
 player_start = Vector3(-80, 0, 85)
 player_roster = Array[ExtResource("e9")]([ExtResource("e6"), ExtResource("e6"), ExtResource("e7"), ExtResource("e8"), ExtResource("e20"), ExtResource("e20")])
-start_alloy = 450
+start_alloy = 550
 hostile_faction = 1
 hostile_hq = ExtResource("e10")
 hostile_hq_position = Vector3(82, 0, -84)
-hostile_buildings = Array[ExtResource("e13")]([ExtResource("e11"), ExtResource("e12"), ExtResource("e12")])
-hostile_building_positions = PackedVector3Array(62, 0, -82, 74, 0, -62, 58, 0, -64)
-hostile_roster = Array[ExtResource("e9")]([ExtResource("e14"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e16"), ExtResource("e17"), ExtResource("e19")])
+hostile_buildings = Array[ExtResource("e13")]([ExtResource("e11"), ExtResource("e12")])
+hostile_building_positions = PackedVector3Array(62, 0, -82, 74, 0, -62)
+hostile_roster = Array[ExtResource("e9")]([ExtResource("e14"), ExtResource("e14"), ExtResource("e15"), ExtResource("e16"), ExtResource("e17")])
 hostile_start = Vector3(92, 0, -66)
 commander_profile = ExtResource("e18")
 enemy_difficulty = "normal"

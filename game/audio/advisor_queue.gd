@@ -32,6 +32,8 @@ extends RefCounted
 ##   Custodians waking, which outranks an engine lost; the Core charging and an
 ##   engine coming online are news. An engine online and an engine lost that
 ##   both wait unheard cancel (the state flapped), like low and restored power.
+## - Infiltration (Phase 9): the extraction point moving once the enemy is
+##   alerted is nearly as urgent as being detected.
 ##
 ## Use: `push(kind, now, position)` when an alert arrives (set `focus` first);
 ## every frame, `pop_ready(now)` and, if it returns a kind, play it and call
@@ -84,6 +86,7 @@ const THROTTLE: Dictionary[StringName, float] = {
 	&"engine_lost": 10.0,
 	&"core_charging": 30.0,
 	&"engine_online": 6.0,
+	&"extraction_moved": 20.0,
 }
 const DEFAULT_PRIORITY: int = 50
 const PRIORITY: Dictionary[StringName, int] = {
@@ -132,6 +135,7 @@ const PRIORITY: Dictionary[StringName, int] = {
 	&"engine_lost": 102,
 	&"core_charging": 89,
 	&"engine_online": 84,
+	&"extraction_moved": 114,
 }
 ## Kind -> the family whose throttle it shares (kinds not listed are their own).
 const FAMILY: Dictionary[StringName, StringName] = {

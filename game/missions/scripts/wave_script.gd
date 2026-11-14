@@ -71,10 +71,11 @@ func wave_roster(index: int) -> Array[UnitDef]:
 	var picked: Array[UnitDef] = []
 	if rules == null or rules.roster.is_empty():
 		return picked
+	var level: StringName = mission.commander_level()
 	var start: int = 0
 	for i: int in index:
-		start += rules.wave_size(i)
-	for i: int in rules.wave_size(index):
+		start += rules.wave_size(i, level)
+	for i: int in rules.wave_size(index, level):
 		picked.append(rules.roster[(start + i) % rules.roster.size()])
 	return picked
 

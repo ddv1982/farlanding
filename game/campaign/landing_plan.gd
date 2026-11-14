@@ -12,6 +12,8 @@ var techs: Array[StringName] = []
 ## Slot id -> option id.
 var loadout: Dictionary[StringName, StringName] = {}
 var discoveries: Array[StringName] = []
+## The campaign's difficulty when the landing launched (Difficulty.LEVELS).
+var difficulty: StringName = Difficulty.NORMAL
 
 
 ## The plan for launching `node_id` from `state` now.
@@ -20,6 +22,7 @@ static func from_state(state: CampaignState, p_node_id: StringName) -> LandingPl
 	plan.node_id = p_node_id
 	plan.techs = state.techs.duplicate()
 	plan.discoveries = state.discoveries.duplicate()
+	plan.difficulty = state.difficulty
 	if state.def != null:
 		for slot: LoadoutSlotDef in state.def.loadout_slots:
 			var option: LoadoutOptionDef = state.loadout_option(slot.id) if slot != null else null
@@ -38,6 +41,7 @@ func to_dict() -> Dictionary:
 		"techs": CampaignState._strings(techs),
 		"loadout": loadout_data,
 		"discoveries": CampaignState._strings(discoveries),
+		"difficulty": String(difficulty),
 	}
 
 
@@ -51,6 +55,7 @@ static func from_dict(data: Dictionary) -> LandingPlan:
 	plan.node_id = StringName(node_name)
 	plan.techs = CampaignState._names(data.get("techs", []))
 	plan.discoveries = CampaignState._names(data.get("discoveries", []))
+	plan.difficulty = Difficulty.sanitize(data.get("difficulty", Difficulty.NORMAL))
 	var loadout_data: Dictionary = data.get("loadout", {})
 	for key: Variant in loadout_data:
 		plan.loadout[StringName(str(key))] = StringName(str(loadout_data[key]))

@@ -96,7 +96,11 @@ func test_engines_running_shut_down_and_half_woken_round_trip() -> void:
 	assert_true(restarted, "the shut-down timer ran out on time")
 	assert_eq(theirs.faction, 1)
 	await _f.run(loaded, 2)
-	assert_eq(world.economy.stockpile(0).power_produced, 5 + 15 + 15, "Lander halved, two engines")
+	assert_eq(
+		world.economy.stockpile(0).power_produced,
+		7 + 15 + 15,
+		"Lander at 0.7 (ADR 0018), two engines"
+	)
 
 
 func test_the_finales_charge_and_custodians_round_trip() -> void:

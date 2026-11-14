@@ -32,6 +32,10 @@ const GUARD_WEIGHT: float = 0.5
 ## An engine is skipped when its guards outweigh every free armed unit this many times;
 ## otherwise the escort grows until it is at least the guards' weight over this.
 const GUARD_LIMIT: float = 2.0
+## An engine where a claim's worker was killed is left alone this long (3 min), so
+## builders are not fed one after another into its guards (found by the balance
+## harness, ADR 0018: 26 Fabricators and 54 Riggers lost in one finale).
+const FAILED_CLAIM_TICKS: int = 1800
 
 var port: AiPort
 var world: SimWorld
@@ -45,6 +49,8 @@ var claim_tick: int = 0
 var guards_seen: Dictionary[int, float] = {}
 ## Engine id -> sim tick defenders were last sent.
 var _defended: Dictionary[int, int] = {}
+## Engine id -> sim tick before which it is not claimed again (a worker died there).
+var _avoid_until: Dictionary[int, int] = {}
 
 
 func _init(p_port: AiPort, p_world: SimWorld, p_profile: CommanderProfile) -> void:
@@ -117,6 +123,7 @@ func _claim(
 	var sent: Array[Unit] = []
 	if _claim_running(machinery):
 		return sent
+	_note_failed_claim()
 	claim_engine = -1
 	claim_worker = -1
 	if machinery.held_by(faction).size() >= profile.machines_wanted or builders.is_empty():
@@ -128,6 +135,8 @@ func _claim(
 	var best_score: float = INF
 	for engine: Building in machinery.engines():
 		if not machinery.can_claim(engine, faction) or not _explored(engine.position):
+			continue
+		if _avoid_until.get(engine.entity_id, -1) > port.now():
 			continue
 		var owned_by_enemy: bool = (
 			not engine.machine.is_dormant() and not Factions.is_custodian(engine.faction)
@@ -143,7 +152,8 @@ func _claim(
 		if score < best_score:
 			best = engine
 			best_score = score
-	if best == null:
+	# Every engine on the deck is guarded: no worker goes without an escort.
+	if best == null or free.is_empty():
 		return sent
 	var worker: Unit = builders[0]
 	for builder: Unit in builders:
@@ -180,6 +190,15 @@ func _take_escort(pool: Array[Unit], at: Vector3, needed: float) -> Array[Unit]:
 	for unit: Unit in taken:
 		pool.erase(unit)
 	return taken
+
+
+## A claim whose worker was killed marks its engine to be left alone for a while.
+func _note_failed_claim() -> void:
+	if claim_engine < 0 or claim_worker < 0:
+		return
+	var worker: Unit = world.entity(claim_worker) as Unit
+	if worker == null or worker.is_dead:
+		_avoid_until[claim_engine] = port.now() + FAILED_CLAIM_TICKS
 
 
 ## True while the current claim goes on: its worker lives, still works on it, and the
@@ -242,8 +261,12 @@ func to_dict() -> Dictionary:
 	var defended: Dictionary = {}
 	for id: int in _defended:
 		defended[str(id)] = _defended[id]
+	var avoid: Dictionary = {}
+	for id: int in _avoid_until:
+		avoid[str(id)] = _avoid_until[id]
 	return {
 		"version": SAVE_VERSION,
+		"avoid": avoid,
 		"claim_engine": claim_engine,
 		"claim_worker": claim_worker,
 		"claim_tick": claim_tick,
@@ -264,6 +287,11 @@ func from_dict(data: Dictionary) -> void:
 	for key: Variant in seen:
 		var strength: float = seen[key]
 		guards_seen[int(str(key))] = strength
+	_avoid_until.clear()
+	var avoid: Dictionary = data.get("avoid", {})
+	for key: Variant in avoid:
+		var until: int = avoid[key]
+		_avoid_until[int(str(key))] = until
 	_defended.clear()
 	var defended: Dictionary = data.get("defended", {})
 	for key: Variant in defended:

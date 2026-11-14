@@ -25,6 +25,9 @@ const DUST_COLOR := Color(0.78, 0.58, 0.40, 0.55)
 ## Speed in m/s at which a unit starts raising dust.
 const DUST_MIN_SPEED := 1.0
 
+## What ground units kick up: the map's ground colour (set by the landing map).
+static var dust_color: Color = DUST_COLOR
+
 @export var model_scene: PackedScene
 ## Radius of the selection ring in metres.
 @export var footprint_radius: float = 1.5
@@ -213,8 +216,8 @@ func _build_cover_mark() -> Label3D:
 
 func _build_dust() -> GPUParticles3D:
 	var fade := Gradient.new()
-	fade.set_color(0, DUST_COLOR)
-	fade.set_color(1, Color(DUST_COLOR, 0.0))
+	fade.set_color(0, dust_color)
+	fade.set_color(1, Color(dust_color, 0.0))
 	var fade_texture := GradientTexture1D.new()
 	fade_texture.gradient = fade
 	var grow := Curve.new()

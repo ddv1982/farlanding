@@ -33,12 +33,20 @@ var plan: LandingPlan = null
 var campaign: Dictionary = {}
 ## The map's snapshot of the landing.
 var landing: Dictionary = {}
+## The difficulty the landing is played at (Difficulty.LEVELS). Saves from before
+## difficulty levels load as Normal.
+var difficulty: StringName = Difficulty.NORMAL
 
 
 ## A save of the landing of `mission` in play: `landing` is the map's snapshot,
-## `played` its game seconds, `session` the campaign in play (null: single mission).
+## `played` its game seconds, `session` the campaign in play (null: single mission),
+## `level` the difficulty of a single mission (a campaign landing's comes from its plan).
 static func capture(
-	mission: MissionDef, landing_data: Dictionary, played: float, session: CampaignSession
+	mission: MissionDef,
+	landing_data: Dictionary,
+	played: float,
+	session: CampaignSession,
+	level: StringName = Difficulty.NORMAL,
 ) -> SaveGame:
 	var game: SaveGame = SaveGame.new()
 	game.mission_path = mission.resource_path
@@ -47,11 +55,13 @@ static func capture(
 	game.seconds = played
 	game.saved_at = int(Time.get_unix_time_from_system())
 	game.landing = landing_data
+	game.difficulty = Difficulty.sanitize(level)
 	if session != null and session.landing != null:
 		game.kind = KIND_CAMPAIGN
 		game.campaign_path = session.def.resource_path
 		game.plan = session.landing
 		game.campaign = session.state.to_dict()
+		game.difficulty = Difficulty.sanitize(session.landing.difficulty)
 	return game
 
 
@@ -68,6 +78,7 @@ func to_dict() -> Dictionary:
 		"plan": plan.to_dict() if plan != null else {},
 		"campaign": campaign,
 		"landing": landing,
+		"difficulty": String(difficulty),
 	}
 
 
@@ -90,6 +101,7 @@ static func from_dict(data: Dictionary) -> SaveGame:
 	game.plan = LandingPlan.from_dict(plan_data) if not plan_data.is_empty() else null
 	game.campaign = data.get("campaign", {})
 	game.landing = data.get("landing", {})
+	game.difficulty = Difficulty.sanitize(data.get("difficulty", Difficulty.NORMAL))
 	return game
 
 

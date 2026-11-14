@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TechDef" format=3]
+
+[ext_resource type="Script" path="res://core/defs/tech_def.gd" id="e0"]
+[ext_resource type="Script" path="res://core/defs/perk_effect.gd" id="e1"]
+
+[sub_resource type="Resource" id="s0"]
+script = ExtResource("e1")
+kind = &"unlock"
+target = &"concord_talon"
+
+[resource]
+script = ExtResource("e0")
+id = &"talon_frames"
+title = "Talon Frames"
+description = "Clears the Talon gunship for the Foundry: it flies over ridges and water and hits ground and air."
+branch = &"arms"
+intel_cost = 150
+requires = Array[StringName]([])
+requires_discovery = &""
+grid = Vector2i(0, 7)
+effects = Array[ExtResource("e1")]([SubResource("s0")])

@@ -39,6 +39,14 @@ extends GutTest
 ##   and deaths, engines spinning up, Advisor alarms and a contested-Core phrase
 ##   every 1.5 s, clicks: the campaign's loudest moment.
 ##
+## - Kessel calm (Phase 9): the Kessel score in calm and its ambience, so every
+##   planet has a calm scene measured the same way.
+##
+## Phase 9 compares the planets: each has a calm scene (its score in `calm`, its
+## ambience) and a busy one (its worst fight), and the last test asserts the
+## calm scenes, and the busy ones, sit within PLANET_SPREAD_LU of each other.
+## The finale also asserts the awakening is not ducked under the Advisor.
+##
 ## Asserted: the Master output never clips (the limiter's ceiling holds), the mix
 ## itself has headroom before the limiter, and loudness stays in its window.
 ## The numbers are printed; docs/AUDIO_STYLE.md quotes them.
@@ -67,6 +75,8 @@ const SHIP_ALERTS: Array[StringName] = [
 	&"advisor_campaign_tech_available",
 ]
 const SHIP_CATEGORIES: Array[StringName] = [&"Music", &"Ambience", &"Advisor", &"UI"]
+## Buses measured in the calm scenes (Phase 9: which part makes a planet loud).
+const CALM_CATEGORIES: Array[StringName] = [&"Music", &"Ambience", &"Buildings"]
 const SETTLE_SECONDS: float = 2.5
 const RECORD_SECONDS: float = 6.0
 const FRAME: float = 0.05
@@ -76,6 +86,35 @@ const CATEGORIES: Array[StringName] = [
 ]
 ## The Advisor must sit at least this far above the (ducked) music.
 const ADVISOR_OVER_MUSIC_LU: float = 3.0
+## Under the awakening the music may sit at most this much lower while the
+## Advisor speaks than over the whole recording (it is not ducked).
+const AWAKENING_DUCK_MAX_LU: float = 1.5
+## Comparable scenes on different planets sit within this of each other:
+## about 2 LU, plus the six-second recordings' own spread (the beds wander, so
+## one scene moves by up to 1.5 LU from run to run). The busy scenes get a
+## little more: Kessel Reach's worst case is a storm fight with nothing of the
+## planet's own on top, where the others add their tide, eruption, air war or
+## awakening (docs/AUDIO_STYLE.md, "Across the campaign").
+## The limits leave room for the measurement's own run-to-run movement (a scene moves
+## up to 1.5 LU between runs, more on a loaded CI runner): the designed spreads are
+## about 2 LU (calm) and 3 LU (busy).
+const PLANET_SPREAD_LU: Dictionary[StringName, float] = {&"calm": 3.5, &"busy": 4.5}
+## Scene -> [planet, kind] for the cross-planet comparison.
+const PLANET_SCENES: Dictionary[StringName, Array] = {
+	&"kessel_calm": [&"kessel_reach", &"calm"],
+	&"thalassa_calm": [&"thalassa_low", &"calm"],
+	&"emberfall_calm": [&"emberfall", &"calm"],
+	&"verdance_calm": [&"verdance", &"calm"],
+	&"hollow_calm": [&"hollow_meridian", &"calm"],
+	&"worst": [&"kessel_reach", &"busy"],
+	&"thalassa_fight": [&"thalassa_low", &"busy"],
+	&"emberfall_fight": [&"emberfall", &"busy"],
+	&"verdance_fight": [&"verdance", &"busy"],
+	&"hollow_finale": [&"hollow_meridian", &"busy"],
+}
+
+## Scene -> integrated Master loudness (LUFS), kept across this script's tests.
+var measured: Dictionary[StringName, float] = {}
 
 var _mix: MixScene
 ## Bus -> what its capture recorded in the last scene.
@@ -228,9 +267,13 @@ func _record(scene: StringName) -> Array[float]:
 	Audio.stop_all_voices()  # nothing left over from earlier tests
 	await wait_seconds(SETTLE_SECONDS)
 	_mix.attach()
-	if worst or ship:
-		for bus: StringName in CATEGORIES if worst else SHIP_CATEGORIES:
-			_mix.attach_bus(bus)
+	var measured_buses: Array[StringName] = CALM_CATEGORIES
+	if worst:
+		measured_buses = CATEGORIES
+	elif ship:
+		measured_buses = SHIP_CATEGORIES
+	for bus: StringName in measured_buses:
+		_mix.attach_bus(bus)
 	_mix.clear()
 	var t: float = 0.0
 	var i: int = 0
@@ -275,6 +318,7 @@ func _record(scene: StringName) -> Array[float]:
 		float(post.size()) / rate,
 		float(most_voices),
 	]
+	measured[scene] = result[2]
 	var peaks: String = ""
 	for bus: StringName in _mix.bus_peaks:
 		peaks += "%s %.1f, " % [bus, _mix.bus_peaks[bus]]
@@ -348,6 +392,14 @@ func test_explore_sits_quietly() -> void:
 	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
 	assert_lt(result[1], CEILING_DBFS)
 	assert_between(result[2], EXPLORE_LUFS.x, EXPLORE_LUFS.y, "explore loudness")
+
+
+func test_kessel_calm_sits_quietly() -> void:
+	Audio.music().force_state(&"calm")
+	var result: Array[float] = await _record(&"kessel_calm")
+	assert_gt(result[3], RECORD_SECONDS * 0.6, "the mixer ran (captured %.1f s)" % result[3])
+	assert_lt(result[1], CEILING_DBFS, "Master never clips")
+	assert_between(result[2], EXPLORE_LUFS.x, EXPLORE_LUFS.y, "Kessel calm loudness")
 
 
 func test_worst_case_never_clips_and_stays_in_its_window() -> void:
@@ -548,8 +600,35 @@ func test_hollow_finale_peak_never_drives_the_limiter() -> void:
 		_frames[&"Advisor"], _frames[&"Music"], AudioServer.get_mix_rate()
 	)
 	gut.p("  while the Advisor speaks over the peak: Advisor %.1f LUFS, Music %.1f LUFS" % speaking)
+	var music: float = MixScene.lufs(_frames[&"Music"], AudioServer.get_mix_rate())
+	gut.p("  the awakening over the whole recording: Music %.1f LUFS" % music)
+	assert_false(CoreSound.music_ducks(), "the Advisor does not duck the awakening")
 	assert_gt(
-		speaking[0],
-		speaking[1] + ADVISOR_OVER_MUSIC_LU,
-		"the Advisor is heard over the campaign's peak"
+		speaking[1],
+		music - AWAKENING_DUCK_MAX_LU,
+		"the campaign's peak keeps its level while the Advisor speaks"
 	)
+
+
+## Phase 9: the planets side by side. Runs last (GUT keeps file order); any
+## scene that did not run leaves its planet out.
+func test_zz_planets_sit_together() -> void:
+	for kind: StringName in [&"calm", &"busy"]:
+		var lowest: float = INF
+		var highest: float = -INF
+		var line: String = ""
+		for scene: StringName in PLANET_SCENES:
+			var entry: Array = PLANET_SCENES[scene]
+			if entry[1] != kind or not measured.has(scene):
+				continue
+			lowest = minf(lowest, measured[scene])
+			highest = maxf(highest, measured[scene])
+			var planet: StringName = entry[0]
+			line += "%s %.1f, " % [planet, measured[scene]]
+		gut.p("%s scenes (LUFS): %s" % [String(kind), line])
+		if lowest == INF:
+			pending("no %s scene ran" % kind)
+			continue
+		assert_lte(
+			highest - lowest, PLANET_SPREAD_LU[kind], "%s scenes sit together (%s)" % [kind, line]
+		)

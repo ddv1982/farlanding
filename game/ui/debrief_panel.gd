@@ -1,7 +1,8 @@
 class_name DebriefPanel
 extends CenterContainer
-## The debrief after a mission: won or lost, every known objective's result, the
-## time taken, Intel earned and losses, then Retry or Back to missions.
+## The debrief after a mission: won or lost, every known objective's result (in
+## words as well as colour), the difficulty, the time taken, Intel earned and
+## losses, then Retry or Back to missions.
 
 signal retry_pressed
 signal back_pressed
@@ -76,6 +77,8 @@ func show_result(result: MissionResult, banked: int = -1, final: bool = false) -
 		_objectives.add_child(_objective_line(title, kind, state))
 	for child: Node in _stats.get_children():
 		child.queue_free()
+	if result.difficulty != &"":
+		_stat("Difficulty", Difficulty.label(result.difficulty))
 	_stat("Time", MissionResult.clock_text(result.seconds))
 	_stat("Intel earned", str(result.intel_earned))
 	if in_campaign:

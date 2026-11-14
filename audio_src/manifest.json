@@ -419,6 +419,22 @@
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {
+   "id": "advisor_extraction_moved",
+   "file": "game/assets/audio/advisor/advisor_extraction_moved.wav",
+   "recipe": "recipes.polish.advisor_extraction_moved",
+   "seed": 1280000621,
+   "group": "advisor",
+   "format": "wav",
+   "channels": 1,
+   "loop": false,
+   "seconds": 1.4669,
+   "peak_dbtp": -14.75,
+   "lufs": -19.0,
+   "target_lufs": -19.0,
+   "sha256": "05bdfae0b14ac6bc8b844c98ec3b73bdbb2d36881c95496be96a5633c9499990",
+   "source": "synthesised (audio_src recipes); no recordings, samples or external services"
+  },
+  {
    "id": "advisor_field_option_ready",
    "file": "game/assets/audio/advisor/advisor_field_option_ready.wav",
    "recipe": "recipes.discovery.advisor_field_option_ready",
@@ -1276,10 +1292,10 @@
    "channels": 2,
    "loop": true,
    "seconds": 36.9995,
-   "peak_dbtp": -26.55,
-   "lufs": -33.04,
+   "peak_dbtp": -27.32,
+   "lufs": -33.01,
    "target_lufs": -33.0,
-   "sha256": "fe52a5778857cdfc3d448185dd3a5bb7be1531aa7c7496153c9cb02b5e95488f",
+   "sha256": "94a0097dd8fea3eddcb44d97f649c3a355c4d41a1e411f91e7d1352e3c398eb0",
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {
@@ -2140,10 +2156,10 @@
    "channels": 2,
    "loop": true,
    "seconds": 43.0005,
-   "peak_dbtp": -22.45,
-   "lufs": -31.03,
+   "peak_dbtp": -21.54,
+   "lufs": -31.02,
    "target_lufs": -31.0,
-   "sha256": "875eafa6daa7f3a36ad78371f9083c36ffbfe491d1f86d8356ccc043126f1ec6",
+   "sha256": "48c6404591c45f20af65fabb0d589fb9fcc09b038b16eec1fbeedb36e27ec837",
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {
@@ -3459,6 +3475,22 @@
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {
+   "id": "loop_engine_claim",
+   "file": "game/assets/audio/machines/loop_engine_claim.wav",
+   "recipe": "recipes.polish.loop_engine_claim",
+   "seed": 994983715,
+   "group": "machine",
+   "format": "wav",
+   "channels": 1,
+   "loop": true,
+   "seconds": 2.0,
+   "peak_dbtp": -10.0,
+   "lufs": -27.0,
+   "target_lufs": -27.0,
+   "sha256": "cdfc8699ff39d904f58625510277a5880f187e48a59711015fd8c6008150db89",
+   "source": "synthesised (audio_src recipes); no recordings, samples or external services"
+  },
+  {
    "id": "loop_engine_run",
    "file": "game/assets/audio/machines/loop_engine_run.wav",
    "recipe": "recipes.hollow.loop_engine_run",
@@ -4748,10 +4780,10 @@
    "channels": 2,
    "loop": true,
    "seconds": 68.5714,
-   "peak_dbtp": -19.01,
+   "peak_dbtp": -19.19,
    "lufs": -29.0,
    "target_lufs": -29.0,
-   "sha256": "e03999c221975df3ac8d8d9b04c082ff1a0cd6591f631ddd57919bdf6f15e00d",
+   "sha256": "054037ff725b6d133ee4a16fd3d6f155e0fc19a1735c845ee9094e3d4a47c1ce",
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {
@@ -6547,6 +6579,22 @@
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {
+   "id": "ui_credits_open",
+   "file": "game/assets/audio/ui/ui_credits_open.wav",
+   "recipe": "recipes.polish.ui_credits_open",
+   "seed": 1157139422,
+   "group": "ui",
+   "format": "wav",
+   "channels": 1,
+   "loop": false,
+   "seconds": 1.55,
+   "peak_dbtp": -23.43,
+   "lufs": -28.0,
+   "target_lufs": -28.0,
+   "sha256": "f135bd0aa4aaf2f0883c27d6bdd32c7bf3c2289b0c91549053dd2304357a4c91",
+   "source": "synthesised (audio_src recipes); no recordings, samples or external services"
+  },
+  {
    "id": "ui_debrief_open",
    "file": "game/assets/audio/ui/ui_debrief_open.wav",
    "recipe": "recipes.missions.ui_debrief_open",
@@ -6995,6 +7043,54 @@
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {
+   "id": "ui_rebind_conflict",
+   "file": "game/assets/audio/ui/ui_rebind_conflict.wav",
+   "recipe": "recipes.polish.ui_rebind_conflict",
+   "seed": 1015292111,
+   "group": "ui",
+   "format": "wav",
+   "channels": 1,
+   "loop": false,
+   "seconds": 0.28,
+   "peak_dbtp": -19.43,
+   "lufs": -26.0,
+   "target_lufs": -26.0,
+   "sha256": "abd391bdccc2874be9c2da6775c88ae31fbc163f232c4efc2583b1d8c1e50c76",
+   "source": "synthesised (audio_src recipes); no recordings, samples or external services"
+  },
+  {
+   "id": "ui_rebind_done",
+   "file": "game/assets/audio/ui/ui_rebind_done.wav",
+   "recipe": "recipes.polish.ui_rebind_done",
+   "seed": 394894025,
+   "group": "ui",
+   "format": "wav",
+   "channels": 1,
+   "loop": false,
+   "seconds": 0.23,
+   "peak_dbtp": -19.59,
+   "lufs": -27.0,
+   "target_lufs": -27.0,
+   "sha256": "75c9ba3438b87a04d1e893ef659bd92c71cb4025daac04fa409806a2092cc574",
+   "source": "synthesised (audio_src recipes); no recordings, samples or external services"
+  },
+  {
+   "id": "ui_rebind_listen",
+   "file": "game/assets/audio/ui/ui_rebind_listen.wav",
+   "recipe": "recipes.polish.ui_rebind_listen",
+   "seed": 624914782,
+   "group": "ui",
+   "format": "wav",
+   "channels": 1,
+   "loop": false,
+   "seconds": 0.28,
+   "peak_dbtp": -24.52,
+   "lufs": -27.0,
+   "target_lufs": -27.0,
+   "sha256": "ba7f4122ed464393dc91ca5bc40231486995bf2081082211f669827410d3b356",
+   "source": "synthesised (audio_src recipes); no recordings, samples or external services"
+  },
+  {
    "id": "ui_select",
    "file": "game/assets/audio/ui/ui_select.wav",
    "recipe": "recipes.interface.ui_select",
@@ -7024,6 +7120,22 @@
    "lufs": -34.0,
    "target_lufs": -34.0,
    "sha256": "3496a3a9e779205b9434c7ef276d18d3346fa59167c393099462fd3683d5d0bc",
+   "source": "synthesised (audio_src recipes); no recordings, samples or external services"
+  },
+  {
+   "id": "ui_tab_changed",
+   "file": "game/assets/audio/ui/ui_tab_changed.wav",
+   "recipe": "recipes.polish.ui_tab_changed",
+   "seed": 1210865111,
+   "group": "ui",
+   "format": "wav",
+   "channels": 1,
+   "loop": false,
+   "seconds": 0.2,
+   "peak_dbtp": -26.87,
+   "lufs": -28.0,
+   "target_lufs": -28.0,
+   "sha256": "2dd83eb921714b7fcc8479430c8b5f8cb1edbbda232f95ff0d390bbecc98cbc3",
    "source": "synthesised (audio_src recipes); no recordings, samples or external services"
   },
   {

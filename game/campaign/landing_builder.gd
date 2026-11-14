@@ -8,6 +8,7 @@ extends RefCounted
 ## The modifiers for landing `plan` of campaign `def`.
 static func build(def: CampaignDef, plan: LandingPlan) -> LandingModifiers:
 	var modifiers: LandingModifiers = LandingModifiers.new()
+	modifiers.difficulty = Difficulty.sanitize(plan.difficulty)
 	for id: StringName in def.locked_at_start:
 		modifiers.perks.lock(id)
 	for tech_id: StringName in plan.techs:

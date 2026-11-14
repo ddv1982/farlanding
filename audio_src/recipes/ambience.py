@@ -92,7 +92,9 @@ def amb_kessel_air(rng: np.random.Generator) -> np.ndarray:
     n = N_AIR
     L = n / dsp.SR
     breath = 0.5 + 0.5 * dsp.smooth_random(n, rng, 0.06)
-    air = _decorrelated(n, rng, dsp.pink, 0.1)
+    # Partly shared between the channels: still wide, and the codec's channel
+    # coupling keeps it well clear of the fidelity floor (Phase 9).
+    air = _decorrelated(n, rng, dsp.pink, 0.6)
     air = dsp.periodic(dsp.sweep, air, "bp", 1500.0 + 1200.0 * breath, 0.6, block=256) * (0.2 + 0.3 * breath)
     sift = _decorrelated(n, rng, dsp.white, 0.0)
     sift = dsp.periodic(dsp.bandpass, sift, 6000.0, 1.5) * 0.015 * (0.5 + 0.5 * dsp.smooth_random(n, rng, 0.2)) ** 3

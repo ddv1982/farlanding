@@ -390,7 +390,9 @@ def trail(rng: np.random.Generator) -> np.ndarray:
     x = dsp.wrap(buf, n)
     t = dsp.time_axis(n)
     for k, m in enumerate([68, 74]):  # a faint bell air on G# and D
-        swell = 0.5 - 0.5 * np.cos(2 * np.pi * (2 + k) * t / LOOP)
+        # Fullest at the loop point, so the seam sits in a steady tone rather
+        # than in near-silence, where the codec's own noise decides the join.
+        swell = 0.5 + 0.5 * np.cos(2 * np.pi * (2 + k) * t / LOOP)
         air = 0.5 * (dsp.sine(_qf(H(m)), n) + dsp.sine(_qf(H(m) + 0.3), n))
         x += dsp.pan(0.045 * air * (0.3 + 0.7 * swell), -0.4 + 0.8 * k)
     return _hall(x, rng, n, reverb_s=8.0, mix=0.48, echo_s=EIGHTH * 3, feedback=0.25, echo_mix=0.2)

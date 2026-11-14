@@ -19,7 +19,7 @@ beat count for bar-synced music) into its `.import` while keeping Godot's uid, s
 SoundEvent `.tres` files, writes `audio_src/manifest.json`, and fails on clipping, missed
 loudness, DC, bad durations or loop seams. Output is deterministic (seeded; Ogg written
 bit-exact), so a rebuild produces identical files. Run with
-`uv run --python 3.12 --with numpy --with scipy audio_src/build.py`.
+`uv run --python 3.12 --with numpy==2.5.4 --with scipy==1.18.1 audio_src/build.py`.
 
 Loops are seamless by construction rather than by crossfading: whole-cycle oscillator
 frequencies, circular noise, filters run over three repeats, and tails folded back over the

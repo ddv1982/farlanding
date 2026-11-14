@@ -168,6 +168,10 @@ signal core_charge_changed(fraction: float)
 ## The Beacon Core `core` is awake: the end of the Trail.
 signal core_awakened(core: Node3D)
 
+## A spoken line starts: `text` is what is said, shown for `seconds` when subtitles
+## are on. `speaker` names who speaks (&"advisor").
+signal subtitle(speaker: StringName, text: String, seconds: float)
+
 ## The campaign shows another screen: &"title", &"star_map", &"meridian",
 ## &"tech_web", &"loadout", &"ending" (the campaign is complete), or &"" when a
 ## landing (briefing, mission, debrief) takes over.

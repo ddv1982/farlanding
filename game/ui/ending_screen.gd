@@ -3,9 +3,11 @@ extends MenuScreen
 ## The end of the campaign (ADR 0017), shown over the star backdrop once the Beacon
 ## Core is awake and the debrief is closed, and again when Continue picks a finished
 ## campaign: what the Core showed the expedition, then the campaign's numbers
-## (landings, Intel, discoveries, techs), and a way back to the title.
+## (difficulty, landings, Intel, discoveries, techs), the credits and a way back to
+## the title.
 
 signal title_pressed
+signal credits_pressed
 
 const HEADING: String = "THE END OF THE TRAIL"
 const STORY: PackedStringArray = [
@@ -61,7 +63,17 @@ func _build() -> void:
 			Events.ui_feedback.emit(&"click")
 			title_pressed.emit()
 	)
-	column.add_child(_back_button)
+	var credits: Button = HudStyle.make_menu_button("CREDITS", 280.0)
+	credits.pressed.connect(
+		func() -> void:
+			Events.ui_feedback.emit(&"click")
+			credits_pressed.emit()
+	)
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override(&"separation", 10)
+	buttons.add_child(_back_button)
+	buttons.add_child(credits)
+	column.add_child(buttons)
 
 
 ## Shows the ending for the finished campaign `state`.
@@ -76,8 +88,9 @@ static func stats_text(state: CampaignState) -> String:
 		return ""
 	var stats: Dictionary[StringName, int] = state.statistics()
 	return (
-		"Landings  %d won of %d made\nIntel banked  %d\nDiscoveries  %d\nTechs  %d"
+		"Difficulty  %s\nLandings  %d won of %d made\nIntel banked  %d\nDiscoveries  %d\nTechs  %d"
 		% [
+			Difficulty.label(state.difficulty),
 			stats[&"landings_won"],
 			stats[&"landings_made"],
 			stats[&"intel_banked"],

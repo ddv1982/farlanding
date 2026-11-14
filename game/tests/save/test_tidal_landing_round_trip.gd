@@ -5,7 +5,7 @@ extends GutTest
 ## and play carries on: the sea falls, the waiting unit crosses, the carrier walks on
 ## with the artefact.
 
-const ARTEFACT_AT: Vector3 = Vector3(-70, 0, -78)
+const ARTEFACT_AT: Vector3 = Vector3(50, 0, -42)
 ## The south bank of the west ford, and a point on the ford's bar.
 const FORD_BANK: Vector3 = Vector3(-66, 0, -7)
 const ON_THE_FORD: Vector3 = Vector3(-59, 0, -24)

@@ -123,3 +123,38 @@ func test_without_fog_a_distant_living_building_is_remembered() -> void:
 	assert_eq(
 		_commander.knowledge.known_buildings().size(), 1, "far out of sight range, still known"
 	)
+
+
+func test_a_lost_retrieval_squad_makes_the_next_bigger_and_later() -> void:
+	# Found by the balance harness (ADR 0018): squads of the same size were fed one
+	# after another into whatever guarded the artefact.
+	var def: PropDef = PropDef.new()
+	def.id = &"artefact"
+	def.size = Vector3(1.3, 1.0, 1.3)
+	def.blocks_movement = false
+	def.blocks_sight = false
+	def.carriable = true
+	_f.world.spawn_prop(def, Vector3(0, 0, 0))
+	# Power for the guns, and the guns around the artefact.
+	_f.building(_f.hub, Vector3(-60, 0, -60), AiFixture.ENEMY)
+	for at: Vector3 in [Vector3(6, 0, 4), Vector3(-6, 0, 4), Vector3(0, 0, -6)]:
+		_f.building(_f.combat.sentry, at, AiFixture.ENEMY)
+	_f.world.economy.stockpile(AiFixture.AI).alloy = 0
+	_f.building(_f.hub, Vector3(60, 0, 60))
+	_f.soldiers(3, Vector3(50, 0, 50))
+	_f.profile.retrieves_cargo = true
+	_f.profile.retrieve_squad_size = 2
+	_f.profile.retrieve_after_seconds = 0.0
+	_start_commander()
+	_f.tick(900)
+	assert_eq(_commander.retrievals_lost, 1, "the first squad of two fell to the guns")
+	assert_eq(_commander.retrieve_squad_size(), 4, "the next one is twice the size")
+	_f.tick(900)
+	assert_null(_commander.retrieval, "the one soldier left is not sent alone")
+	var living: int = 0
+	for unit: Unit in _f.world.units_of(AiFixture.AI):
+		living += 0 if unit.is_dead else 1
+	assert_eq(living, 1, "and lives")
+	var saved: Dictionary = _commander.to_dict()
+	var lost: int = saved["retrievals_lost"]
+	assert_eq(lost, 1, "the losses are saved")

@@ -12,10 +12,14 @@ extends Node
 ##   never cuts the campaign's peak), and the score dips under it
 ##   (`dip_music(seconds, dip_db)`) until its calm tail. While it rings,
 ##   `is_peaking()` is true: the AudioService then leaves out the mission's
-##   victory sting (the awakening is the victory).
+##   victory sting (the awakening is the victory). It is also the one moment
+##   the Advisor does not duck the music: the Music bus's sidechain compressor
+##   (DUCK_EFFECT) is off while the awakening rings and back on when it ends.
 ## - mission_started: everything resets (the awakening stops).
 
 const MUSIC_BUS: StringName = &"Music"
+## The Music bus's sidechain compressor (default_bus_layout.tres).
+const DUCK_EFFECT: StringName = &"DuckUnderVoice"
 
 ## Looks up a SoundEvent: `func(id: StringName) -> SoundEvent`.
 var resolve_event: Callable = func(_id: StringName) -> SoundEvent: return null
@@ -36,6 +40,7 @@ func _ready() -> void:
 	_player = AudioStreamPlayer.new()
 	_player.name = &"Awakening"
 	_player.bus = MUSIC_BUS
+	_player.finished.connect(_set_music_duck.bind(true))
 	add_child(_player)
 	Events.core_charge_changed.connect(handle_charge_changed)
 	Events.core_awakened.connect(handle_awakened)
@@ -69,6 +74,7 @@ func handle_awakened(_core: Node3D = null, start_at: float = 0.0) -> bool:
 	_player.volume_db = event.volume_db
 	var from: float = clampf(start_at, 0.0, _player.stream.get_length())
 	_player.play(from)
+	_set_music_duck(false)
 	var dip: float = CoreCues.dip_seconds(_player.stream.get_length()) - from
 	if dip > 0.0:
 		dip_music.call(dip, CoreCues.PEAK_DIP_DB)
@@ -81,6 +87,7 @@ func handle_mission_started() -> void:
 	_charge = 0.0
 	if _player != null:
 		_player.stop()
+	_set_music_duck(true)
 	_apply(true)
 
 
@@ -100,6 +107,29 @@ func level() -> int:
 
 func charge() -> float:
 	return _charge
+
+
+## True while the Music bus ducks under the Advisor (false during the awakening).
+static func music_ducks() -> bool:
+	var bus: int = AudioServer.get_bus_index(MUSIC_BUS)
+	var effect: int = _duck_effect(bus)
+	return effect >= 0 and AudioServer.is_bus_effect_enabled(bus, effect)
+
+
+static func _duck_effect(bus: int) -> int:
+	if bus < 0:
+		return -1
+	for i: int in AudioServer.get_bus_effect_count(bus):
+		if AudioServer.get_bus_effect(bus, i).resource_name == DUCK_EFFECT:
+			return i
+	return -1
+
+
+func _set_music_duck(enabled: bool) -> void:
+	var bus: int = AudioServer.get_bus_index(MUSIC_BUS)
+	var effect: int = _duck_effect(bus)
+	if effect >= 0:
+		AudioServer.set_bus_effect_enabled(bus, effect, enabled)
 
 
 func _apply(force: bool = false) -> void:
