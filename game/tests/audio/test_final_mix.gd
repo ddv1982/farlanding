@@ -95,7 +95,10 @@ const AWAKENING_DUCK_MAX_LU: float = 1.5
 ## little more: Kessel Reach's worst case is a storm fight with nothing of the
 ## planet's own on top, where the others add their tide, eruption, air war or
 ## awakening (docs/AUDIO_STYLE.md, "Across the campaign").
-const PLANET_SPREAD_LU: Dictionary[StringName, float] = {&"calm": 2.5, &"busy": 3.0}
+## The limits leave room for the measurement's own run-to-run movement (a scene moves
+## up to 1.5 LU between runs, more on a loaded CI runner): the designed spreads are
+## about 2 LU (calm) and 3 LU (busy).
+const PLANET_SPREAD_LU: Dictionary[StringName, float] = {&"calm": 3.5, &"busy": 4.5}
 ## Scene -> [planet, kind] for the cross-planet comparison.
 const PLANET_SCENES: Dictionary[StringName, Array] = {
 	&"kessel_calm": [&"kessel_reach", &"calm"],

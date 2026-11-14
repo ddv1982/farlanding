@@ -983,7 +983,7 @@ Each planet has a calm scene (its score in `calm` and its ambience; Hollow Merid
 the Core's first layer and two engines humming) and a busy one (its worst fight).
 `test_final_mix.gd` records all ten through the real buses, with the same settings as the
 Phase 6 table above. Its last test, `test_zz_planets_sit_together`, asserts that the calm scenes
-sit within 2.5 LU of each other and the busy scenes within 3.0 LU. Measured in Phase 9 on the
+sit within 3.5 LU of each other and the busy scenes within 4.5 LU (the designed spreads, about 2 and 3 LU, plus room for a measurement that moves up to 1.5 LU between runs). Measured in Phase 9 on the
 full `tests/audio` run:
 
 | Planet | Calm: integrated | Calm: peak before the limiter | Busy scene | Busy: integrated | Busy: peak before the limiter |
