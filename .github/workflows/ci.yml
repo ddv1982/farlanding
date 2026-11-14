@@ -1,8 +1,14 @@
 name: CI
 
+# One run per change: branches are checked through their pull request, main on push.
 on:
   push:
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

@@ -42,7 +42,11 @@ run_godot() {
 	if [ "$status" -ne 0 ]; then
 		fail "$name: godot exited with status $status"
 	fi
-	if grep -E '^(SCRIPT ERROR|ERROR|WARNING|USER ERROR|USER WARNING):' "$log.txt" >/dev/null; then
+	# Not ours: the GUT editor plugin asks GitHub for its latest version on a fresh
+	# machine, and a shared CI runner address is often over GitHub's anonymous limit.
+	local noise='^ERROR: \[GUT\] Could not get version info'
+	if grep -E '^(SCRIPT ERROR|ERROR|WARNING|USER ERROR|USER WARNING):' "$log.txt" \
+		| grep -Ev "$noise" >/dev/null; then
 		fail "$name: engine reported errors or warnings (see above)"
 	fi
 }
