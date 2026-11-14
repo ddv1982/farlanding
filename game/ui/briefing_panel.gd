@@ -1,12 +1,18 @@
 class_name BriefingPanel
 extends Control
 ## The briefing before a landing: mission type and title, the briefing text, the
-## objectives known at the start (primary first), and Start / Back.
+## objectives known at the start (primary first), and Start / Back. On a short
+## window the text and the objectives scroll; the title and the buttons stay in view.
 
 ## Start the mission shown.
 signal start_pressed(mission: MissionDef)
 ## Back to the mission list.
 signal back_pressed
+
+## Width of the text, px.
+const WIDTH: float = 620.0
+## Space kept free above and below the panel, px.
+const SCREEN_MARGIN: float = 24.0
 
 var mission: MissionDef = null
 
@@ -37,28 +43,33 @@ func _ready() -> void:
 	var panel: PanelContainer = HudStyle.make_panel()
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	centre.add_child(panel)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", 10)
-	column.custom_minimum_size = Vector2(620, 0)
+	var column := FitColumn.new(10)
+	column.custom_minimum_size = Vector2(WIDTH, 0)
+	column.outer_margin = (
+		SCREEN_MARGIN * 2 + panel.get_theme_stylebox(&"panel").get_minimum_size().y
+	)
 	panel.add_child(column)
 	_type = HudStyle.make_label(11, HudStyle.ACCENT_COLOR)
 	column.add_child(_type)
 	_title = HudStyle.make_label(30, HudStyle.TEXT_COLOR)
 	column.add_child(_title)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override(&"separation", 10)
+	column.add_scroll(body)
 	_text = HudStyle.make_label(14, HudStyle.TEXT_COLOR)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_text.custom_minimum_size = Vector2(620, 0)
-	column.add_child(_text)
-	column.add_child(HudStyle.make_label(11, HudStyle.MUTED_COLOR, "OBJECTIVES"))
+	_text.custom_minimum_size = Vector2(WIDTH, 0)
+	body.add_child(_text)
+	body.add_child(HudStyle.make_label(11, HudStyle.MUTED_COLOR, "OBJECTIVES"))
 	_objectives = VBoxContainer.new()
 	_objectives.add_theme_constant_override(&"separation", 4)
-	column.add_child(_objectives)
+	body.add_child(_objectives)
 	_carried_title = HudStyle.make_label(11, HudStyle.MUTED_COLOR, "FROM THE MERIDIAN")
-	column.add_child(_carried_title)
+	body.add_child(_carried_title)
 	_carried = HudStyle.make_label(13, HudStyle.INTEL_COLOR)
 	_carried.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_carried.custom_minimum_size = Vector2(620, 0)
-	column.add_child(_carried)
+	_carried.custom_minimum_size = Vector2(WIDTH, 0)
+	body.add_child(_carried)
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_END
 	buttons.add_theme_constant_override(&"separation", 10)

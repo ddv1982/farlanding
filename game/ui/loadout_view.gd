@@ -1,7 +1,8 @@
 class_name LoadoutView
 extends VBoxContainer
 ## The loadout for the next landing: one row per slot, one button per option. Options
-## whose techs are not owned yet show why and cannot be picked.
+## whose techs are not owned yet show why and cannot be picked. A slot's options
+## wrap onto a second row when the page is narrow.
 
 var session: CampaignSession = null
 
@@ -78,8 +79,9 @@ func _make_slot(slot: LoadoutSlotDef) -> VBoxContainer:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override(&"separation", 6)
 	column.add_child(HudStyle.make_label(12, HudStyle.ACCENT_COLOR, slot.title.to_upper()))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override(&"separation", 10)
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override(&"h_separation", 10)
+	row.add_theme_constant_override(&"v_separation", 10)
 	column.add_child(row)
 	for option: LoadoutOptionDef in slot.options:
 		if option == null:

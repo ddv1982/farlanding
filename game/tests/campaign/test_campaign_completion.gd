@@ -16,6 +16,7 @@ var _saved_dir: String
 var _saved_default: String
 var _saved_settings: String
 var _saved_seen: PackedStringArray
+var _saved_won: PackedStringArray
 var _completed: int = 0
 var _screens: Array[StringName] = []
 
@@ -28,6 +29,7 @@ func before_each() -> void:
 	_remove(SAVE)
 	_saved_settings = Settings.path
 	_saved_seen = Settings.hints_seen
+	_saved_won = Settings.missions_won
 	Settings.path = SETTINGS
 	_completed = 0
 	_screens.clear()
@@ -49,6 +51,7 @@ func after_each() -> void:
 	CampaignSession.default_path = _saved_default
 	Settings.path = _saved_settings
 	Settings.hints_seen = _saved_seen
+	Settings.missions_won = _saved_won
 	_remove(SAVE)
 	_remove(SETTINGS)
 

@@ -3,7 +3,8 @@ extends MenuScreen
 ## Aboard the Meridian (PLAN 1): the ship's overview (banked Intel, landings made, the
 ## codex, what the next landing will bring, and the campaign's difficulty, which may
 ## change here between landings), the tech web and the loadout, as tabs. STAR MAP
-## goes back.
+## goes back. The overview and the loadout scroll when the window is too short for
+## them (the tech web scrolls on its own).
 
 signal star_map_pressed
 ## A tab was shown: TAB_OVERVIEW (&"meridian"), TAB_TECH (&"tech_web") or TAB_LOADOUT
@@ -73,7 +74,12 @@ func _build() -> void:
 	_tech.tech_bought.connect(func(_id: StringName) -> void: _refresh_header())
 	_loadout = LoadoutView.new()
 	_loadout.name = &"Loadout"
-	for page: Array in [[TAB_OVERVIEW, _overview], [TAB_TECH, _tech], [TAB_LOADOUT, _loadout]]:
+	var pages: Array[Array] = [
+		[TAB_OVERVIEW, _scrolling(_overview)],
+		[TAB_TECH, _tech],
+		[TAB_LOADOUT, _scrolling(_loadout)]
+	]
+	for page: Array in pages:
 		var page_id: StringName = page[0]
 		var control: Control = page[1]
 		body.add_child(control)
@@ -169,6 +175,17 @@ func _on_difficulty_chosen(level: StringName) -> void:
 		session.set_difficulty(level)
 		Settings.set_option(&"difficulty", level)
 		_picker.set_level(session.state.difficulty)
+
+
+## `content` in a scroll area (vertical only) that fills the page.
+static func _scrolling(content: Control) -> ScrollContainer:
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(content)
+	return scroll
 
 
 func _refresh_header() -> void:

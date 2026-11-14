@@ -9,7 +9,11 @@ signal closed
 
 const BACKDROP := Color(0.0, 0.0, 0.0, 0.6)
 const WIDTH: float = 640.0
+## Height of the page of text (it scrolls when longer, and gives up height on a
+## short window so Back stays in view).
 const HEIGHT: float = 520.0
+## Space kept free above and below the panel, px.
+const SCREEN_MARGIN: float = 16.0
 const PAGE_HOW_TO_PLAY: StringName = &"how_to_play"
 const PAGE_CREDITS: StringName = &"credits"
 const GAME_NAME: String = "Farlanding"
@@ -39,22 +43,21 @@ func _ready() -> void:
 	panel.add_theme_stylebox_override(&"panel", HudStyle.solid_panel_style())
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	centre.add_child(panel)
-	var column := VBoxContainer.new()
+	var column := FitColumn.new(8)
 	column.custom_minimum_size = Vector2(WIDTH, 0)
-	column.add_theme_constant_override(&"separation", 8)
+	column.outer_margin = (
+		SCREEN_MARGIN * 2 + panel.get_theme_stylebox(&"panel").get_minimum_size().y
+	)
 	panel.add_child(column)
 	_kicker = HudStyle.make_label(11, HudStyle.ACCENT_COLOR, "THE CONCORD SURVEY")
 	column.add_child(_kicker)
 	_heading = HudStyle.make_label(26, HudStyle.TEXT_COLOR)
 	column.add_child(_heading)
-	_scroll = ScrollContainer.new()
-	_scroll.custom_minimum_size = Vector2(WIDTH, HEIGHT)
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	column.add_child(_scroll)
 	_body = HudStyle.make_label(13, HudStyle.TEXT_COLOR)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_body)
+	_scroll = column.add_scroll(_body, HEIGHT)
+	_scroll.custom_minimum_size = Vector2(WIDTH, 0)
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_END
 	var back: Button = HudStyle.make_small_button("BACK  (Esc)")

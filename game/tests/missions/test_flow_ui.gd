@@ -16,8 +16,15 @@ func test_mission_select_shows_one_card_per_mission() -> void:
 	select.show_catalog(_catalog)
 	assert_eq(select.card_count(), _catalog.missions.size())
 	assert_eq(select.card_count(), 10)
+	# The third mission opens once the two before it are won.
+	var saved_won: PackedStringArray = Settings.missions_won.duplicate()
+	Settings.missions_won = PackedStringArray(
+		[String(_catalog.missions[0].id), String(_catalog.missions[1].id)]
+	)
+	select.refresh()
 	watch_signals(select)
 	select._on_card_pressed(_catalog.missions[2])
+	Settings.missions_won = saved_won
 	assert_signal_emitted_with_parameters(select, "mission_chosen", [_catalog.missions[2]])
 
 

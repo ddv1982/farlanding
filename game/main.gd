@@ -545,6 +545,10 @@ func _set_map_running(running: bool) -> void:
 
 func _on_mission_finished(result: MissionResult) -> void:
 	var played: Node = map
+	# A won mission of the catalog opens the next single mission, also when it was
+	# won as a campaign landing (the campaign plays the same missions).
+	if result.won and current != null and catalog != null and catalog.missions.has(current):
+		Settings.mark_mission_won(current.id)
 	# A campaign landing counts the moment it ends, even if the player quits now.
 	var banked: int = -1
 	if campaign != null and campaign.landing != null:

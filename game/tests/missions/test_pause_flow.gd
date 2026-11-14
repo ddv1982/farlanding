@@ -10,6 +10,7 @@ var _main: Main
 var _saved_dir: String
 var _saved_path: String
 var _saved_seen: PackedStringArray
+var _saved_won: PackedStringArray
 
 
 func before_each() -> void:
@@ -19,6 +20,7 @@ func before_each() -> void:
 	# Hints shown in these landings must not be written into the real profile.
 	_saved_path = Settings.path
 	_saved_seen = Settings.hints_seen
+	_saved_won = Settings.missions_won
 	Settings.path = PATH
 	_main = (load("res://main.tscn") as PackedScene).instantiate() as Main
 	add_child(_main)
@@ -33,6 +35,7 @@ func after_each() -> void:
 	SaveSlots.default_dir = _saved_dir
 	Settings.path = _saved_path
 	Settings.hints_seen = _saved_seen
+	Settings.missions_won = _saved_won
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 
 

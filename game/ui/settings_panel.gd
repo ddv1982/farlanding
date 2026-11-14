@@ -13,8 +13,11 @@ signal closed
 
 const BACKDROP := Color(0.0, 0.0, 0.0, 0.55)
 const WIDTH: float = 540.0
-## Height of a tab's page (it scrolls when longer).
+## Height of a tab's page (it scrolls when longer, and gives up height on a short
+## window so Back stays in view).
 const PAGE_HEIGHT: float = 400.0
+## Space kept free above and below the panel, px.
+const SCREEN_MARGIN: float = 16.0
 const TAB_GENERAL: StringName = &"general"
 const TAB_ACCESS: StringName = &"accessibility"
 const TAB_KEYS: StringName = &"keys"
@@ -82,9 +85,11 @@ func _ready() -> void:
 	panel.add_theme_stylebox_override(&"panel", HudStyle.solid_panel_style())
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	centre.add_child(panel)
-	var column := VBoxContainer.new()
+	var column := FitColumn.new(8)
 	column.custom_minimum_size = Vector2(WIDTH, 0)
-	column.add_theme_constant_override(&"separation", 8)
+	column.outer_margin = (
+		SCREEN_MARGIN * 2 + panel.get_theme_stylebox(&"panel").get_minimum_size().y
+	)
 	panel.add_child(column)
 	column.add_child(HudStyle.make_label(11, HudStyle.ACCENT_COLOR, "THE CONCORD SURVEY"))
 	column.add_child(HudStyle.make_label(26, HudStyle.TEXT_COLOR, "Settings"))
@@ -351,15 +356,12 @@ func _tick() -> void:
 
 
 ## A tab's page: a scrolling column under the tab row.
-func _page(parent: VBoxContainer, tab_id: StringName) -> VBoxContainer:
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(WIDTH, PAGE_HEIGHT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	parent.add_child(scroll)
+func _page(parent: FitColumn, tab_id: StringName) -> VBoxContainer:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override(&"separation", 8)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(column)
+	var scroll: ScrollContainer = parent.add_scroll(column, PAGE_HEIGHT)
+	scroll.custom_minimum_size = Vector2(WIDTH, 0)
 	_pages[tab_id] = scroll
 	return column
 

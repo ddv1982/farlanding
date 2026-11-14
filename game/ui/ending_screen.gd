@@ -4,7 +4,8 @@ extends MenuScreen
 ## Core is awake and the debrief is closed, and again when Continue picks a finished
 ## campaign: what the Core showed the expedition, then the campaign's numbers
 ## (difficulty, landings, Intel, discoveries, techs), the credits and a way back to
-## the title.
+## the title. On a short window the story and the numbers scroll; the heading and
+## the buttons stay in view.
 
 signal title_pressed
 signal credits_pressed
@@ -33,30 +34,36 @@ const STORY: PackedStringArray = [
 	),
 ]
 
+## Space kept free around the column, px.
+const SCREEN_MARGIN: int = 48
+
 var _stats: Label
 var _back_button: Button
 
 
 func _build() -> void:
-	var frame: MarginContainer = _make_frame(48)
+	var frame: MarginContainer = _make_frame(SCREEN_MARGIN)
 	var centre := CenterContainer.new()
 	frame.add_child(centre)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", 14)
+	var column := FitColumn.new(14)
 	column.custom_minimum_size = Vector2(720, 0)
+	column.outer_margin = SCREEN_MARGIN * 2
 	centre.add_child(column)
 	column.add_child(HudStyle.make_label(12, HudStyle.ACCENT_COLOR, "THE KESSEL TRAIL · COMPLETE"))
 	column.add_child(HudStyle.make_label(34, HudStyle.TEXT_COLOR, HEADING))
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override(&"separation", 14)
+	column.add_scroll(body)
 	for paragraph: String in STORY:
 		var text: Label = HudStyle.make_label(15, HudStyle.TEXT_COLOR, paragraph)
 		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		text.custom_minimum_size = Vector2(720, 0)
-		column.add_child(text)
+		body.add_child(text)
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 10)
-	column.add_child(gap)
+	body.add_child(gap)
 	_stats = HudStyle.make_label(14, HudStyle.INTEL_COLOR)
-	column.add_child(_stats)
+	body.add_child(_stats)
 	_back_button = HudStyle.make_menu_button("BACK TO THE TITLE", 280.0)
 	_back_button.pressed.connect(
 		func() -> void:
