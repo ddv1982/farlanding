@@ -46,7 +46,7 @@ if (process.env.WEB_DEPLOYMENT_URL && process.env.WEB_DEPLOYMENT_PUBLIC_ONLY) {
     // Node fetch sends no Playwright protection headers, cookies, or Vercel token.
     await expect.poll(async () => {
       const response = await fetch(`${url}/manifest.json`);
-      return response.ok() && response.headers.get('content-type')?.includes('application/json')
+      return response.ok && response.headers.get('content-type')?.includes('application/json')
         ? (await response.json()).commit : null;
     }, { timeout: 60000 }).toBe(process.env.WEB_DEPLOYMENT_COMMIT);
     for (const path of ['/', '/index.wasm', '/index.pck']) {
