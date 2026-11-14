@@ -152,6 +152,13 @@ cover that handoff and rejection of incorrect/dirty/diagnostic/corrupt releases.
 The revised download path also retrieved and verified the real nine-file artifact
 locally. It does not forward authorization to the redirected storage host.
 
+A native CI run failed the calm-scene comparison at 3.517 LU against its 3.5 LU
+limit. The mix fixture seeded only the global RNG, leaving the directors' private
+RNGs and bed playback positions uncontrolled. It now resets those scene inputs
+without changing production audio or the loudness limits. The full native audio
+suite passed 416 tests / 6,374 assertions with no engine errors or warnings; the
+calm-scene spread was approximately 2.6 LU.
+
 Production promotion is wired into CI after native/browser gates and the staged
 hosted game check. A separate unauthenticated check verifies the stable production
 domain after promotion. See [ADR 0020](adr/0020-vercel-ci-deployment.md) for the

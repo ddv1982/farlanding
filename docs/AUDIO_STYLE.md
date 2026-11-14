@@ -1001,6 +1001,11 @@ and the details are random. Across four runs the calm scenes spanned 1.5–2.6 L
 The finale's peak varied most (−1.9 to −5.0 dBFS): it is the campaign's one unducked climax, with
 explosions landing on top of the cue.
 
+CI qualification now seeds the audio service, music director, and ambience director's
+own RNGs and restarts score/ambience playback for each scene. A global seed alone did
+not control random bed offsets or prior playback state. The 3.5/4.5 LU limits stay
+unchanged; this fixture reset does not change the game's production mix or variety.
+
 Fixed in Phase 9:
 
 - **Hollow Meridian calm was 2.5–4 LU hot** (−25.5 against about −28.5). Its `calm` state played

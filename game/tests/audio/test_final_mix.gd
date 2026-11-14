@@ -124,7 +124,18 @@ var _vent: Node3D
 
 
 func before_each() -> void:
+	Events.campaign_screen_changed.emit(&"")
+	# These directors own RNGs: the global seed does not control bed offsets,
+	# wandering or one-shot variations. Start each scene from the same mix state.
+	Audio.ambience().stop()
+	Audio.ambience()._use_set(AmbienceSet.new())
+	await wait_process_frames(1)
 	seed(1729)
+	Audio._rng.seed = 1729
+	Audio._last_variation.clear()
+	Audio.ambience()._rng.seed = 1729
+	Audio.music()._rng.seed = 1729
+	Audio.play_score(load(KESSEL_SCORE) as MusicScore)
 	_mix = MixScene.new()
 	# Positional players only mix with a camera in the viewport (the game always
 	# has one; the test runner does not).
