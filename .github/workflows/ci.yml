@@ -226,10 +226,10 @@ jobs:
           python3 - <<'PY'
           import json, os
           from pathlib import Path
-          deployment = json.loads((Path(os.environ['RUNNER_TEMP']) / 'deployment.json').read_text())['deployment']
-          assert deployment['readyState'] == 'READY'
+          from tools.prepare_vercel import deployment_url
+          response = json.loads((Path(os.environ['RUNNER_TEMP']) / 'deployment.json').read_text())
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write('url=' + deployment['url'] + '\n')
+              output.write('url=' + deployment_url(response) + '\n')
           PY
 
       - name: Install hosted browser test runtime

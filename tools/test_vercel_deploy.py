@@ -16,6 +16,20 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class VercelDeployTest(unittest.TestCase):
+    def test_cli_response_accepts_flat_ci_and_wrapped_agent_modes(self):
+        deployment = {'url': 'https://farlanding-example.vercel.app', 'readyState': 'READY'}
+        for response in [deployment, {'status': 'ok', 'deployment': deployment}]:
+            with self.subTest(response=response):
+                self.assertEqual(prepare_vercel.deployment_url(response), deployment['url'])
+
+    def test_cli_response_rejects_unready_or_invalid_deployments(self):
+        for response in [{}, {'readyState': 'BUILDING', 'url': 'https://example.vercel.app'},
+                         {'deployment': None}, {'readyState': 'READY'},
+                         {'readyState': 'READY', 'url': 'http://example.vercel.app'},
+                         {'readyState': 'READY', 'url': 'https://example.vercel.app\nother=value'}]:
+            with self.subTest(response=response), self.assertRaises(ValueError):
+                prepare_vercel.deployment_url(response)
+
     def test_preparation_persists_identity_not_expiring_urls_or_tokens(self):
         metadata = {'artifacts': [{'id': 42, 'name': f'farlanding-web-{COMMIT}', 'expired': False,
                                   'workflow_run': {'id': 99}, 'digest': 'sha256:' + 'a' * 64}]}
