@@ -191,6 +191,9 @@ signal campaign_completed
 ## The campaign was written to disk (`slot` names the save).
 signal campaign_saved(slot: StringName)
 
+## A Web save reached persistent browser storage, after the local file write.
+signal campaign_save_confirmed(slot: StringName)
+
 ## The campaign could not be written to disk (`slot` names the save): what
 ## changed since the last good save exists only in memory.
 signal campaign_save_failed(slot: StringName)

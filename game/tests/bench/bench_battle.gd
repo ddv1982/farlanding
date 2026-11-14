@@ -13,6 +13,7 @@ extends Node
 const MISSION: String = "res://data/missions/conquest.tres"
 const ARMY: int = 110
 const SETTLE_FRAMES: int = 30
+const WEB_WARMUP_MSEC: int = 5000
 const PLAYER_CENTRE: Vector3 = Vector3(-34.0, 0.0, 22.0)
 const ENEMY_CENTRE: Vector3 = Vector3(30.0, 0.0, -14.0)
 const PLAYER_ROSTER: Array[String] = [
@@ -40,9 +41,22 @@ var _vision_ms: Array[float] = []
 var _frame_ms: Array[float] = []
 var _last_frame_usec: int = 0
 var _peak_units: int = 0
+var _finished: bool = false
+var _logic_start: int = 0
+var _render_start: int = 0
+var _physics_start: int = 0
+var _logic_ms: Array[float] = []
+var _render_ms: Array[float] = []
+var _physics_ms: Array[float] = []
+var _draw_calls: Array[float] = []
 
 
 func _ready() -> void:
+	seed(1729)
+	get_tree().process_frame.connect(_on_process_frame)
+	get_tree().physics_frame.connect(_on_physics_frame)
+	RenderingServer.frame_pre_draw.connect(_on_pre_draw)
+	RenderingServer.frame_post_draw.connect(_on_post_draw)
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_storm = args.has("--storm")
 	for arg: String in args:
@@ -54,17 +68,26 @@ func _ready() -> void:
 		_map.with_props = false
 	add_child(_map)
 	Events.sim_ticked.connect(_on_sim_ticked)
+	if OS.has_feature("web"):
+		# Keep the reference benchmark comparable when fresh-profile defaults change.
+		get_viewport().scaling_3d_scale = 1.0
+		GraphicsSettings.apply(_map, Settings.QUALITY_MEDIUM)
+		_map.camera.center_on(Vector3.ZERO)
+		JavaScriptBridge.eval("window.farlanding.ready = true")
 
 
 func _process(_delta: float) -> void:
 	var now: int = Time.get_ticks_usec()
-	if _started_msec >= 0 and _last_frame_usec > 0:
+	if _measuring() and _last_frame_usec > 0:
 		_frame_ms.append((now - _last_frame_usec) / 1000.0)
 	_last_frame_usec = now
 	_frames += 1
 	if _frames == SETTLE_FRAMES:
 		_drop_armies()
-	if _started_msec >= 0 and Time.get_ticks_msec() - _started_msec > _seconds * 1000.0:
+	if (
+		_started_msec >= 0
+		and Time.get_ticks_msec() - _started_msec > _seconds * 1000.0 + _warmup_msec()
+	):
 		_report()
 
 
@@ -72,6 +95,7 @@ func _drop_armies() -> void:
 	var world: SimWorld = _map.world
 	_spawn(world, PLAYER_ROSTER, 0, PLAYER_CENTRE, ENEMY_CENTRE)
 	_spawn(world, ENEMY_ROSTER, 1, ENEMY_CENTRE, PLAYER_CENTRE)
+	_peak_units = world.units.size()
 	world.profiling = OS.get_cmdline_user_args().has("--sections")
 	world.profiling_units = world.profiling
 	world.section_usec.clear()
@@ -95,7 +119,7 @@ func _spawn(
 
 
 func _on_sim_ticked(_tick: int) -> void:
-	if _started_msec < 0:
+	if not _measuring():
 		return
 	var world: SimWorld = _map.world
 	_tick_ms.append(world.last_tick_usec / 1000.0)
@@ -105,6 +129,7 @@ func _on_sim_ticked(_tick: int) -> void:
 
 
 func _report() -> void:
+	_finished = true
 	set_process(false)
 	var world: SimWorld = _map.world
 	var ticks: int = _tick_ms.size()
@@ -117,6 +142,10 @@ func _report() -> void:
 		"  vision update  mean %.2f ms  p95 %.2f  max %.2f" % _stats(_vision_ms),
 		"  frame          mean %.2f ms  p95 %.2f  max %.2f" % _stats(_frame_ms),
 	]
+	lines.append("  scene process  mean %.2f ms  p95 %.2f  max %.2f" % _stats(_logic_ms))
+	lines.append("  render submit  mean %.2f ms  p95 %.2f  max %.2f" % _stats(_render_ms))
+	lines.append("  physics span   mean %.2f ms  p95 %.2f  max %.2f" % _stats(_physics_ms))
+	lines.append("  draw calls     mean %.0f  p95 %.0f  max %.0f" % _stats(_draw_calls))
 	var sections: Array[StringName] = world.section_usec.keys()
 	sections.sort_custom(
 		func(a: StringName, b: StringName) -> bool:
@@ -138,7 +167,12 @@ func _report() -> void:
 			)
 		)
 	print("\n".join(lines))
-	get_tree().quit()
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.farlanding.benchmark = " + JSON.stringify(lines))
+		_map.context.sim_clock.paused = true
+		set_process(false)
+	else:
+		get_tree().quit()
 
 
 static func _stats(values: Array[float]) -> Array[float]:
@@ -151,3 +185,43 @@ static func _stats(values: Array[float]) -> Array[float]:
 		total += value
 	var p95: float = sorted[mini(floori(sorted.size() * 0.95), sorted.size() - 1)]
 	return [total / sorted.size(), p95, sorted[sorted.size() - 1]]
+
+
+func _warmup_msec() -> int:
+	return WEB_WARMUP_MSEC if OS.has_feature("web") else 0
+
+
+func _measuring() -> bool:
+	return (
+		not _finished
+		and _started_msec >= 0
+		and Time.get_ticks_msec() - _started_msec >= _warmup_msec()
+	)
+
+
+func _on_physics_frame() -> void:
+	if _physics_start == 0:
+		_physics_start = Time.get_ticks_usec()
+
+
+func _on_process_frame() -> void:
+	_logic_start = Time.get_ticks_usec()
+	if _measuring() and _physics_start > 0:
+		_physics_ms.append((_logic_start - _physics_start) / 1000.0)
+	_physics_start = 0
+
+
+func _on_pre_draw() -> void:
+	_render_start = Time.get_ticks_usec()
+	if _measuring() and _logic_start > 0:
+		_logic_ms.append((_render_start - _logic_start) / 1000.0)
+
+
+func _on_post_draw() -> void:
+	if _measuring() and _render_start > 0:
+		_render_ms.append((Time.get_ticks_usec() - _render_start) / 1000.0)
+		_draw_calls.append(
+			RenderingServer.get_rendering_info(
+				RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME
+			)
+		)

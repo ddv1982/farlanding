@@ -214,6 +214,11 @@ static func key_names() -> Dictionary:
 
 ## The default binding of `action`.
 static func default_of(action: StringName) -> String:
+	if OS.has_feature("web"):
+		if action == &"quicksave":
+			return "k75"
+		if action == &"quickload":
+			return "k76"
 	for entry: Array in ACTIONS:
 		if entry[0] == action:
 			return entry[3]
@@ -277,7 +282,7 @@ static func _keycode(code: String) -> Key:
 		return KEY_NONE
 	if event.keycode != KEY_NONE:
 		return event.keycode
-	if DisplayServer.get_name() == "headless":
+	if DisplayServer.get_name() == "headless" or OS.has_feature("web"):
 		return event.physical_keycode
 	var mapped: Key = DisplayServer.keyboard_get_keycode_from_physical(event.physical_keycode)
 	return mapped if mapped != KEY_NONE else event.physical_keycode

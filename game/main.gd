@@ -90,9 +90,19 @@ var _backdrop_path: String = ""
 var _screen_before_credits: StringName = &""
 ## The route node of the campaign landing briefed or played.
 var _landing_node: StringName = &""
+var _web_storage: BrowserPersistence
+var _web_focus_callback: JavaScriptObject
 
 
 func _ready() -> void:
+	if OS.has_feature("web_diagnostics"):
+		var args: PackedStringArray = OS.get_cmdline_user_args()
+		if args.has("--web-bench"):
+			get_tree().change_scene_to_file.call_deferred("res://tests/bench/bench_battle.tscn")
+			return
+		if args.has("--web-audio"):
+			get_tree().change_scene_to_file.call_deferred("res://tests/web/audio_qa.tscn")
+			return
 	Events.campaign_save_failed.connect(_on_campaign_save_failed)
 	if campaign_def == null and ResourceLoader.exists(CAMPAIGN):
 		campaign_def = load(CAMPAIGN) as CampaignDef
@@ -180,6 +190,28 @@ func _ready() -> void:
 	Settings.changed.connect(_apply_speed)
 	_select.show_catalog(catalog)
 	show_title()
+	if OS.has_feature("web"):
+		_web_focus_callback = JavaScriptBridge.create_callback(_on_web_focus_lost)
+		var browser: JavaScriptObject = JavaScriptBridge.get_interface("window")
+		browser.set("farlandingFocusLost", _web_focus_callback)
+		_web_storage = BrowserPersistence.new()
+		add_child(_web_storage)
+		_web_storage.confirmed.connect(_on_storage_confirmed)
+		Events.campaign_saved.connect(_confirm_storage)
+		Settings.changed.connect(_confirm_settings.call_deferred)
+		JavaScriptBridge.eval("window.farlanding.ready = true")
+		if not OS.is_userfs_persistent():
+			JavaScriptBridge.eval("storageFailed()")
+	if OS.has_feature("web_diagnostics"):
+		var probe: Node = (load("res://tests/web/web_probe.gd") as GDScript).new()
+		add_child(probe)
+
+
+func _notification(what: int) -> void:
+	if OS.has_feature("web") and what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		for action: StringName in InputMap.get_actions():
+			Input.action_release(action)
+		open_pause()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -389,9 +421,12 @@ func save_game(slot: StringName) -> bool:
 		_report(problem, true)
 		Events.ui_feedback.emit(&"save_failed")
 		return false
-	_report("Saved to %s." % SaveSlots.label_of(slot), false)
+	if OS.has_feature("web"):
+		_report("Saving %s to browser storage…" % SaveSlots.label_of(slot), false)
+	else:
+		_report("Saved to %s." % SaveSlots.label_of(slot), false)
+		Events.ui_feedback.emit(&"save_done")
 	Events.campaign_saved.emit(slot)
-	Events.ui_feedback.emit(&"save_done")
 	return true
 
 
@@ -450,7 +485,7 @@ func quickload() -> bool:
 
 ## Opens the pause menu: the sim clock and the camera stop.
 func open_pause() -> void:
-	if map == null or paused:
+	if map == null or paused or _debrief.visible:
 		return
 	paused = true
 	_hints.suspended = true
@@ -623,6 +658,8 @@ func _report(text: String, failed: bool) -> void:
 	_message = text
 	_message_failed = failed
 	_notice.show_text(text, failed)
+	if _slots.visible:
+		_slots.show_status(text, failed)
 	if failed:
 		print("Main: %s" % text)
 
@@ -716,3 +753,31 @@ func _close_map() -> void:
 	remove_child(map)
 	map.queue_free()
 	map = null
+
+
+func _confirm_storage(slot: StringName) -> void:
+	var path: String = (
+		CampaignSession.default_path if slot == CampaignSession.SLOT else SaveSlots.path_of(slot)
+	)
+	_web_storage.confirm(path, slot)
+
+
+func _confirm_settings() -> void:
+	_web_storage.confirm(Settings.path, &"settings")
+
+
+func _on_storage_confirmed(slot: StringName, success: bool) -> void:
+	if not success:
+		_report("Browser storage could not confirm the save. Keep this tab open.", true)
+		Events.ui_feedback.emit(&"save_failed")
+		return
+	if slot == &"settings":
+		return
+	Events.campaign_save_confirmed.emit(slot)
+	if slot not in [CampaignSession.SLOT, SaveSlots.AUTOSAVE]:
+		_report("Saved to %s." % SaveSlots.label_of(slot), false)
+		Events.ui_feedback.emit(&"save_done")
+
+
+func _on_web_focus_lost(_arguments: Array) -> void:
+	propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)

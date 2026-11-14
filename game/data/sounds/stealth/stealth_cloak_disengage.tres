@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SoundEvent" format=3]
 
 [ext_resource type="Script" path="res://audio/sound_event.gd" id="1_script"]
-[ext_resource type="AudioStream" path="res://assets/audio/stealth/stealth_cloak_disengage.wav" id="2_stream"]
+[ext_resource type="AudioStream" path="res://assets/audio/stealth/stealth_cloak_disengage.mp3" id="2_stream"]
 
 [resource]
 script = ExtResource("1_script")

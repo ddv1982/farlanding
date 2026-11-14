@@ -114,6 +114,7 @@ func _ready() -> void:
 	buttons.add_child(back)
 	column.add_child(buttons)
 	Settings.changed.connect(sync_from_settings)
+	Settings.fullscreen_reconciled.connect(sync_from_settings)
 	sync_from_settings()
 	show_tab(TAB_GENERAL, false)
 	visible = false

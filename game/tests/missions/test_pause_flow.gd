@@ -101,3 +101,18 @@ func test_the_hud_menu_button_opens_the_pause_menu() -> void:
 	hud.request_menu()
 	assert_true(_main.paused)
 	_main.resume()
+
+
+func test_pause_cannot_reopen_a_completed_mission_under_the_debrief() -> void:
+	_main.start_mission(_main.catalog.missions[2])
+	await wait_frames(3)
+	_main.runner.finish(false)
+	await wait_seconds(Main.DEBRIEF_DELAY + 0.1)
+	assert_true(_main._debrief.visible)
+	assert_true(_main.runner.context.sim_clock.paused)
+	_main.open_pause()
+	assert_false(_main.paused, "focus loss must not open Pause over the debrief")
+	assert_false(_main._pause.visible)
+	_main.resume()
+	assert_true(_main._debrief.visible)
+	assert_true(_main.runner.context.sim_clock.paused, "the finished simulation stays stopped")

@@ -236,7 +236,8 @@ func test_the_duck_returns_when_the_awakening_ends() -> void:
 	var length: float = Audio.get_event(CoreCues.AWAKENED).longest_seconds()
 	core.handle_awakened(null, length - 0.3)
 	assert_false(CoreSound.music_ducks())
-	await wait_until(func() -> bool: return not core.is_peaking(), 3.0)
+	await wait_until(func() -> bool: return CoreSound.music_ducks(), 3.0)
+	assert_false(core.is_peaking())
 	assert_true(CoreSound.music_ducks(), "the cue ended: the duck is back")
 
 

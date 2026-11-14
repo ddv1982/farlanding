@@ -10,7 +10,7 @@ the committed assets are exactly what the recipes produce (docs/AUDIO_PROVENANCE
 
 Exits non-zero if any file clips, misses its loudness target, has DC offset,
 breaks its duration bounds, or (for loops) has an audible seam. The analysis
-runs on the files as written (Ogg files are decoded again first), so it judges
+runs on the files as written (compressed files are decoded again first), so it judges
 what the game will actually load.
 
 Also maintains the Godot side: writes the import settings each file needs
@@ -44,7 +44,7 @@ MANIFEST = Path(__file__).resolve().parent / "manifest.json"
 
 CEILING_DBTP = -1.0  # normalisation ceiling
 MAX_DBTP = -0.5  # hard fail after encoding
-LUFS_TOL = {"wav": 0.5, "ogg": 1.0}
+LUFS_TOL = {"wav": 0.5, "ogg": 1.0, "mp3": 1.0}
 MAX_DC = 0.002
 MAX_SUB = 0.03  # share of energy below 25 Hz
 SEAM_JUMP = 1.5
@@ -289,6 +289,8 @@ def import_params(s: Sound) -> tuple[str, str, dict]:
             "edit/loop_mode": "2" if s.loop else "1", "edit/loop_begin": "0", "edit/loop_end": "-1",
             "compress/mode": "2",
         }
+    if s.fmt == "mp3":
+        return "mp3", "AudioStreamMP3", {"loop": "false", "loop_offset": "0", "bpm": "0", "beat_count": "0", "bar_beats": "4"}
     return "oggvorbisstr", "AudioStreamOggVorbis", {
         "loop": "true" if s.loop else "false", "loop_offset": "0",
         "bpm": f"{s.bpm:g}" if s.bpm else "0", "beat_count": str(s.beats), "bar_beats": str(s.bar_beats),
@@ -431,13 +433,13 @@ def table(rows: list[tuple[Sound, dict]]) -> str:
 # --------------------------------------------------------------------------- check
 
 
-def check(only: str) -> int:
+def check(only: str, fmt: str | None = None) -> int:
     """Renders the chosen sounds into a temporary directory and compares their
     hashes with the manifest. Writes nothing in the tree."""
     import tempfile
 
     recorded = {e["id"]: e for e in json.loads(MANIFEST.read_text())["sounds"]}
-    sounds = [s for s in load_all() if only in s.id]
+    sounds = [s for s in load_all() if only in s.id and (not fmt or s.fmt == fmt)]
     missing = sorted(set(recorded) - {s.id for s in load_all()})
     differ = []
     t0 = time.time()
@@ -445,7 +447,7 @@ def check(only: str) -> int:
         for s in sounds:
             path = Path(tmp) / s.path
             path.parent.mkdir(parents=True, exist_ok=True)
-            (io.write_wav if s.fmt == "wav" else io.write_ogg)(path, render(s), s.seed)
+            io.write_audio(path, render(s), s.seed)
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             entry = recorded.get(s.id)
             on_disk = OUT / s.path
@@ -467,19 +469,20 @@ def check(only: str) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="", help="render only sounds whose id contains this")
+    ap.add_argument("--format", choices=("wav", "ogg", "mp3"), help="render only this output format")
     ap.add_argument("--check", action="store_true",
                     help="render into a temporary directory and compare hashes with the manifest")
     args = ap.parse_args()
     if args.check:
-        return check(args.only)
+        return check(args.only, args.format)
 
     sounds = load_all()
     ids = [s.id for s in sounds]
     if len(ids) != len(set(ids)):
         raise SystemExit("duplicate sound ids")
-    chosen = [s for s in sounds if args.only in s.id]
+    chosen = [s for s in sounds if args.only in s.id and (not args.format or s.fmt == args.format)]
     manifest = {}
-    if MANIFEST.exists() and args.only:
+    if MANIFEST.exists() and (args.only or args.format):
         manifest = {e["id"]: e for e in json.loads(MANIFEST.read_text())["sounds"]}
 
     rows = []
@@ -489,7 +492,7 @@ def main() -> int:
         path = OUT / s.path
         path.parent.mkdir(parents=True, exist_ok=True)
         write_import(path, s)
-        (io.write_wav if s.fmt == "wav" else io.write_ogg)(path, x, s.seed)
+        io.write_audio(path, x, s.seed)
         a = analyse(s, x, path)
         rows.append((s, a))
         manifest[s.id] = {
@@ -510,11 +513,11 @@ def main() -> int:
         }
         print(f"  rendered {s.path}", file=sys.stderr)
 
-    if not args.only:
+    if not args.only and not args.format:
         # Remove outputs that no recipe produces any more.
         known = {str(OUT / s.path) for s in sounds}
         for f in OUT.rglob("*"):
-            if f.suffix in (".wav", ".ogg") and str(f) not in known:
+            if f.suffix in (".wav", ".ogg", ".mp3") and str(f) not in known:
                 f.unlink()
                 f.with_name(f.name + ".import").unlink(missing_ok=True)
                 print(f"  removed stale {f.relative_to(ROOT)}", file=sys.stderr)

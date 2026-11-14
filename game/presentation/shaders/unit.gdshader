@@ -12,17 +12,37 @@ uniform vec3 dust_color : source_color = vec3(0.62, 0.42, 0.27);
 uniform float dust_height = 1.1;
 uniform float dust_amount : hint_range(0.0, 1.0) = 0.45;
 
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform vec3 team_color : source_color = vec3(0.1, 0.45, 1.0);
+#else
 instance uniform vec3 team_color : source_color = vec3(0.1, 0.45, 1.0);
+#endif
 // 0 = pristine, 1 = wrecked: darkens and desaturates the surface.
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float damage : hint_range(0.0, 1.0) = 0.0;
+#else
 instance uniform float damage : hint_range(0.0, 1.0) = 0.0;
+#endif
 // Construction: the model is revealed from the ground up to
 // build_progress * build_height metres, with a glowing band at the build front.
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float build_progress : hint_range(0.0, 1.0) = 1.0;
+#else
 instance uniform float build_progress : hint_range(0.0, 1.0) = 1.0;
+#endif
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float build_height = 10.0;
+#else
 instance uniform float build_height = 10.0;
+#endif
 uniform vec3 build_glow : source_color = vec3(0.25, 0.95, 1.0);
 // Stealth: 0 = plain, 1 = cloaked. A cloaked unit is drawn as a screen-door ghost
 // with a travelling shimmer, so its owner still sees it but it reads as hidden.
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform float cloak : hint_range(0.0, 1.0) = 0.0;
+#else
 instance uniform float cloak : hint_range(0.0, 1.0) = 0.0;
+#endif
 uniform vec3 cloak_color : source_color = vec3(0.2, 0.85, 1.0);
 
 const int BAYER[16] = int[16](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);

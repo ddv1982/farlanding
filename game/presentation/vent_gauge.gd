@@ -77,8 +77,8 @@ func countdown_text() -> String:
 
 func _refresh() -> void:
 	var erupting: bool = _burst >= 0.0
-	_ring.set_instance_shader_parameter(&"pressure", 1.0 if erupting else _pressure)
-	_ring.set_instance_shader_parameter(&"alarm", 1.0 if erupting or _next else 0.0)
+	ShaderParameters.set_value(_ring, &"pressure", 1.0 if erupting else _pressure)
+	ShaderParameters.set_value(_ring, &"alarm", 1.0 if erupting or _next else 0.0)
 	var line: String = ""
 	if erupting:
 		var left: int = ceili(_burst)

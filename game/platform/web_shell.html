@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>$GODOT_PROJECT_NAME</title>
+<style>
+html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#131b20; color:#e5edf0; font:16px system-ui,sans-serif; }
+#canvas { display:block; width:100%; height:100%; outline:none; }
+#launch { position:fixed; inset:0; display:grid; place-content:center; text-align:center; background:#131b20; z-index:2; }
+button { padding:16px 32px; background:#df813a; color:#10171c; border:0; border-radius:4px; font:inherit; cursor:pointer; }
+#message { max-width:34em; white-space:pre-wrap; }
+#storage-warning { position:fixed; bottom:8px; left:8px; max-width:36em; padding:10px; background:#7b311f; z-index:3; }
+</style>
+$GODOT_HEAD_INCLUDE
+</head>
+<body>
+<canvas id="canvas" tabindex="0" aria-label="Farlanding game"></canvas>
+<div id="launch"><h1>Farlanding</h1><p>A Concord Survey expedition</p><button id="start">Play Farlanding</button><p id="message">Keyboard and mouse required. Saves stay in this browser.</p><progress id="progress" hidden></progress></div>
+<div id="storage-warning" role="alert" hidden></div>
+<noscript>Enable JavaScript to play Farlanding.</noscript>
+<script src="$GODOT_URL"></script>
+<script>
+const config = $GODOT_CONFIG;
+if (window.FARLANDING_DIAGNOSTICS) {
+  const query = new URLSearchParams(location.search);
+  const mission = query.get('mission');
+  if (mission && /^[a-z_]+$/.test(mission)) config.args.push('--', '--web-mission=' + mission);
+  if (query.has('encounter')) config.args.push('--', '--web-encounter');
+  if (query.has('latency')) config.args.push('--', '--web-audio', '--web-latency');
+  if (query.has('audio')) config.args.push('--', '--web-audio');
+  if (query.has('bench')) config.args.push('--', '--web-bench', '--seconds=' + (query.get('seconds') === '30' ? '30' : '120'));
+}
+const engine = new Engine(config);
+const canvas = document.getElementById('canvas');
+const message = document.getElementById('message');
+const warning = document.getElementById('storage-warning');
+window.farlanding = { ready:false, storage:'checking', errors:[], saves:{} };
+function storageFailed() {
+  window.farlanding.storage = 'unavailable';
+  warning.textContent = 'Browser storage is unavailable or a save could not be persisted. Progress may be lost when you reload. Allow site storage before continuing.';
+  warning.hidden = false;
+}
+async function checkStorage() {
+  try {
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open('farlanding-storage-check', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('check');
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction('check', 'readwrite');
+        transaction.objectStore('check').put('ok', 'probe');
+        transaction.oncomplete = () => { db.close(); resolve(); };
+        transaction.onerror = () => { db.close(); reject(transaction.error); };
+        transaction.onabort = () => { db.close(); reject(transaction.error); };
+      };
+    });
+    window.farlanding.storage = 'available';
+  } catch { storageFailed(); }
+}
+const pendingFiles = new Map();
+window.addEventListener('beforeunload', event => {
+  if (pendingFiles.size) { event.preventDefault(); event.returnValue = ''; }
+});
+function storedFile(path) {
+  return new Promise((resolve, reject) => {
+    // Godot 4.7.2 mounts Emscripten IDBFS at /userfs with its FILE_DATA store.
+    const request = indexedDB.open('/userfs');
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      try {
+        const get = db.transaction('FILE_DATA').objectStore('FILE_DATA').get(path);
+        get.onsuccess = () => { db.close(); resolve(get.result?.contents); };
+        get.onerror = () => { db.close(); reject(get.error); };
+      } catch (error) { db.close(); reject(error); }
+    };
+  });
+}
+async function confirmFile(path, expected, slot) {
+  const token = {};
+  pendingFiles.set(path, token);
+  const started = performance.now();
+  const deadline = started + 30000;
+  window.farlanding.saves[slot] = { status:'pending' };
+  try {
+    while (pendingFiles.get(path) === token && performance.now() < deadline) {
+      const contents = await storedFile(path);
+      if (contents) {
+        const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', contents));
+        const digest = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+        if (pendingFiles.get(path) !== token) return;
+        if (digest === expected) {
+          window.farlanding.saves[slot] = { status:'saved', milliseconds:performance.now() - started };
+          pendingFiles.delete(path);
+          window.farlandingSaveResult(slot, true);
+          return;
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  } catch (error) { console.warn('Save persistence check failed', error); }
+  if (pendingFiles.get(path) !== token) return;
+  pendingFiles.delete(path);
+  window.farlanding.saves[slot] = { status:'failed', milliseconds:performance.now() - started };
+  storageFailed();
+  window.farlandingSaveResult(slot, false);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) window.farlandingFocusLost?.(); });
+window.addEventListener('blur', () => window.farlandingFocusLost?.());
+for (const event of ['fullscreenchange', 'fullscreenerror']) {
+  document.addEventListener(event, () => window.farlandingFullscreenChanged?.(!!document.fullscreenElement));
+}
+canvas.addEventListener('contextmenu', event => event.preventDefault());
+canvas.addEventListener('wheel', event => event.preventDefault(), {passive:false});
+document.getElementById('start').addEventListener('click', async event => {
+  event.target.disabled = true;
+  const missing = Engine.getMissingFeatures({ threads:$GODOT_THREADS_ENABLED });
+  if (missing.length) {
+    message.textContent = 'Cannot start. Required browser features: ' + missing.join(', ') + '. Serve with tools/serve_web.py.';
+    return;
+  }
+  checkStorage();
+  const progress = document.getElementById('progress');
+  progress.hidden = false;
+  message.textContent = 'Loading expedition…';
+  try {
+    await engine.startGame({
+      onProgress(current,total) { if (total > 0) { progress.max=total; progress.value=current; } },
+      onPrint(...args) { console.log(...args); },
+      onPrintError(...args) {
+        const text = args.join(' ');
+        window.farlanding.errors.push(text);
+        console.error(...args);
+        if (/indexeddb|idbfs|syncfs|IDB file system/i.test(text)) storageFailed();
+      }
+    });
+    document.getElementById('launch').remove();
+    canvas.focus();
+  } catch (error) {
+    message.textContent = String(error);
+    window.farlanding.errors.push(String(error));
+    console.error(error);
+  }
+});
+</script>
+</body>
+</html>

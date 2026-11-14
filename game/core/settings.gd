@@ -11,6 +11,8 @@ extends Node
 ## missing, older or damaged file keeps the defaults for whatever it lacks.
 
 signal changed
+## Refresh controls after a browser request without announcing a saved change.
+signal fullscreen_reconciled
 
 const PATH: String = "user://settings.cfg"
 const SECTION_AUDIO: String = "audio"
@@ -109,11 +111,23 @@ var hints_seen: PackedStringArray = PackedStringArray()
 var missions_won: PackedStringArray = PackedStringArray()
 ## Where settings are saved (tests point it elsewhere).
 var path: String = PATH
+var _web_fullscreen_callback: JavaScriptObject
+var _web_fullscreen_pending: bool = false
 
 
 func _ready() -> void:
 	KeyBindings.install()
+	# Conservative Web defaults keep software WebGL and modest GPUs responsive.
+	# Load afterwards so the player's saved graphics choices take precedence.
+	if OS.has_feature("web"):
+		quality = QUALITY_LOW
+		render_scale = MIN_RENDER_SCALE
 	load_from(path)
+	if OS.has_feature("web"):
+		fullscreen = false
+		_web_fullscreen_callback = JavaScriptBridge.create_callback(_on_web_fullscreen_changed)
+		var browser: JavaScriptObject = JavaScriptBridge.get_interface("window")
+		browser.set("farlandingFullscreenChanged", _web_fullscreen_callback)
 	apply_display()
 
 
@@ -219,6 +233,13 @@ func set_pan_speed(value: float) -> void:
 
 func set_fullscreen(enabled: bool) -> void:
 	if enabled == fullscreen:
+		return
+	if OS.has_feature("web"):
+		# The browser confirms this asynchronous request through fullscreenchange.
+		_web_fullscreen_pending = true
+		DisplayServer.window_set_mode(
+			DisplayServer.WINDOW_MODE_FULLSCREEN if enabled else DisplayServer.WINDOW_MODE_WINDOWED
+		)
 		return
 	fullscreen = enabled
 	apply_display()
@@ -375,3 +396,15 @@ static func _nearest(value: Variant, choices: Array[float], fallback: Variant) -
 		if is_equal_approx(choice, number):
 			return choice
 	return fallback
+
+
+func _on_web_fullscreen_changed(arguments: Array) -> void:
+	var actual: bool = arguments[0]
+	var was_pending: bool = _web_fullscreen_pending
+	_web_fullscreen_pending = false
+	if fullscreen != actual:
+		fullscreen = actual
+		_changed()
+	elif was_pending:
+		# Reconcile the optimistic checkbox after rejection without writing to disk.
+		fullscreen_reconciled.emit()

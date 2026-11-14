@@ -51,7 +51,7 @@ func _process(delta: float) -> void:
 ## Colour of the discovery type; used once the site is resolved and while scanning.
 func set_discovery_color(color: Color) -> void:
 	_color = color
-	_ring.set_instance_shader_parameter(&"ring_color", color)
+	ShaderParameters.set_value(_ring, &"ring_color", color)
 
 
 ## 0 = not being scanned, up to 1 = scan complete.
@@ -60,7 +60,7 @@ func set_scan_progress(progress: float) -> void:
 	var scanning := amount > 0.0 and amount < 1.0
 	_ring.visible = scanning
 	_column.visible = scanning
-	_ring.set_instance_shader_parameter(&"progress", amount)
+	ShaderParameters.set_value(_ring, &"progress", amount)
 	_column.scale = Vector3(1.0, maxf(amount, 0.02), 1.0)
 
 

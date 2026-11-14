@@ -48,6 +48,7 @@ var _covered: bool = false
 var _selected: bool = false
 var _ring: MeshInstance3D
 var _health_bar: HealthBar
+var _cpu_dust: CPUParticles3D
 var _dust: GPUParticles3D
 var _speed: float = 0.0
 var _stride_phase: float = 0.0
@@ -66,8 +67,10 @@ func _ready() -> void:
 		_collect_parts(_model)
 	_ring = _build_ring()
 	add_child(_ring)
-	_dust = _build_dust()
-	add_child(_dust)
+	var dust: GeometryInstance3D = ParticleEffects.for_platform(_build_dust())
+	_dust = dust as GPUParticles3D
+	_cpu_dust = dust as CPUParticles3D
+	add_child(dust)
 	_cover_mark = _build_cover_mark()
 	add_child(_cover_mark)
 	_health_bar = HealthBar.create(footprint_radius * 1.6, 2.6)
@@ -103,19 +106,23 @@ func _process(delta: float) -> void:
 ## Speed along the unit's facing, in metres per second.
 func set_motion(speed: float) -> void:
 	_speed = speed
-	_dust.emitting = _altitude <= 0.0 and absf(speed) > DUST_MIN_SPEED
+	var emitting: bool = _altitude <= 0.0 and absf(speed) > DUST_MIN_SPEED
+	if _dust != null:
+		_dust.emitting = emitting
+	if _cpu_dust != null:
+		_cpu_dust.emitting = emitting
 
 
 func set_team_color(color: Color) -> void:
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"team_color", color)
-	_ring.set_instance_shader_parameter(&"ring_color", color.lightened(0.35))
+		ShaderParameters.set_value(mesh, &"team_color", color)
+	ShaderParameters.set_value(_ring, &"ring_color", color.lightened(0.35))
 
 
 ## 0 = pristine, 1 = wrecked.
 func set_damage(amount: float) -> void:
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"damage", clampf(amount, 0.0, 1.0))
+		ShaderParameters.set_value(mesh, &"damage", clampf(amount, 0.0, 1.0))
 
 
 func set_selected(selected: bool) -> void:
@@ -135,7 +142,7 @@ func set_covered(covered: bool) -> void:
 ## 0 = plain, 1 = cloaked (drawn as a shimmering ghost; the owner still sees it).
 func set_cloaked(amount: float) -> void:
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"cloak", clampf(amount, 0.0, 1.0))
+		ShaderParameters.set_value(mesh, &"cloak", clampf(amount, 0.0, 1.0))
 
 
 ## 1 = full health, 0 = dead. Also drives the worn look of the model.

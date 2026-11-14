@@ -1,0 +1,13 @@
+{
+  "name": "farlanding-web-tests",
+  "version": "1.0.0",
+  "description": "Real browser checks for exported Farlanding bundles",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  },
+  "private": true
+}

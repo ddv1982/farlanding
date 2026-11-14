@@ -25,7 +25,7 @@ static func create(model_scene: PackedScene) -> PlacementGhost:
 func set_valid(valid: bool) -> void:
 	var color := VALID_COLOR if valid else INVALID_COLOR
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"ghost_color", color)
+		ShaderParameters.set_value(mesh, &"ghost_color", color)
 
 
 func _apply(node: Node, material: ShaderMaterial) -> void:

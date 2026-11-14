@@ -2,7 +2,11 @@ shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, shadows_disabled, blend_add;
 // Ground ring under a selected unit. Drawn on a flat quad; UV 0..1.
 
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+uniform vec3 ring_color : source_color = vec3(0.3, 0.9, 1.0);
+#else
 instance uniform vec3 ring_color : source_color = vec3(0.3, 0.9, 1.0);
+#endif
 uniform float thickness : hint_range(0.01, 0.3) = 0.07;
 uniform float segments = 4.0;
 

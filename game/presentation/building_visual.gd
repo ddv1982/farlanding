@@ -43,7 +43,7 @@ func _ready() -> void:
 	for mesh in _meshes:
 		_height = maxf(_height, mesh.position.y + mesh.get_aabb().end.y)
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"build_height", _height)
+		ShaderParameters.set_value(mesh, &"build_height", _height)
 	_ring = _build_ring()
 	add_child(_ring)
 	_site = _build_site_plate()
@@ -67,8 +67,8 @@ func _process(delta: float) -> void:
 
 func set_team_color(color: Color) -> void:
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"team_color", color)
-	_ring.set_instance_shader_parameter(&"ring_color", color.lightened(0.35))
+		ShaderParameters.set_value(mesh, &"team_color", color)
+	ShaderParameters.set_value(_ring, &"ring_color", color.lightened(0.35))
 
 
 ## 0 = just placed, 1 = finished. The model rises out of the ground as it grows.
@@ -76,7 +76,7 @@ func set_build_progress(progress: float) -> void:
 	var done := clampf(progress, 0.0, 1.0)
 	var shown := 1.0 if done >= 1.0 else lerpf(SITE_START, 0.999, done)
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"build_progress", shown)
+		ShaderParameters.set_value(mesh, &"build_progress", shown)
 	_site.visible = done < 1.0
 
 
@@ -86,7 +86,7 @@ func set_damage(amount: float) -> void:
 	# A sabotaged building is dead inside whatever its hull looks like.
 	var shown := maxf(_damage, SABOTAGED_DAMAGE) if _sabotaged else _damage
 	for mesh in _meshes:
-		mesh.set_instance_shader_parameter(&"damage", shown)
+		ShaderParameters.set_value(mesh, &"damage", shown)
 
 
 ## A sabotaged building goes dark and throws sparks from its roof.

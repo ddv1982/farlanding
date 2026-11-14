@@ -34,7 +34,7 @@ const FEEDBACK_ALIASES: Dictionary[StringName, StringName] = {
 	&"production_queued": &"ui_queue",
 	&"queued": &"ui_queue",
 	&"rally": &"ui_rally_set",
-	# A save confirms itself through `campaign_saved` (CampaignSoundRouter).
+	# CampaignSoundRouter confirms saves (after persistent storage acknowledges on Web).
 	&"save_failed": &"ui_invalid",
 	&"load_done": &"ui_campaign_saved",
 }

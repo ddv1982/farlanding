@@ -24,13 +24,13 @@ static func spawn(parent: Node, at: Vector3, color: Color, scale: float = 1.0) -
 	marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(marker)
 	marker.global_position = at + Vector3.UP * 0.1
-	marker.set_instance_shader_parameter(&"marker_color", color)
-	marker.set_instance_shader_parameter(&"attack", scale > 1.0)
+	ShaderParameters.set_value(marker, &"marker_color", color)
+	ShaderParameters.set_value(marker, &"attack", scale > 1.0)
 	return marker
 
 
 func _process(delta: float) -> void:
 	_age += delta
-	set_instance_shader_parameter(&"progress", clampf(_age / DURATION, 0.0, 1.0))
+	ShaderParameters.set_value(self, &"progress", clampf(_age / DURATION, 0.0, 1.0))
 	if _age >= DURATION:
 		queue_free()
