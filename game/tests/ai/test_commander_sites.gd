@@ -104,3 +104,16 @@ func test_a_refused_site_is_not_tried_again() -> void:
 	assert_false(_overlaps(placed[1].target_position, enemy), "clear of what refused it")
 	assert_not_null(placed[1].placed, "and that one stands")
 	assert_eq(_f.world.economy.stockpile(AiFixture.AI).alloy, 1000 - _f.forge.cost_alloy)
+
+
+func test_with_no_room_by_the_anchor_it_builds_by_another_of_its_buildings() -> void:
+	# Found by the balance harness (ADR 0018): the Concord corner of Hollow Meridian had
+	# no room left for a Foundry within 64 m of the Lander, and the finale stalled.
+	_start_commander()
+	var outpost: Building = _f.building(_f.tower, Vector3(100, 0, 100))
+	_f.world.build_bounds = Rect2(80, 80, 40, 40)
+	_look()
+	assert_eq(_commander.find_site(_f.forge, Vector3.ZERO), Vector3.INF, "nothing by the hub")
+	var spot: Vector3 = _commander.site_anywhere(_f.forge, Vector3.ZERO)
+	assert_ne(spot, Vector3.INF, "a site by its other building")
+	assert_lt(AiGroup.flat_distance(spot, outpost.position), 70.0)

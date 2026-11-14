@@ -9,6 +9,7 @@ extends GutTest
 ## script's state saves and loads.
 
 const CORE_AT: Vector3 = Vector3(0, 0, 0)
+const POWER: String = "res://data/missions/hollow_power.tres"
 
 var _f: MissionFixture
 var _rule: MachineryRule
@@ -134,7 +135,7 @@ func _script(mission: Mission) -> CoreScript:
 
 
 func test_the_missions_are_on_hollow_meridian() -> void:
-	var power: MissionDef = load("res://data/missions/hollow_power.tres")
+	var power: MissionDef = load(POWER)
 	var finale: MissionDef = load("res://data/missions/hollow_finale.tres")
 	for mission: MissionDef in [power, finale]:
 		assert_eq(mission.planet.id, &"hollow_meridian", String(mission.id))
@@ -318,3 +319,22 @@ func test_the_core_does_not_wake_for_the_player_once_the_combine_has_it() -> voi
 	script.on_tick(2)
 	assert_true(_awakened.is_empty(), "the Combine filled it first")
 	assert_lt(script.charge_of(mission.player_faction), 1.0, "nothing charges after that")
+
+
+func test_power_is_held_at_three_engines_and_the_player_needs_less_time() -> void:
+	# Found by the balance harness (ADR 0018): at four engines, two of the four contested
+	# ones, neither side held the count long enough and half the games stalled to the
+	# cap. Three (the two by the base and one contested) for longer.
+	var power: MissionDef = load(POWER)
+	var ours: ObjectiveDef = null
+	var theirs: ObjectiveDef = null
+	for objective: ObjectiveDef in power.objectives:
+		if objective.type == ObjectiveDef.TYPE_HOLD_MACHINES:
+			if objective.side == ObjectiveDef.SIDE_PLAYER:
+				ours = objective
+			else:
+				theirs = objective
+	assert_eq(ours.amount, 3)
+	assert_eq(theirs.amount, 3)
+	assert_lt(ours.seconds, theirs.seconds, "the player's clock is the shorter")
+	assert_lt(power.commander_profile.machines_wanted, 8, "the Combine never wants them all")

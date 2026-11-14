@@ -283,10 +283,19 @@ func _can_add_power(view: CommanderView) -> bool:
 func _grow_economy(view: CommanderView, actions: Array[AiAction]) -> void:
 	if view.count_of(profile.builder) == 0:
 		_try_step(view, profile.builder, &"economy", actions)
+	var short_of_harvesters: bool = (
+		view.count_of(profile.harvester) < GoalScorer.wanted_harvesters(view, profile)
+	)
 	if view.count_of(profile.factory) == 0:
-		_try_step(view, profile.factory, &"economy", actions)
+		# Saving for the factory, unless too few harvesters bring the money in: then one
+		# comes first (found by the balance harness, ADR 0018: with the factory and every
+		# harvester lost the brain waited forever on 230 Alloy).
+		var step: StringName = _try_step(view, profile.factory, &"economy", actions)
+		if step == &"done" or not short_of_harvesters:
+			return
+		_try_step(view, profile.harvester, &"economy", actions)
 		return
-	if view.count_of(profile.harvester) < GoalScorer.wanted_harvesters(view, profile):
+	if short_of_harvesters:
 		_try_step(view, profile.harvester, &"economy", actions)
 	if (
 		view.count_of(profile.factory) < profile.max_factories
@@ -319,7 +328,12 @@ func _build_defence(view: CommanderView, actions: Array[AiAction]) -> void:
 		return
 	if view.builders_of(profile.defence).is_empty():
 		return
-	if profile.defence.power_use > view.power_free:
+	# A lost factory's power is kept for it (found by the balance harness, ADR 0018: on
+	# Hollow Meridian towers took the last of the HQ's power for good).
+	var kept: int = 0
+	if profile.factory != null and view.count_of(profile.factory) == 0:
+		kept = profile.factory.power_use
+	if profile.defence.power_use + kept > view.power_free:
 		return
 	var action: AiAction = _build(view, profile.defence, near, &"defence")
 	if action != null:
@@ -423,6 +437,14 @@ func _build_army(view: CommanderView, actions: Array[AiAction]) -> void:
 	var reserve: int = 0
 	if last_scores.get(GoalScorer.ECONOMY, 0.0) >= 0.3:
 		reserve = profile.economy_reserve
+	# The price of a wanted harvester stays in the bank (found by the balance harness,
+	# ADR 0018: a reserve below a Hauler's price let soldiers spend the last Alloy with
+	# every harvester lost, and nothing came in again).
+	if (
+		profile.harvester != null
+		and view.count_of(profile.harvester) < GoalScorer.wanted_harvesters(view, profile)
+	):
+		reserve = maxi(reserve, profile.harvester.cost_alloy)
 	for maker: Building in view.producers:
 		if maker.producer == null or not _makes_army(maker):
 			continue
@@ -430,8 +452,10 @@ func _build_army(view: CommanderView, actions: Array[AiAction]) -> void:
 			var choice: UnitDef = pick_army_unit(
 				view.enemy_heavy_share, view.enemy_air_share, maker.producer.options
 			)
+			# A pick it cannot pay leaves this producer, not the others (found by the
+			# balance harness, ADR 0018: short of Flux, no Flux-free unit was made).
 			if choice == null or _alloy - choice.cost_alloy < reserve or not can_afford(choice):
-				return
+				break
 			actions.append(_produce(view, maker, choice, &"army"))
 
 

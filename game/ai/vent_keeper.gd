@@ -99,17 +99,7 @@ func _flee(dangers: Array[Vector4]) -> void:
 
 func _build(eruptions: EruptionSystem, home: Vector3, builders: Array[Unit]) -> Unit:
 	var def: BuildingDef = profile.extractor
-	if def == null or profile.extractors_wanted <= 0 or builders.is_empty():
-		return null
-	if FactionPerks.of(world.perks, faction).is_locked(def.id):
-		return null
-	var have: int = 0
-	for building: Building in world.buildings_of(faction):
-		if building.def == def:
-			have += 1
-	if have >= profile.extractors_wanted:
-		return null
-	if world.economy.stockpile(faction).alloy < def.cost_alloy:
+	if builders.is_empty() or not _wants_extractor(def):
 		return null
 	var best: ResourceNode = null
 	var best_distance: float = profile.deposit_radius * HOME_SHARE
@@ -134,6 +124,33 @@ func _build(eruptions: EruptionSystem, home: Vector3, builders: Array[Unit]) -> 
 	_tried[best.get_instance_id()] = port.now() + RETRY_TICKS
 	port.push(PlaceBuildingCommand.new(faction, [builder] as Array[Node3D], def, best.position))
 	return builder
+
+
+## True if another extractor `def` is wanted and can be paid and powered now.
+func _wants_extractor(def: BuildingDef) -> bool:
+	if def == null or profile.extractors_wanted <= 0:
+		return false
+	if FactionPerks.of(world.perks, faction).is_locked(def.id):
+		return false
+	var have: int = 0
+	var factories: int = 0
+	for building: Building in world.buildings_of(faction):
+		if building.def == def:
+			have += 1
+		elif building.def == profile.factory:
+			factories += 1
+	# Not without the power to run it, and the power a lost factory needs is kept for
+	# it (found by the balance harness, ADR 0018: Taps built on that power slowed the
+	# whole base and kept its factory from being rebuilt).
+	var power: int = def.power_use
+	if profile.factory != null and factories == 0:
+		power += profile.factory.power_use
+	var pile: Stockpile = world.economy.stockpile(faction)
+	return (
+		have < profile.extractors_wanted
+		and pile.alloy >= def.cost_alloy
+		and power <= pile.power_produced - pile.power_used
+	)
 
 
 func _explored(at: Vector3) -> bool:

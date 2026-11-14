@@ -261,3 +261,82 @@ func test_a_big_army_with_nothing_known_goes_hunting() -> void:
 	assert_eq(_attack(actions).reason, &"hunt")
 	assert_eq(_attack(actions).position, Vector3.INF, "it searches")
 	assert_eq(_attack(actions).units.size(), 6, "the home guard stays")
+
+
+func test_without_a_factory_or_the_money_for_one_harvesters_come_first() -> void:
+	# Found by the balance harness (ADR 0018): with the factory and every harvester lost
+	# and less Alloy than a factory costs, the brain waited for the factory forever
+	# (the finale timed out with 230 Alloy and nothing moving for 25 minutes).
+	_f.profile.opening = []
+	var view: CommanderView = _f.base_view(_f.forge.cost_alloy - 20, _hub, _forge)
+	view.producers = [_hub]
+	view.building_counts = {_f.hub.id: 1}
+	view.unit_counts = {_f.builder.id: 1}
+	var builder: Unit = _f.unit(_f.builder, Vector3(5, 0, 8))
+	view.builders = [builder]
+	view.idle_builders = [builder]
+	var produce_harvester: String = "%s:%s" % [AiAction.PRODUCE, _f.harvester.id]
+	assert_true(_kinds(_f.brain().decide(view)).has(produce_harvester), "income first")
+	view.unit_counts = {_f.builder.id: 1, _f.harvester.id: 4}
+	assert_false(_kinds(_f.brain().decide(view)).has(produce_harvester), "with income it saves up")
+
+
+func test_a_tower_does_not_take_the_power_a_missing_factory_needs() -> void:
+	# Found by the balance harness (ADR 0018): on Hollow Meridian towers took the last
+	# of the HQ's power, so the lost factory could never be rebuilt.
+	_f.profile.opening = []
+	var build_tower: String = "%s:%s" % [AiAction.BUILD, _f.tower.id]
+	var short: int = _f.forge.power_use + _f.tower.power_use - 1
+	var kinds: Array[String] = _kinds(_f.brain().decide(_view_without_factory(short)))
+	assert_false(kinds.has(build_tower), "the factory's power is kept")
+	var enough: int = _f.forge.power_use + _f.tower.power_use
+	kinds = _kinds(_f.brain().decide(_view_without_factory(enough)))
+	assert_true(kinds.has(build_tower), "enough for both")
+
+
+## A base that lost its factory, can pay a tower but not a factory, with `power` free.
+func _view_without_factory(power: int) -> CommanderView:
+	var builder: Unit = _f.unit(_f.builder, Vector3(5, 0, 8))
+	var view: CommanderView = _f.base_view(_f.tower.cost_alloy, _hub, _forge)
+	view.producers = [_hub]
+	view.building_counts = {_f.hub.id: 1}
+	view.unit_counts = {_f.builder.id: 1, _f.harvester.id: 4}
+	view.builders = [builder]
+	view.idle_builders = [builder]
+	view.power_free = power
+	return view
+
+
+func test_a_producer_whose_pick_it_cannot_pay_does_not_stop_the_others() -> void:
+	# Found by the balance harness (ADR 0018): short of Flux, the factory's pick could
+	# not be paid and no other producer was asked, so a Flux-free unit was never made.
+	_f.profile.opening = []
+	_f.tank.cost_flux = 50
+	var forge_def: BuildingDef = _f.forge.duplicate()
+	forge_def.produces = [_f.tank]
+	var barracks_def: BuildingDef = _f.forge.duplicate()
+	barracks_def.id = &"barracks"
+	barracks_def.produces = [_f.soldier]
+	var tanks: Building = _f.building(forge_def, Vector3(40, 0, 0))
+	var barracks: Building = _f.building(barracks_def, Vector3(-30, 0, 0))
+	var view: CommanderView = _f.base_view(1000, _hub, tanks)
+	view.producers = [_hub, tanks, barracks]
+	view.unit_counts = {_f.harvester.id: 4, _f.builder.id: 1}
+	view.flux = 0
+	var actions: Array[AiAction] = _f.brain().decide(view)
+	assert_eq(_produced_at(actions, tanks), 0, "no Flux for tanks")
+	assert_gt(_produced_at(actions, barracks), 0, "soldiers all the same")
+
+
+func test_the_army_leaves_the_price_of_a_wanted_harvester() -> void:
+	# Found by the balance harness (ADR 0018): the reserve (100) was below a Concord
+	# Hauler (120), so soldiers spent the bank down to 95 with every harvester lost, and
+	# nothing came in again for the rest of the mission.
+	_f.profile.opening = []
+	_f.profile.economy_reserve = 20
+	var view: CommanderView = _f.base_view(_f.harvester.cost_alloy - 10, _hub, _forge)
+	view.unit_counts = {_f.builder.id: 1}
+	assert_eq(_produced_at(_f.brain().decide(view), _forge), 0, "the harvester's price stays")
+	view = _f.base_view(_f.harvester.cost_alloy - 10, _hub, _forge)
+	view.unit_counts = {_f.builder.id: 1, _f.harvester.id: 8}
+	assert_gt(_produced_at(_f.brain().decide(view), _forge), 0, "no harvester wanted: spent")

@@ -15,12 +15,25 @@ const BUILDINGS: String = "res://data/buildings/concord_%s.tres"
 const CORE_TICKS: int = 20
 ## Sim ticks between two trace lines (`--log`).
 const TRACE_TICKS: int = 300
+## Units that can link kept on the finale (the linker and a spare).
+const SCANNERS_KEPT: int = 2
+## The smallest escort sent with the linker.
+const ESCORT_MIN: int = 6
+## The linker sets out once an escort member is this close to the Core, in metres ...
+const ESCORT_REACH: float = 30.0
+## ... or goes on regardless once it is this close, or has waited this long, in ticks.
+const LINK_REACH: float = 30.0
+const ESCORT_WAIT_TICKS: int = 600
 
 var commander: Commander = null
 var mission: Mission = null
 ## The finale's linker (entity id, -1 = none) and the group escorting it.
 var linker_id: int = -1
 var escort: AttackGroup = null
+## The army mix, kept aside while production waits for a Surveyor.
+var _army_mix: Array[UnitDef] = []
+## Sim tick the linker began waiting for its escort (-1 = not waiting).
+var _waiting_since: int = -1
 
 
 ## True if the reference player can play `def` (everything but Infiltration).
@@ -131,6 +144,9 @@ static func build_profile(def: MissionDef, run_seed: int) -> CommanderProfile:
 		MissionDef.TYPE_POWER, MissionDef.TYPE_FINALE:
 			profile.machines_wanted = 6
 			profile.machine_escort = 4
+			# No Reactors and a Lander at 7 power: the Muster Bay (4 power, Flux-free
+			# Rangers) is the factory it keeps standing; the Foundry needs an engine.
+			profile.factory = _building("muster_bay")
 	return profile
 
 
@@ -148,6 +164,21 @@ func _trace() -> void:
 	var view: CommanderView = commander.last_view()
 	if view == null:
 		return
+	var core: String = ""
+	var script: CoreScript = mission.script_instance as CoreScript
+	if script != null and script.core() != null:
+		var linker: Unit = mission.world.entity(linker_id) as Unit
+		var away: float = -1.0
+		if linker != null and not linker.is_dead:
+			away = AiGroup.flat_distance(linker.sim_position(), script.core().position)
+		core = (
+			" core %d%%/%d%% linker %dm"
+			% [
+				roundi(script.charge_of(mission.player_faction) * 100.0),
+				roundi(script.charge_of(mission.def.hostile_faction) * 100.0),
+				roundi(away),
+			]
+		)
 	var index: int = commander.memory.opening_index
 	var step: String = "done"
 	if index < commander.profile.opening.size():
@@ -156,7 +187,7 @@ func _trace() -> void:
 		(
 			(
 				"[reference @%ds] opening %d (%s) alloy %d flux %d power %d builders %d/%d"
-				+ " guards %d army %d units %s buildings %s"
+				+ " guards %d army %d units %s buildings %s%s"
 			)
 			% [
 				roundi(mission.elapsed_seconds()),
@@ -171,13 +202,16 @@ func _trace() -> void:
 				view.army.size(),
 				str(view.unit_counts),
 				str(view.building_counts),
+				core,
 			]
 		)
 	)
 
 
-## Finale: once the player runs enough engines, a Surveyor walks to the dais with the
-## free army as its escort, and stays there; a fallen linker is replaced.
+## Finale: it keeps a spare scanner, and once it runs enough engines a Surveyor walks
+## to the dais behind an escort of the free army and stays there; a fallen linker is
+## replaced, a spent escort sent again. The dais is guarded: a linker alone, or ahead of
+## its escort, dies there (found by the balance harness, ADR 0018).
 func _drive_core(tick: int) -> void:
 	var script: CoreScript = mission.script_instance as CoreScript
 	if script == null or script.core() == null:
@@ -186,6 +220,7 @@ func _drive_core(tick: int) -> void:
 		escort.tick(tick)
 		if escort.finished:
 			escort = null
+	_keep_scanners()
 	var faction: int = mission.player_faction
 	if script.engines_of(faction) < script.rules.engines_needed:
 		return
@@ -199,7 +234,17 @@ func _drive_core(tick: int) -> void:
 		commander.hands_off[linker_id] = true
 		if commander.survey != null:
 			commander.survey.members.erase(linker)
+	if escort == null:
 		_send_escort(core_at)
+	var linked: bool = AiGroup.flat_distance(linker.sim_position(), core_at) <= LINK_REACH
+	if linked or _escort_near(core_at):
+		_waiting_since = -1
+	elif _waiting_since < 0:
+		_waiting_since = tick
+	# It waits for its escort, but not for good: with the army out hunting, no escort
+	# formed and the linker stood 42 m from the Core to the cap (ADR 0018).
+	if _waiting_since >= 0 and tick - _waiting_since < ESCORT_WAIT_TICKS:
+		return
 	var stand: Vector3 = mission.world.paths.closest_point(
 		core_at + (mission.def.player_start - core_at).normalized() * CoreScript.LINK_STAND
 	)
@@ -208,6 +253,89 @@ func _drive_core(tick: int) -> void:
 		commander.port.push(
 			MoveCommand.new(MoveCommand.KIND_MOVE, faction, [linker] as Array[Node3D], stand)
 		)
+
+
+## True while a member of the escort is within ESCORT_REACH of the Core.
+func _escort_near(core_at: Vector3) -> bool:
+	if escort == null:
+		return false
+	for unit: Unit in escort.members:
+		if is_instance_valid(unit) and not unit.is_dead:
+			if AiGroup.flat_distance(unit.sim_position(), core_at) <= ESCORT_REACH:
+				return true
+	return false
+
+
+## Keeps SCANNERS_KEPT units that can link: Surveyors are ordered at a Foundry, and with
+## no Foundry standing the Foundry becomes the factory the commander keeps (it rebuilds
+## a missing factory). While it saves for one, the army waits. Found by the balance
+## harness (ADR 0018): with six engines, an army of fifty and the Combine wiped out,
+## finales timed out because the last Surveyor had died and nothing made another.
+func _keep_scanners() -> void:
+	var surveyor: UnitDef = commander.profile.surveyor
+	if surveyor == null:
+		return
+	var short: bool = _scanners() < SCANNERS_KEPT
+	var waiting: bool = false
+	if short:
+		waiting = not _order_surveyor(surveyor)
+	if waiting and not commander.profile.army.is_empty():
+		_army_mix = commander.profile.army.duplicate()
+		commander.profile.army = []
+	elif not waiting and commander.profile.army.is_empty() and not _army_mix.is_empty():
+		commander.profile.army = _army_mix.duplicate()
+
+
+## Orders a Surveyor where one can be made. False while it has to save for one.
+func _order_surveyor(surveyor: UnitDef) -> bool:
+	var makers: Array[Building] = []
+	for building: Building in mission.world.buildings_of(mission.player_faction):
+		if building.is_dead or building.producer == null or not building.is_operational():
+			continue
+		if building.producer.options.has(surveyor):
+			makers.append(building)
+	# The Foundry is the factory it keeps only while none stands and there is the power
+	# and the money to build one now; otherwise the Muster Bay stays the one it rebuilds
+	# (with the Foundry kept on the Lander's power alone a lost Muster Bay was never
+	# rebuilt, and kept unaffordable it held the last Fabricator home for good).
+	var foundry: BuildingDef = _building("foundry")
+	var pile: Stockpile = mission.world.economy.stockpile(mission.player_faction)
+	if makers.is_empty():
+		var free: int = pile.power_produced - pile.power_used
+		var muster_bay: BuildingDef = _building("muster_bay")
+		var spare: int = free if _standing(muster_bay) else free - muster_bay.power_use
+		var can_build: bool = (
+			spare >= foundry.power_use
+			and pile.alloy >= foundry.cost_alloy
+			and pile.flux >= foundry.cost_flux
+		)
+		commander.profile.factory = foundry if can_build else muster_bay
+		return true
+	commander.profile.factory = _building("muster_bay")
+	for maker: Building in makers:
+		if maker.producer.queue.has(surveyor):
+			return true
+	if pile.alloy < surveyor.cost_alloy or pile.flux < surveyor.cost_flux:
+		return false
+	commander.port.push(ProduceCommand.new(mission.player_faction, makers[0], surveyor))
+	return true
+
+
+## True if a building of `def` of the player's stands (finished or not).
+func _standing(def: BuildingDef) -> bool:
+	for building: Building in mission.world.buildings_of(mission.player_faction):
+		if building.def == def and not building.is_dead:
+			return true
+	return false
+
+
+## Units of the player's that can link (scanners on foot that are not builders).
+func _scanners() -> int:
+	var count: int = 0
+	for unit: Unit in mission.world.units_of(mission.player_faction):
+		if not unit.is_dead and unit.scanner != null and not unit.flies and unit.builder == null:
+			count += 1
+	return count
 
 
 func _pick_linker() -> Unit:
@@ -228,7 +356,7 @@ func _send_escort(core_at: Vector3) -> void:
 	for unit: Unit in view.guards:
 		if not unit.is_dead:
 			squad.append(unit)
-	if squad.size() < 3:
+	if squad.size() < ESCORT_MIN:
 		return
 	for unit: Unit in squad:
 		commander.hands_off[unit.entity_id] = true

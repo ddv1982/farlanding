@@ -16,7 +16,8 @@ var first_hit_seconds: float = -1.0
 ## Game seconds when enemy units first came within the attack radius of a player
 ## building (-1 = never).
 var first_attack_seconds: float = -1.0
-## Per sample: [seconds, player army, enemy army, player alloy, player flux].
+## Per sample: [seconds, player army, enemy army, player alloy, player flux, engines the
+## player runs, engines the enemy runs] (the engines only on a machinery planet).
 var samples: Array[Array] = []
 ## Objective id -> [seconds, "done" | "failed"].
 var objectives: Dictionary[String, Array] = {}
@@ -81,7 +82,12 @@ func on_tick(tick: int) -> void:
 	peak_player_army = maxf(peak_player_army, mine)
 	peak_enemy_army = maxf(peak_enemy_army, theirs)
 	alloy_floated += pile.alloy
-	samples.append([roundi(seconds), roundi(mine), roundi(theirs), pile.alloy, pile.flux])
+	var sample: Array = [roundi(seconds), roundi(mine), roundi(theirs), pile.alloy, pile.flux]
+	var machinery: MachinerySystem = mission.world.planet as MachinerySystem
+	if machinery != null:
+		sample.append(machinery.held_by(player).size())
+		sample.append(machinery.held_by(enemy).size())
+	samples.append(sample)
 
 
 ## Armed strength of `faction` (the AI's measure: cost × health share, armed only).

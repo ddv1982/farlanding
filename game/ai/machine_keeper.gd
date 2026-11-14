@@ -5,12 +5,14 @@ extends RefCounted
 ## rule as the player:
 ##
 ## - it keeps `machines_wanted` engines running: an idle builder goes to reactivate the
-##   nearest engine it may claim that it has explored (one claim at a time) with an
-##   escort of idle armed units, `machine_escort` of them and more to match the
-##   Custodians it has seen there; it also takes over the player's (when the profile
-##   allows that);
-## - it remembers the Custodians it has seen standing by each engine, and passes over
-##   engines guarded more heavily than all its free armed units could handle;
+##   nearest engine it may claim that it has explored or that stands by its base (one
+##   claim at a time) with an escort of idle armed units, `machine_escort` of them and
+##   more to match the guards it has seen there; it also takes over the player's (when
+##   the profile allows that);
+## - it remembers the Custodians it has seen standing by each engine (one it has not
+##   seen guarded counts as a Warden's worth: every engine on the deck is guarded), sends
+##   an escort that can win that fight, and passes over engines it cannot field one
+##   for; a worker goes alone only to an engine it has seen without guards;
 ## - it sends defenders to an engine of its own that is hurt, shut down or being taken
 ##   over.
 ##
@@ -29,9 +31,14 @@ const DEFEND_TICKS: int = 300
 const GUARD_COST: float = 0.02
 ## Custodians are priced high for what they fight like: their strength counts this much.
 const GUARD_WEIGHT: float = 0.5
-## An engine is skipped when its guards outweigh every free armed unit this many times;
-## otherwise the escort grows until it is at least the guards' weight over this.
-const GUARD_LIMIT: float = 2.0
+## An escort must reach the guards' weighted strength this many times over; an engine
+## it cannot field that escort for is passed over. (It was a quarter of the guards'
+## price, and the guards won: six Rangers are needed for one Warden. ADR 0018.)
+const ESCORT_RATIO: float = 1.5
+## Points round an engine that must be in sight for its guard count to stand.
+const AROUND_SAMPLES: int = 8
+## Guards assumed at an engine whose surroundings it has not seen (a Warden's price).
+const UNSEEN_GUARDS: float = 600.0
 ## An engine where a claim's worker was killed is left alone this long (3 min), so
 ## builders are not fed one after another into its guards (found by the balance
 ## harness, ADR 0018: 26 Fabricators and 54 Riggers lost in one finale).
@@ -45,7 +52,8 @@ var faction: int = 1
 var claim_engine: int = -1
 var claim_worker: int = -1
 var claim_tick: int = 0
-## Engine id -> strength of the Custodians last seen guarding it.
+## Engine id -> strength of the guards last seen by it (Custodians, and enemies counted
+## up to Custodian terms: see `_guard_strength`).
 var guards_seen: Dictionary[int, float] = {}
 ## Engine id -> sim tick defenders were last sent.
 var _defended: Dictionary[int, int] = {}
@@ -74,20 +82,33 @@ func decide(home: Vector3, builders: Array[Unit], guards: Array[Unit]) -> Array[
 	return used
 
 
-## The Custodians the faction sees by each engine it sees.
+## The Custodians the faction sees by each engine it sees. A count stands only once it
+## sees all around the engine; a glimpse may only raise it (found by the balance
+## harness, ADR 0018: with the engine in sight and its Warden just outside it, the
+## engine counted as unguarded).
 func _look_for_guards(machinery: MachinerySystem) -> void:
 	for engine: Building in machinery.engines():
 		if not _sees_area(engine.position):
 			continue
 		var strength: float = 0.0
 		for unit: Unit in world.units:
-			if not Factions.is_custodian(unit.faction) or unit.is_dead:
+			if unit.faction == faction or unit.is_dead:
 				continue
 			if AiGroup.flat_distance(unit.sim_position(), engine.position) > GUARD_RADIUS:
 				continue
 			if world.vision == null or world.vision.can_see(faction, unit):
-				strength += AiKnowledge.strength_of(unit)
-		guards_seen[engine.entity_id] = strength
+				strength += _guard_strength(unit)
+		for building: Building in world.buildings:
+			if building.faction == faction or building.is_dead or building.machine != null:
+				continue
+			if AiGroup.flat_distance(building.position, engine.position) > GUARD_RADIUS:
+				continue
+			if world.vision == null or world.vision.can_see(faction, building):
+				strength += _guard_strength(building)
+		if _sees_around(engine.position):
+			guards_seen[engine.entity_id] = strength
+		elif strength > guards_seen.get(engine.entity_id, 0.0):
+			guards_seen[engine.entity_id] = strength
 
 
 func _defend(machinery: MachinerySystem, free: Array[Unit]) -> Array[Unit]:
@@ -121,7 +142,7 @@ func _claim(
 	machinery: MachinerySystem, home: Vector3, builders: Array[Unit], free: Array[Unit]
 ) -> Array[Unit]:
 	var sent: Array[Unit] = []
-	if _claim_running(machinery):
+	if _claim_running(machinery) or _claim_arriving(machinery):
 		return sent
 	_note_failed_claim()
 	claim_engine = -1
@@ -134,7 +155,7 @@ func _claim(
 	var best: Building = null
 	var best_score: float = INF
 	for engine: Building in machinery.engines():
-		if not machinery.can_claim(engine, faction) or not _explored(engine.position):
+		if not machinery.can_claim(engine, faction) or not _known(engine.position, home):
 			continue
 		if _avoid_until.get(engine.entity_id, -1) > port.now():
 			continue
@@ -143,17 +164,17 @@ func _claim(
 		)
 		if owned_by_enemy and not profile.machine_takeover:
 			continue
-		var guarded: float = guards_seen.get(engine.entity_id, 0.0) * GUARD_WEIGHT
-		if guarded > 0.0 and guarded > available * GUARD_LIMIT:
+		# No worker goes where its escort could not win; alone only where no guards are.
+		var needed: float = escort_needed(engine)
+		if needed > 0.0 and needed > available:
 			continue
-		var score: float = AiGroup.flat_distance(engine.position, home) + guarded * GUARD_COST
+		var score: float = AiGroup.flat_distance(engine.position, home) + needed * GUARD_COST
 		if owned_by_enemy and engine.machine.is_running():
 			score += 40.0  # a takeover is slow and fought over: prefer free engines
 		if score < best_score:
 			best = engine
 			best_score = score
-	# Every engine on the deck is guarded: no worker goes without an escort.
-	if best == null or free.is_empty():
+	if best == null:
 		return sent
 	var worker: Unit = builders[0]
 	for builder: Unit in builders:
@@ -162,18 +183,27 @@ func _claim(
 			< AiGroup.flat_distance(worker.sim_position(), best.position)
 		):
 			worker = builder
-	port.push(ReactivateCommand.new(faction, [worker] as Array[Node3D], best))
+	if _explored(best.position):
+		port.push(ReactivateCommand.new(faction, [worker] as Array[Node3D], best))
+	else:
+		_move([worker] as Array[Unit], best.position)  # an engine by the base: look first
 	sent.append(worker)
 	claim_engine = best.entity_id
 	claim_worker = worker.entity_id
 	claim_tick = port.now()
-	# Every engine on the deck is guarded: an escort always goes, larger for known guards.
-	var needed: float = guards_seen.get(best.entity_id, 0.0) * GUARD_WEIGHT / GUARD_LIMIT
-	var escort: Array[Unit] = _take_escort(free, best.position, needed)
+	# An escort goes along when there is one, large enough for the guards.
+	var escort: Array[Unit] = _take_escort(free, best.position, escort_needed(best))
 	if not escort.is_empty():
 		_move(escort, best.position)
 		sent.append_array(escort)
 	return sent
+
+
+## Strength an escort to `engine` must reach: the guards seen there (a Warden's worth
+## where it has not looked), weighted, ESCORT_RATIO times over; 0 where it saw none.
+func escort_needed(engine: Building) -> float:
+	var guards: float = guards_seen.get(engine.entity_id, UNSEEN_GUARDS)
+	return guards * GUARD_WEIGHT * ESCORT_RATIO
 
 
 ## The nearest units of `pool` to `at`, at least `machine_escort` of them (as many as
@@ -199,6 +229,25 @@ func _note_failed_claim() -> void:
 	var worker: Unit = world.entity(claim_worker) as Unit
 	if worker == null or worker.is_dead:
 		_avoid_until[claim_engine] = port.now() + FAILED_CLAIM_TICKS
+
+
+## True while the current claim's worker walks to an engine by the base it has not seen
+## yet; once it sees it, the work starts.
+func _claim_arriving(machinery: MachinerySystem) -> bool:
+	if claim_engine < 0:
+		return false
+	var engine: Building = world.entity(claim_engine) as Building
+	var worker: Unit = world.entity(claim_worker) as Unit
+	if engine == null or worker == null or worker.is_dead:
+		return false
+	if not machinery.can_claim(engine, faction) or port.now() - claim_tick > CLAIM_TIMEOUT_TICKS:
+		return false
+	if worker.reactivator == null or worker.reactivator.target == engine:
+		return false
+	if _explored(engine.position):
+		port.push(ReactivateCommand.new(faction, [worker] as Array[Node3D], engine))
+		return true
+	return worker.locomotion.is_travelling()
 
 
 ## True while the current claim goes on: its worker lives, still works on it, and the
@@ -246,12 +295,42 @@ func _move(units: Array[Unit], at: Vector3) -> void:
 	port.push(MoveCommand.new(MoveCommand.KIND_MOVE, faction, AiGroup._as_nodes(units), goal))
 
 
+## True if the faction knows the engine at `at` is there: its ground is explored, or it
+## stands by its own base (a commander knows the ground it landed on; found by the
+## balance harness, ADR 0018: its scout explored the far side first, so the Combine
+## crossed the deck for the player's engines before taking its own).
+func _known(at: Vector3, home: Vector3) -> bool:
+	return AiGroup.flat_distance(at, home) <= profile.base_radius or _explored(at)
+
+
 func _explored(at: Vector3) -> bool:
 	return world.vision == null or world.vision.grid.is_explored(faction, at)
 
 
 func _sees_area(at: Vector3) -> bool:
 	return world.vision == null or world.vision.grid.is_visible(faction, at)
+
+
+## What `entity` adds to an engine's guards, in Custodian terms: Custodians at their
+## strength (weighted down later by GUARD_WEIGHT), an enemy's armed units and towers at
+## full strength (found by the balance harness, ADR 0018: the Combine kept sending a
+## Rigger and three escorts to take over engines the player's army stood by).
+static func _guard_strength(entity: Node3D) -> float:
+	var strength: float = AiKnowledge.strength_of(entity)
+	var unit: Unit = entity as Unit
+	if unit != null and Factions.is_custodian(unit.faction):
+		return strength
+	return strength / GUARD_WEIGHT
+
+
+## True if the faction sees the ground all round `at`, out to most of the guard radius.
+func _sees_around(at: Vector3) -> bool:
+	for i: int in AROUND_SAMPLES:
+		var angle: float = TAU * i / AROUND_SAMPLES
+		var offset: Vector3 = Vector3(cos(angle), 0.0, sin(angle)) * GUARD_RADIUS * 0.75
+		if not _sees_area(at + offset):
+			return false
+	return _sees_area(at)
 
 
 func to_dict() -> Dictionary:

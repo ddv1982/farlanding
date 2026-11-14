@@ -26,23 +26,23 @@
 [sub_resource type="Resource" id="hold"]
 script = ExtResource("e1")
 id = &"hold_engines"
-title = "Run four engines for three minutes"
+title = "Run three engines for four minutes"
 kind = &"primary"
 type = &"hold_machines"
 side = &"player"
-amount = 4
-seconds = 180.0
+amount = 3
+seconds = 240.0
 
 [sub_resource type="Resource" id="rival"]
 script = ExtResource("e1")
 id = &"rival_engines"
-title = "Keep the Combine from holding four for four minutes"
+title = "Keep the Combine from holding three for eight minutes"
 kind = &"primary"
 type = &"hold_machines"
 side = &"enemy"
 passive = true
-amount = 4
-seconds = 240.0
+amount = 3
+seconds = 480.0
 
 [sub_resource type="Resource" id="keep"]
 script = ExtResource("e1")
@@ -96,7 +96,7 @@ There are no Reactors here. Power comes from the Antecedent engines standing on 
 
 Every engine has guardians. Waking one stirs the Custodians around it, and they go for whoever woke them: Wardens up close, and Sentinels, heavier, that strike from range and hit flyers too. The engines near the Lander are lightly watched. The ones across the bridges are not.
 
-Run four engines for three minutes in all. If the Combine holds four for four minutes first, the deck is theirs."
+Run three engines for four minutes in all. If the Combine holds three for eight minutes first, the deck is theirs."
 map_scene = ExtResource("e5")
 planet = ExtResource("planet")
 player_hq = ExtResource("e2")

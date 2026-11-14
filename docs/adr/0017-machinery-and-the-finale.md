@@ -1,5 +1,12 @@
 # ADR 0017 — Machinery on Hollow Meridian, the Beacon Core, and the end of the campaign
 
+> **Superseded numbers (Phase 9 balance pass, ADR 0018).** Power Up is now: run three
+> engines for four minutes before the Combine holds three for eight. The deck has 22
+> guardians (the Sentinel at each base's second engine is gone), the vents by the bases
+> moved inside the build area, and the deck's Alloy deposits are deeper. The numbers
+> below are as first designed; `docs/adr/0018-balance-method.md` has the current ones
+> and why.
+
 - Status: accepted (Phase 8d, 2026-11-13)
 
 ## Context
