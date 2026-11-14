@@ -58,7 +58,8 @@ func _start() -> MachinerySystem:
 
 ## Lets faction 1 see (and so explore) around `at`.
 func _explore(at: Vector3) -> void:
-	_f.world.vision.reveal_area(1, at, 30.0, 30)
+	# Wide enough to show the whole guard radius of an engine 15 m from `at`.
+	_f.world.vision.reveal_area(1, at, 36.0, 30)
 	_f.tick(4)
 
 

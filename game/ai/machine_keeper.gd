@@ -323,13 +323,15 @@ static func _guard_strength(entity: Node3D) -> float:
 	return strength / GUARD_WEIGHT
 
 
-## True if the faction sees the ground all round `at`, out to most of the guard radius.
+## True if the faction sees the ground all round `at`, out to the whole guard radius:
+## a guard standing at its edge counts, so an unseen edge must not read as "no guards".
 func _sees_around(at: Vector3) -> bool:
-	for i: int in AROUND_SAMPLES:
-		var angle: float = TAU * i / AROUND_SAMPLES
-		var offset: Vector3 = Vector3(cos(angle), 0.0, sin(angle)) * GUARD_RADIUS * 0.75
-		if not _sees_area(at + offset):
-			return false
+	for share: float in [0.5, 1.0]:
+		for i: int in AROUND_SAMPLES:
+			var angle: float = TAU * i / AROUND_SAMPLES
+			var offset: Vector3 = Vector3(cos(angle), 0.0, sin(angle)) * GUARD_RADIUS * share
+			if not _sees_area(at + offset):
+				return false
 	return _sees_area(at)
 
 
