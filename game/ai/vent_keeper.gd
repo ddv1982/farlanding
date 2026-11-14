@@ -137,7 +137,8 @@ func _wants_extractor(def: BuildingDef) -> bool:
 	for building: Building in world.buildings_of(faction):
 		if building.def == def:
 			have += 1
-		elif building.def == profile.factory:
+		elif building.def == profile.factory and not building.is_under_construction:
+			# A factory still being built draws nothing yet: its power stays kept.
 			factories += 1
 	# Not without the power to run it, and the power a lost factory needs is kept for
 	# it (found by the balance harness, ADR 0018: Taps built on that power slowed the

@@ -292,6 +292,12 @@ func test_a_tower_does_not_take_the_power_a_missing_factory_needs() -> void:
 	var enough: int = _f.forge.power_use + _f.tower.power_use
 	kinds = _kinds(_f.brain().decide(_view_without_factory(enough)))
 	assert_true(kinds.has(build_tower), "enough for both")
+	# A factory still being built draws nothing yet: its power is still kept.
+	var building: CommanderView = _view_without_factory(short)
+	building.building_counts[_f.forge.id] = 1
+	building.sites = [_forge]
+	kinds = _kinds(_f.brain().decide(building))
+	assert_false(kinds.has(build_tower), "kept until the factory stands")
 
 
 ## A base that lost its factory, can pay a tower but not a factory, with `power` free.
