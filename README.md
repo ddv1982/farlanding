@@ -55,11 +55,43 @@ Field notes explain each new thing the first time you meet it.
 | Ctrl+1–9 / 1–9 | store / recall a control group |
 | WASD, arrows, screen edge, middle drag | pan · wheel: zoom · Q/E: turn |
 | C | codex · F1: all controls · F3: debug overlay |
-| Esc | pause menu: resume, settings, restart, quit (to the star map or the missions) |
+| F5 / F9 | quicksave / quickload |
+| Esc or P | pause menu: resume, save, load, settings, how to play, restart, quit |
 
-Settings (from the title, the mission list or the pause menu): volumes, mouse scheme (classic or
-modern: left selects, right commands), edge-pan, pan speed, fullscreen, quality,
-resolution scale, and "Reset hints".
+These are the default keys: every one can be rebound per mouse scheme under
+Settings > KEYS (a key already in use is named, and pressing it again swaps the two).
+Hints and the F1 panel always name the keys as bound.
+
+**Difficulty** (Easy, Normal, Hard) is chosen when starting a new campaign or on the
+mission list, and can be changed aboard the Meridian between landings. It changes how
+fast the Combine decides, when it attacks and how often it slips, never its income.
+Normal plays each landing as designed; Easy and Hard shift it one step.
+
+Settings (from the title, the mission list or the pause menu): GENERAL (volumes for
+master, music, effects, ambience, voice and interface; mouse scheme, classic or
+modern: left selects, right commands; edge-pan, pan speed, fullscreen, quality,
+resolution scale, "Reset hints"), ACCESSIBILITY (team colour palettes for red-green
+and blue-yellow colour blindness, subtitles for the Advisor and their size, interface
+size 100/115/130%, fewer flashes, sticky Shift, game speed of single missions) and
+KEYS. **How to play** and **Credits** are on the title screen.
+
+## Building a release
+
+Install the Godot **4.7.2.stable** export templates (Editor > Manage Export
+Templates), then from the repository root:
+
+```
+tools/export.sh            # macOS, Windows and Linux
+tools/export.sh Linux      # or just some
+```
+
+The builds land in `build/` (git-ignored): `build/macos/Farlanding.zip` (ad-hoc
+signed, not notarised), `build/windows/Farlanding.exe` and
+`build/linux/Farlanding.x86_64`, each with its `.pck`. The presets are in
+`game/export_presets.cfg`; they leave out the tests, GUT and the showcase scenes and
+hold no signing identities. Set `GODOT=/path/to/godot` to use another binary of the
+same version; the script stops with a message if the version or the templates are
+missing.
 
 ## Work on it
 
@@ -79,5 +111,5 @@ Rebuild generated assets:
 
 ```
 blender -b -P art/pipeline/build_all.py
-uv run --python 3.12 --with numpy --with scipy audio_src/build.py
+uv run --python 3.12 --with numpy==2.5.4 --with scipy==1.18.1 audio_src/build.py
 ```

@@ -2,19 +2,21 @@ class_name Minimap
 extends PanelContainer
 ## Bottom-right map of the whole mission area: terrain (hill-shaded, impassable ground
 ## dark) under the fog of war, resource nodes the player has explored, the player's
-## units and buildings in team colour, enemies the player sees in red (enemy buildings
-## seen before but not in sight now stay, dimmed, where they were last seen),
-## discovery signals the orbital scan charted (a "?" even under fog; a dot in the
-## discovery's colour once resolved), and the camera's view. Left click or drag moves
-## the camera there; right click orders the selected units to move there (Shift
-## queues). Built from HudStyle.
+## units and buildings in team colour, enemies the player sees in the enemy's team
+## colour (TeamColors: red by default; enemy buildings seen before but not in sight
+## now stay, dimmed, where they were last seen), discovery signals the orbital scan
+## charted (a "?" even under fog; a dot in the discovery's colour once resolved), and
+## the camera's view. Left click or drag moves the camera there. In the modern mouse
+## scheme a right click orders the selected units to move there (Shift queues); in
+## the classic scheme, where right click only deselects and cancels, it does nothing
+## here. Built from HudStyle.
 
 const SIZE: float = 212.0
 ## Terrain image pixels per side.
 const TERRAIN_PIXELS: int = 120
-const ENEMY_COLOR: Color = Color(1.0, 0.25, 0.18)
-## Enemy buildings remembered from an earlier sighting.
-const REMEMBERED_COLOR: Color = Color(0.62, 0.22, 0.18, 0.75)
+## Enemy buildings remembered from an earlier sighting: their colour, this much darker.
+const REMEMBERED_DARKEN: float = 0.35
+const REMEMBERED_ALPHA: float = 0.75
 const NODE_COLOR: Color = Color(0.72, 0.84, 0.95)
 const VENT_COLOR: Color = Color(0.45, 0.85, 1.0)
 const VIEW_COLOR: Color = Color(1.0, 1.0, 1.0, 0.85)
@@ -103,15 +105,28 @@ func _gui_input(event: InputEvent) -> void:
 			if button.pressed:
 				_look_at(button.position)
 			accept_event()
-		elif button.button_index == MOUSE_BUTTON_RIGHT and button.pressed:
-			if controller != null:
-				controller.move_selection_to(to_world(button.position), button.shift_pressed)
+		elif button.button_index == MOUSE_BUTTON_RIGHT:
+			if (
+				button.pressed
+				and controller != null
+				and right_click_orders(Settings.control_scheme)
+			):
+				controller.move_selection_to(
+					to_world(button.position), controller.shift_held(button)
+				)
 			accept_event()
 		return
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null and _dragging:
 		_look_at(motion.position)
 		accept_event()
+
+
+## True when a right click on the map orders the selected units there under `scheme`:
+## only where right click commands (modern). In the classic scheme commands are left
+## clicks, and a left click here already moves the camera.
+static func right_click_orders(scheme: StringName) -> bool:
+	return SelectionRules.command_button(scheme) == MOUSE_BUTTON_RIGHT
 
 
 ## Paints the terrain in this map's own colours (low ground, high ground).
@@ -164,7 +179,7 @@ func _draw_overlay() -> void:
 		var box: Rect2 = Rect2(corner, (rect.size * scale).max(Vector2(3.0, 3.0)))
 		var color: Color = _color_for(building.faction)
 		if building.faction != faction and not building.is_visible_to_player:
-			color = REMEMBERED_COLOR
+			color = Color(color.darkened(REMEMBERED_DARKEN), REMEMBERED_ALPHA)
 		_overlay.draw_rect(box, color)
 		_overlay.draw_rect(box, Color(0, 0, 0, 0.6), false, 1.0)
 	for unit: Unit in world.units:
@@ -261,7 +276,9 @@ func _ground_under(screen_point: Vector2, ground_y: float) -> Vector3:
 
 
 func _color_for(owner_faction: int) -> Color:
-	return TeamColors.for_faction(owner_faction) if owner_faction == faction else ENEMY_COLOR
+	if owner_faction == faction or Factions.is_custodian(owner_faction):
+		return TeamColors.for_faction(owner_faction)
+	return TeamColors.for_faction(TeamColors.HOSTILE)
 
 
 ## Hill-shaded terrain: lit by a low light from the north-west, impassable ground

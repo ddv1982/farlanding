@@ -361,6 +361,11 @@ func finish(won: bool) -> void:
 	result.units_lost = units_lost
 	result.buildings_lost = buildings_lost
 	result.enemies_destroyed = enemies_destroyed
+	result.difficulty = (
+		Difficulty.sanitize(modifiers.difficulty)
+		if modifiers != null and modifiers.difficulty != &""
+		else &""
+	)
 	result.intel_held = world.economy.stockpile(player_faction).intel
 	if world.discovery != null:
 		for found: DiscoveryDef in world.discovery.codex(player_faction):
@@ -379,6 +384,13 @@ func _exit_tree() -> void:
 	_stop_listening()
 
 
+## The CommanderDifficulty id the enemy commander plays at: the mission's own level
+## shifted by the player's choice (Difficulty.effective).
+func commander_level() -> StringName:
+	var chosen: StringName = modifiers.difficulty if modifiers != null else &""
+	return Difficulty.effective(StringName(def.enemy_difficulty), chosen)
+
+
 func _start_commander() -> void:
 	if def.commander_profile == null:
 		return
@@ -387,12 +399,7 @@ func _start_commander() -> void:
 	add_child(commander)
 	commander.verbose = log_enemy_ai
 	commander.setup(
-		context,
-		world,
-		def.hostile_faction,
-		def.commander_profile,
-		StringName(def.enemy_difficulty),
-		map_area
+		context, world, def.hostile_faction, def.commander_profile, commander_level(), map_area
 	)
 	# Units on patrol are the guards', not the commander's army.
 	commander.guards = guards

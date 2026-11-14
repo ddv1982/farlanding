@@ -15,16 +15,17 @@ extends Node
 ## In both: left drag box-selects units (Shift adds), Shift+click toggles a unit,
 ## double-click selects every visible unit of that type, Shift queues orders. While
 ## placing a building (BuildPlacement) or aiming a field option, left click confirms
-## and right click or Esc cancels. X stops. Ctrl+1..9 stores a control group, 1..9
-## recalls it, a quick second press centres the camera on it. The cursor shows what
+## and right click or Esc cancels. The stop key stops. Ctrl + a group key (1..9 by
+## default; the keys are the player's, KeyBindings) stores a control group, the key
+## recalls it, a quick second press centres the camera on it. With sticky Shift
+## (Settings.sticky_shift) a press of Shift holds it until the next. Team colours
+## follow the chosen palette (TeamColors), also when it changes. The cursor shows what
 ## a command click would do (CursorIcons). Enemies out of sight cannot be clicked:
 ## hidden ones are not there for the mouse, remembered buildings count as ground.
 ## Every order goes through the mission's CommandQueue.
 
 const DRAG_THRESHOLD_PX: float = 6.0
 const DOUBLE_TAP_SECONDS: float = 0.35
-const MOVE_MARKER_COLOR: Color = Color(0.45, 1.0, 0.55)
-const ATTACK_MARKER_COLOR: Color = Color(1.0, 0.4, 0.3)
 ## Point above a unit's origin used for screen-space picking, in metres.
 const PICK_HEIGHT: float = 1.0
 ## Cursor shown for each click action (SelectionRules.CLICK_*).
@@ -36,8 +37,8 @@ const CURSOR_FOR_ACTION: Dictionary[StringName, StringName] = {
 	SelectionRules.CLICK_ASSIST: CursorIcons.ASSIST,
 	SelectionRules.CLICK_RALLY: CursorIcons.RALLY,
 	SelectionRules.CLICK_SABOTAGE: CursorIcons.SABOTAGE,
-	SelectionRules.CLICK_CARRY: CursorIcons.ASSIST,
-	SelectionRules.CLICK_REACTIVATE: CursorIcons.ASSIST,
+	SelectionRules.CLICK_CARRY: CursorIcons.CARRY,
+	SelectionRules.CLICK_REACTIVATE: CursorIcons.REACTIVATE,
 }
 
 @export var camera: RtsCamera
@@ -63,6 +64,10 @@ var _last_group_time: float = -10.0
 var _rally_marker: RallyMarker = null
 ## Last pointer position seen in any mouse event (also over the HUD).
 var _pointer: Vector2 = Vector2.ZERO
+## Sticky Shift: held by one press until the next.
+var _shift_latched: bool = false
+## The palette the visuals were last coloured in.
+var _palette: StringName = &""
 
 
 func _ready() -> void:
@@ -76,6 +81,8 @@ func _ready() -> void:
 	add_child(placement)
 	Events.entity_spawned.connect(_on_entity_spawned)
 	Events.entity_died.connect(_on_entity_died)
+	_palette = TeamColors.palette()
+	Settings.changed.connect(_on_settings_changed)
 
 
 func _process(_delta: float) -> void:
@@ -187,7 +194,7 @@ func apply_click(button: MouseButton, target: Node3D, ground: Vector3, shift: bo
 			var carriers: Array[Node3D] = []
 			carriers.assign(SelectionRules.able(selection, Carrier.KIND))
 			_push(CarryCommand.new(player_faction, carriers, target, shift))
-			OrderMarker.spawn(world, target.position, MOVE_MARKER_COLOR)
+			OrderMarker.spawn(world, target.position, TeamColors.order_marker(false))
 		SelectionRules.CLICK_RALLY:
 			_rally_at(ground)
 	return action
@@ -361,6 +368,11 @@ func units_in_rect(rect: Rect2) -> Array[Unit]:
 	return result
 
 
+## True when Shift counts as held for `event`: pressed, or latched (sticky Shift).
+func shift_held(event: InputEventWithModifiers) -> bool:
+	return event.shift_pressed or (Settings.sticky_shift and _shift_latched)
+
+
 func _handle_mouse_button(button: InputEventMouseButton) -> void:
 	match button.button_index:
 		MOUSE_BUTTON_LEFT:
@@ -380,17 +392,14 @@ func _handle_mouse_button(button: InputEventMouseButton) -> void:
 					var rect: Rect2 = Rect2(_press_position, button.position - _press_position)
 					set_selection(
 						SelectionRules.box(
-							selection,
-							units_in_rect(rect.abs()),
-							button.shift_pressed,
-							player_faction
+							selection, units_in_rect(rect.abs()), shift_held(button), player_faction
 						)
 					)
 				else:
-					_left_click(button.position, button.shift_pressed)
+					_left_click(button.position, shift_held(button))
 		MOUSE_BUTTON_RIGHT:
 			if button.pressed:
-				_click(MOUSE_BUTTON_RIGHT, button.position, button.shift_pressed)
+				_click(MOUSE_BUTTON_RIGHT, button.position, shift_held(button))
 
 
 func _click(button: MouseButton, screen_position: Vector2, shift: bool) -> void:
@@ -420,7 +429,7 @@ func _issue_on_target(command: Command, target: Node3D, queued: bool) -> void:
 		_push(
 			MoveCommand.new(MoveCommand.KIND_MOVE, player_faction, others, target.position, queued)
 		)
-	OrderMarker.spawn(world, target.position, MOVE_MARKER_COLOR)
+	OrderMarker.spawn(world, target.position, TeamColors.order_marker(false))
 
 
 func _rally_at(target: Vector3) -> void:
@@ -438,11 +447,11 @@ func _handle_placement_button(button: InputEventMouseButton) -> void:
 	match button.button_index:
 		MOUSE_BUTTON_LEFT:
 			var command: PlaceBuildingCommand = placement.confirm(
-				player_faction, button.shift_pressed
+				player_faction, shift_held(button)
 			)
 			if command != null:
 				_push(command)
-				OrderMarker.spawn(world, command.target_position, MOVE_MARKER_COLOR)
+				OrderMarker.spawn(world, command.target_position, TeamColors.order_marker(false))
 		MOUSE_BUTTON_RIGHT:
 			placement.cancel()
 
@@ -468,6 +477,11 @@ func _left_click(screen_position: Vector2, shift: bool) -> void:
 
 
 func _handle_key(key: InputEventKey) -> void:
+	if key.keycode == KEY_SHIFT:
+		if Settings.sticky_shift:
+			_shift_latched = not _shift_latched
+			Events.ui_feedback.emit(&"toggle")
+		return
 	if placement.is_active() and key.keycode == KEY_ESCAPE:
 		placement.cancel()
 		get_viewport().set_input_as_handled()
@@ -476,7 +490,7 @@ func _handle_key(key: InputEventKey) -> void:
 		cancel_field_option()
 		get_viewport().set_input_as_handled()
 		return
-	var group: int = _group_index(key)
+	var group: int = KeyBindings.group_of(key)
 	if group > 0:
 		if key.ctrl_pressed or key.meta_pressed:
 			_groups.assign(group, selection)
@@ -544,14 +558,16 @@ func _move_to(target: Vector3, queued: bool) -> void:
 	_push(
 		MoveCommand.new(MoveCommand.KIND_MOVE, player_faction, _selected_entities(), target, queued)
 	)
-	OrderMarker.spawn(world, target, MOVE_MARKER_COLOR)
+	OrderMarker.spawn(world, target, TeamColors.order_marker(false))
 
 
 func _issue_attack(target: Node3D, queued: bool) -> void:
 	if selection.is_empty():
 		return
 	_push(AttackCommand.new(player_faction, _selected_entities(), target, queued))
-	OrderMarker.spawn(world, target.global_position, ATTACK_MARKER_COLOR)
+	OrderMarker.spawn(
+		world, target.global_position, TeamColors.order_marker(true), OrderMarker.ATTACK_SCALE
+	)
 
 
 func _push(command: Command) -> void:
@@ -642,6 +658,22 @@ func _on_entity_spawned(entity: Node3D) -> void:
 		visual.set_team_color(TeamColors.for_faction(unit.faction))
 
 
+## A new palette: every unit and building takes its team colour again.
+func _on_settings_changed() -> void:
+	if not Settings.sticky_shift:
+		_shift_latched = false
+	if TeamColors.palette() == _palette or world == null:
+		return
+	_palette = TeamColors.palette()
+	for building: Building in world.buildings:
+		_on_entity_spawned(building)
+	for unit: Unit in world.units:
+		_on_entity_spawned(unit)
+	if _rally_marker != null:
+		_rally_marker.queue_free()
+		_rally_marker = null
+
+
 func _on_entity_died(entity: Node3D) -> void:
 	if entity == selected_building:
 		select_building(null)
@@ -658,10 +690,3 @@ static func _visual_of(unit: Unit) -> UnitVisual:
 		if child is UnitVisual:
 			return child
 	return null
-
-
-static func _group_index(key: InputEventKey) -> int:
-	var code: int = key.physical_keycode if key.physical_keycode != KEY_NONE else key.keycode
-	if code >= KEY_1 and code <= KEY_9:
-		return code - KEY_1 + 1
-	return 0

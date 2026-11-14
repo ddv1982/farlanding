@@ -15,6 +15,10 @@ const RALLY: StringName = &"rally"
 const SABOTAGE: StringName = &"sabotage"
 ## Aiming a field option.
 const TARGET: StringName = &"target"
+## Pick up an artefact.
+const CARRY: StringName = &"carry"
+## Wake an Antecedent engine.
+const REACTIVATE: StringName = &"reactivate"
 
 const COLORS: Dictionary[StringName, Color] = {
 	ATTACK: Color(1.0, 0.22, 0.15),
@@ -25,6 +29,8 @@ const COLORS: Dictionary[StringName, Color] = {
 	RALLY: Color(0.45, 1.0, 0.55),
 	SABOTAGE: Color(0.78, 0.55, 1.0),
 	TARGET: Color(0.75, 0.6, 1.0),
+	CARRY: Color(0.95, 0.80, 0.45),
+	REACTIVATE: Color(1.0, 0.82, 0.35),
 }
 const OUTLINE: Color = Color(0.04, 0.03, 0.03, 0.9)
 
@@ -106,4 +112,22 @@ static func _covers(kind: StringName, offset: Vector2, grow: float) -> bool:
 			# A ring with a cross reaching past it.
 			var cross: bool = on_axis and r >= 3.0 - grow and r <= 15.0 + grow
 			return absf(r - 7.0) <= 1.0 + grow or cross
+		CARRY:
+			# A box with an arrow lifting out of it.
+			var box: bool = (
+				absf(maxf(absf(offset.x), absf(offset.y - 5.0)) - 6.0) <= 1.0 + grow
+				and offset.y >= -1.0 - grow
+			)
+			var shaft: bool = absf(offset.x) <= 0.8 + grow and offset.y <= 4.0 and offset.y >= -12.0
+			var head: bool = (
+				offset.y <= -6.0 + grow
+				and offset.y >= -13.0 - grow
+				and absf(absf(offset.x) - (offset.y + 13.0) * 0.7) <= 1.0 + grow
+			)
+			return box or shaft or head
+		REACTIVATE:
+			# A power symbol: a ring open at the top and a bar through the gap.
+			var open_top: bool = offset.y < -3.0 and absf(offset.x) < 4.0
+			var bar: bool = absf(offset.x) <= 1.0 + grow and offset.y <= 0.0 and offset.y >= -13.0
+			return (absf(r - 9.0) <= 1.2 + grow and not open_top) or bar
 	return false

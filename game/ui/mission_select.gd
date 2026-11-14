@@ -1,8 +1,10 @@
 class_name MissionSelect
 extends Control
-## Single missions (from the title screen): the expedition's name and one card per
-## mission of the catalog (type, title, one-line summary), the settings and Back. Choosing one emits
-## `mission_chosen`. With the menu backdrop behind it the background lets it through.
+## Single missions (from the title screen): the expedition's name, the difficulty
+## (remembered in the settings; the mission is played at it), one card per mission
+## of the catalog (type, title, one-line summary), the settings and Back. Choosing
+## one emits `mission_chosen`. With the menu backdrop behind it the background lets
+## it through.
 
 ## The player picked `mission`.
 signal mission_chosen(mission: MissionDef)
@@ -21,6 +23,7 @@ const TYPE_NAMES: Dictionary[StringName, String] = {
 }
 
 var _cards: VBoxContainer
+var _picker: DifficultyPicker
 var _back: ColorRect
 var _vignette: TextureRect
 
@@ -50,6 +53,11 @@ func _ready() -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 18)
 	column.add_child(gap)
+	_picker = DifficultyPicker.new()
+	_picker.chosen.connect(
+		func(level: StringName) -> void: Settings.set_option(&"difficulty", level)
+	)
+	column.add_child(_picker)
 	_cards = VBoxContainer.new()
 	_cards.add_theme_constant_override(&"separation", 10)
 	column.add_child(_cards)
@@ -76,6 +84,16 @@ func set_see_through(enabled: bool) -> void:
 	if _back != null:
 		_back.visible = not enabled
 		_vignette.visible = enabled
+
+
+## The difficulty choice (tests).
+func picker() -> DifficultyPicker:
+	return _picker
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED and visible and _picker != null:
+		_picker.set_level(Settings.difficulty)
 
 
 ## Shows one card per mission in `catalog`.

@@ -3,18 +3,25 @@
 [ext_resource type="Script" path="res://core/defs/hint_def.gd" id="1_hint"]
 [ext_resource type="Script" path="res://core/defs/hint_catalog.gd" id="2_catalog"]
 
+[sub_resource type="Resource" id="h18"]
+script = ExtResource("1_hint")
+id = &"camera"
+title = "Move the camera"
+text = "Pan with {pan_keys} or the arrow keys, by resting the mouse on a screen edge, or by dragging with the middle button. The wheel zooms; {key_camera_rotate_left} and {key_camera_rotate_right} turn. A left click on the minimap (bottom right) looks there."
+trigger = &"mission_started"
+
 [sub_resource type="Resource" id="h0"]
 script = ExtResource("1_hint")
 id = &"select_move"
 title = "Select and move"
-text = "{select} one of your units (or drag a box round several), then {command} the ground to move them there. Shift queues orders; X stops."
+text = "{select} one of your units (or drag a box round several), then {command} the ground to move them there. Shift queues orders; {key_order_stop} stops. Next, select a Fabricator to build."
 trigger = &"mission_started"
 
 [sub_resource type="Resource" id="h1"]
 script = ExtResource("1_hint")
 id = &"build_reactor"
 title = "Build a Reactor"
-text = "A Fabricator builds. Pick a Reactor in the command panel and {command} the ground to place it: most buildings need its power. More Fabricators on one site build faster."
+text = "A Fabricator builds. Pick a Reactor in the command panel and {command} the ground to place it: most buildings need its power. More Fabricators on one site build faster. Then select your Hauler."
 trigger = &"selected"
 subject = &"builder"
 
@@ -22,7 +29,7 @@ subject = &"builder"
 script = ExtResource("1_hint")
 id = &"harvest"
 title = "Harvest Alloy"
-text = "Haulers mine Alloy deposits and carry it to a Refinery (or the Lander). New Haulers go to work by themselves; {command} a deposit to send one somewhere else."
+text = "Haulers mine Alloy deposits and carry it to a Refinery (or the Lander). New Haulers go to work by themselves; {command} a deposit to send one somewhere else. Then select the Lander: it trains more crew."
 trigger = &"selected"
 subject = &"harvester"
 
@@ -30,7 +37,7 @@ subject = &"harvester"
 script = ExtResource("1_hint")
 id = &"produce"
 title = "Produce units"
-text = "A selected production building shows what it can make: click a unit to queue it (Alloy is paid up front). With the building selected, {command} the ground to set where new units gather."
+text = "A selected production building shows what it can make: click a unit to queue it (Alloy is paid up front). With the building selected, {command} the ground to set where new units gather. Then select your Surveyor."
 trigger = &"selected"
 subject = &"producer"
 mission_types = Array[StringName]([&"conquest", &"survey"])
@@ -134,6 +141,14 @@ title = "Holding an engine"
 text = "The engine runs for you now. The Combine can take it over the same way (a slower job, so guard it), or shoot it until it shuts down for a while. A shut-down engine restarts on its own, unless the enemy claims it first."
 trigger = &"machine_reactivated"
 
+[sub_resource type="Resource" id="h19"]
+script = ExtResource("1_hint")
+id = &"objectives"
+title = "Objectives"
+text = "The objectives (top left) say what this landing needs. Every primary one must be done to win; those marked (optional) bring more. Each says \"done\" or \"failed\" once it is decided. Intel from scans is banked for the Meridian's tech web. {key_controls_help} shows every control."
+trigger = &"mission_started"
+delay_seconds = 120.0
+
 [sub_resource type="Resource" id="h17"]
 script = ExtResource("1_hint")
 id = &"core"
@@ -144,4 +159,4 @@ mission_types = Array[StringName]([&"finale"])
 
 [resource]
 script = ExtResource("2_catalog")
-hints = Array[ExtResource("1_hint")]([SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10"), SubResource("h11"), SubResource("h12"), SubResource("h13"), SubResource("h14"), SubResource("h15"), SubResource("h16"), SubResource("h17")])
+hints = Array[ExtResource("1_hint")]([SubResource("h18"), SubResource("h0"), SubResource("h1"), SubResource("h2"), SubResource("h3"), SubResource("h4"), SubResource("h5"), SubResource("h6"), SubResource("h7"), SubResource("h8"), SubResource("h9"), SubResource("h10"), SubResource("h11"), SubResource("h12"), SubResource("h13"), SubResource("h14"), SubResource("h15"), SubResource("h16"), SubResource("h17"), SubResource("h19")])

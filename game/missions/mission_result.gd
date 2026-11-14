@@ -6,6 +6,8 @@ extends RefCounted
 var mission_id: StringName = &""
 var title: String = ""
 var won: bool = false
+## The difficulty the player chose (Difficulty.LEVELS), or &"" (as designed).
+var difficulty: StringName = &""
 ## One entry per objective the player knew of: { title, kind, state }.
 var objectives: Array[Dictionary] = []
 var seconds: float = 0.0

@@ -19,6 +19,9 @@ var unlocked_options: Array[StringName] = []
 var option_charges: Dictionary[StringName, int] = {}
 ## Discovery ids whose sites start charted even when a chain would hide them.
 var charted_sites: Array[StringName] = []
+## The difficulty the player chose (Difficulty.LEVELS), or &"" to play the mission
+## as designed. It shifts the enemy commander's level (Difficulty.effective).
+var difficulty: StringName = &""
 ## One line per effect, for the briefing ("+2 Rangers", "Hauler carry +25%").
 var notes: PackedStringArray = PackedStringArray()
 

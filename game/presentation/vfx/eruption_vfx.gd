@@ -68,7 +68,9 @@ func erupt(at: Vector3, radius: float) -> void:
 	var light := OmniLight3D.new()
 	light.light_color = FIRE_COLOR
 	light.omni_range = radius * 2.2
-	light.light_energy = 9.0
+	light.light_energy = (
+		9.0 * (CombatVfx.REDUCED_FLASH_BRIGHTNESS if Settings.reduce_flashes else 1.0)
+	)
 	add_child(light)
 	light.global_position = at + Vector3.UP * 3.0
 	var fade: Tween = light.create_tween()

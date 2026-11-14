@@ -16,6 +16,9 @@ const EPSILON: float = 1e-6
 
 ## While paused no ticks happen and `interpolation_fraction` holds still.
 var paused: bool = false
+## Game speed: real seconds are multiplied by this (single missions let the player
+## choose it; MAX_TICKS_PER_STEP still caps the catch-up). Not saved.
+var speed: float = 1.0
 
 var _tick: int = 0
 var _accumulator: float = 0.0
@@ -44,7 +47,7 @@ func get_interpolation_fraction() -> float:
 func advance(delta: float) -> int:
 	if paused:
 		return 0
-	_accumulator += delta
+	_accumulator += delta * maxf(speed, 0.0)
 	var ran: int = 0
 	while _accumulator + EPSILON >= TICK_DELTA and ran < MAX_TICKS_PER_STEP:
 		_accumulator = maxf(_accumulator - TICK_DELTA, 0.0)

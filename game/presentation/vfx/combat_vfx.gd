@@ -8,13 +8,14 @@ extends Node3D
 ## `impact_size` (metres; 0 = sparks only). Reads `faction` and
 ## `is_visible_to_player` from entities when they have them.
 
-const CONCORD_COLOR := Color(0.35, 0.92, 1.0)
-const COMBINE_COLOR := Color(0.25, 1.0, 0.55)
 const SHELL_COLOR := Color(1.0, 0.55, 0.15)
 const FIRE_COLOR := Color(1.0, 0.62, 0.2)
 const SMOKE_COLOR := Color(0.10, 0.08, 0.07, 0.62)
 ## Brightness above 1 so the glow post-effect picks effects up.
 const GLOW := 3.0
+## Fewer flashes: flash discs shrink to this share and dim to this brightness.
+const REDUCED_FLASH_SIZE := 0.5
+const REDUCED_FLASH_BRIGHTNESS := 0.35
 ## Effects alive at once; beyond this new ones are skipped, not queued.
 const MAX_EFFECTS := 80
 const SCORCH_SECONDS := 14.0
@@ -92,9 +93,13 @@ func _on_entity_died(entity: Node3D) -> void:
 
 
 ## A brief bright disc, e.g. a muzzle flash.
+## With fewer flashes (Settings.reduce_flashes) it is smaller and dimmer.
 func flash(at: Vector3, color: Color, size: float, seconds: float) -> void:
 	if not _claim(seconds):
 		return
+	if Settings.reduce_flashes:
+		size *= REDUCED_FLASH_SIZE
+		color = Color(color.r, color.g, color.b) * REDUCED_FLASH_BRIGHTNESS
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * size
 	var disc := MeshInstance3D.new()
@@ -333,9 +338,10 @@ static func _hidden(entity: Node3D) -> bool:
 static func _faction_color(entity: Node3D) -> Color:
 	if is_instance_valid(entity):
 		var faction: Variant = entity.get(&"faction")
-		if faction is int and faction != 0:
-			return COMBINE_COLOR
-	return CONCORD_COLOR
+		if faction is int:
+			var faction_id: int = faction
+			return TeamColors.shot_color(faction_id)
+	return TeamColors.shot_color(TeamColors.PLAYER)
 
 
 static func _float(resource: Resource, property: StringName, fallback: float) -> float:

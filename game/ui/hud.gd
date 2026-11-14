@@ -14,7 +14,8 @@ extends CanvasLayer
 ## The MENU button was pressed (Main opens the pause menu).
 signal menu_requested
 
-## Controls panel text per mouse scheme (Settings.control_scheme).
+## Controls panel text per mouse scheme (Settings.control_scheme); {key_<action>}
+## is the key bound to that action now (KeyBindings), filled in by `controls_text()`.
 const HINT_CLASSIC: String = (
 	"MOUSE    classic (Command & Conquer): left click does it all\n"
 	+ "LEFT     own unit or building: select  ·  drag: box  ·  double-click: all of type\n"
@@ -22,12 +23,13 @@ const HINT_CLASSIC: String = (
 	+ "         deposit harvest (Haulers)  ·  own site help build (Fabricators)\n"
 	+ "         building selected: ground sets the rally point\n"
 	+ "RIGHT    deselect  ·  while placing or aiming: cancel (or Esc)\n"
-	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  X stop\n"
-	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
-	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn\n"
-	+ "MAP      left: look there (drag)  ·  right: move selected units there\n"
-	+ "CODEX    C or the button top right  ·  COMBAT  armed units fire by themselves\n"
-	+ "MENU     Esc: pause, settings (mouse scheme, audio, display), restart, quit"
+	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  {key_order_stop} stop\n"
+	+ "GROUPS   Ctrl+{groups} store  ·  {groups} recall, twice to centre\n"
+	+ "CAMERA   {pan} or the edge or MMB pan  ·  wheel zoom  ·  {turn} turn\n"
+	+ "MAP      left: look there (drag)\n"
+	+ "CODEX    {key_codex} or the button top right  ·  COMBAT  armed units fire by themselves\n"
+	+ "SAVE     {key_quicksave} quicksave  ·  {key_quickload} quickload\n"
+	+ "MENU     Esc or {key_pause_menu}: pause, settings, keys, restart, quit"
 )
 const HINT_MODERN: String = (
 	"MOUSE    modern: left selects, right commands\n"
@@ -37,12 +39,13 @@ const HINT_MODERN: String = (
 	+ "         deposit: harvest (Haulers)  ·  site: help build (Fabricators)\n"
 	+ "         building selected: rally point  ·  unit button: cancel one\n"
 	+ "         while placing or aiming: cancel (or Esc)\n"
-	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  X stop\n"
-	+ "GROUPS   Ctrl+1-9 store  ·  1-9 recall, twice to centre\n"
-	+ "CAMERA   WASD/arrows/edge/MMB pan  ·  wheel zoom  ·  Q/E turn\n"
+	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  {key_order_stop} stop\n"
+	+ "GROUPS   Ctrl+{groups} store  ·  {groups} recall, twice to centre\n"
+	+ "CAMERA   {pan} or the edge or MMB pan  ·  wheel zoom  ·  {turn} turn\n"
 	+ "MAP      left: look there (drag)  ·  right: move selected units there\n"
-	+ "CODEX    C or the button top right  ·  COMBAT  armed units fire by themselves\n"
-	+ "MENU     Esc: pause, settings (mouse scheme, audio, display), restart, quit"
+	+ "CODEX    {key_codex} or the button top right  ·  COMBAT  armed units fire by themselves\n"
+	+ "SAVE     {key_quicksave} quicksave  ·  {key_quickload} quickload\n"
+	+ "MENU     Esc or {key_pause_menu}: pause, settings, keys, restart, quit"
 )
 const MARGIN := HudStyle.MARGIN
 
@@ -75,6 +78,9 @@ var _codex: CodexPanel
 var _codex_button: Button
 var _menu_button: Button
 var _planet: PlanetIndicator
+var _shift_note: Label
+## A modifier-less event: asks the controller whether Shift is latched.
+var _no_shift: InputEventKey = InputEventKey.new()
 
 
 func _ready() -> void:
@@ -108,11 +114,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
-	if key.keycode == KEY_F1:
+	if key.is_action_pressed(&"controls_help", false, true):
 		_hint_panel.visible = not _hint_panel.visible
 		_hint_toggle.visible = not _hint_panel.visible
 		get_viewport().set_input_as_handled()
-	elif key.keycode == KEY_C and not key.ctrl_pressed and not key.meta_pressed:
+	elif key.is_action_pressed(&"codex", false, true):
 		toggle_codex()
 		get_viewport().set_input_as_handled()
 	elif key.keycode == KEY_ESCAPE and _codex.visible:
@@ -159,7 +165,37 @@ func request_menu() -> void:
 	menu_requested.emit()
 
 
+## The controls panel's text for `scheme`, with the keys bound now.
+static func controls_text(scheme: StringName) -> String:
+	var text: String = HINT_CLASSIC if scheme == Settings.SCHEME_CLASSIC else HINT_MODERN
+	var pan: String = (
+		"%s%s%s%s / %s %s %s %s"
+		% [
+			KeyBindings.label(&"camera_pan_forward_alt"),
+			KeyBindings.label(&"camera_pan_left_alt"),
+			KeyBindings.label(&"camera_pan_back_alt"),
+			KeyBindings.label(&"camera_pan_right_alt"),
+			KeyBindings.label(&"camera_pan_forward"),
+			KeyBindings.label(&"camera_pan_left"),
+			KeyBindings.label(&"camera_pan_back"),
+			KeyBindings.label(&"camera_pan_right"),
+		]
+	)
+	var values: Dictionary = KeyBindings.key_names()
+	values["pan"] = pan
+	values["turn"] = (
+		"%s/%s"
+		% [KeyBindings.label(&"camera_rotate_left"), KeyBindings.label(&"camera_rotate_right")]
+	)
+	values["groups"] = (
+		"%s-%s" % [KeyBindings.label(&"control_group_1"), KeyBindings.label(&"control_group_9")]
+	)
+	return text.format(values)
+
+
 func _process(_delta: float) -> void:
+	if _shift_note != null and selection_controller != null:
+		_shift_note.visible = Settings.sticky_shift and selection_controller.shift_held(_no_shift)
 	if not _debug_panel.visible:
 		return
 	var lines: PackedStringArray = [
@@ -279,6 +315,10 @@ func _build_hint() -> void:
 	_hint_toggle = _make_label(11, HudStyle.MUTED_COLOR, "F1  CONTROLS")
 	_hint_toggle.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_corner.add_child(_hint_toggle)
+	_shift_note = _make_label(12, HudStyle.ACCENT_COLOR, "SHIFT HELD  (press Shift to release)")
+	_shift_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_shift_note.visible = false
+	_corner.add_child(_shift_note)
 
 
 ## Top right: the codex and menu buttons, the planet indicator below them.
@@ -309,8 +349,9 @@ func _build_top_right() -> void:
 
 
 func _on_settings_changed() -> void:
-	var classic: bool = Settings.control_scheme == Settings.SCHEME_CLASSIC
-	_hint.text = HINT_CLASSIC if classic else HINT_MODERN
+	_hint.text = controls_text(Settings.control_scheme)
+	_hint_toggle.text = "%s  CONTROLS" % KeyBindings.label(&"controls_help")
+	_codex_button.text = "CODEX  (%s)" % KeyBindings.label(&"codex")
 
 
 func _build_debug() -> void:

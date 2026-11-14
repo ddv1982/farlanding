@@ -37,6 +37,8 @@ var discoveries: Array[StringName] = []
 var loadout: Dictionary[StringName, StringName] = {}
 ## The node picked on the star map (or being played), or &"".
 var current_node: StringName = &""
+## The difficulty the player chose (Difficulty.LEVELS); it may change between landings.
+var difficulty: StringName = Difficulty.NORMAL
 
 
 func _init(p_def: CampaignDef = null) -> void:
@@ -199,6 +201,7 @@ func to_dict() -> Dictionary:
 		"discoveries": _strings(discoveries),
 		"loadout": loadout_data,
 		"current_node": String(current_node),
+		"difficulty": String(difficulty),
 	}
 
 
@@ -228,6 +231,8 @@ static func from_dict(data: Dictionary, p_def: CampaignDef) -> CampaignState:
 		state.loadout[StringName(str(key))] = StringName(str(loadout_data[key]))
 	var current: String = data.get("current_node", "")
 	state.current_node = StringName(current)
+	# Saves from before difficulty levels play on Normal.
+	state.difficulty = Difficulty.sanitize(data.get("difficulty", Difficulty.NORMAL))
 	state._open_new_leads()
 	return state
 

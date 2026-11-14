@@ -94,6 +94,16 @@ func choose_loadout(slot_id: StringName, option_id: StringName) -> bool:
 	return true
 
 
+## Changes the campaign's difficulty (between landings) and saves. False when
+## `level` is not a difficulty, it is already set, or a landing is in play.
+func set_difficulty(level: StringName) -> bool:
+	if not Difficulty.LEVELS.has(level) or level == state.difficulty or landing != null:
+		return false
+	state.difficulty = level
+	save()
+	return true
+
+
 ## Marks `node_id` as picked on the star map (if it is open).
 func select(node_id: StringName) -> bool:
 	if state.node_state(node_id) != CampaignState.NODE_OPEN:

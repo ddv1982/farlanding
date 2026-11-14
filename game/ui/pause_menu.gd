@@ -1,12 +1,14 @@
 class_name PauseMenu
 extends Control
-## The in-mission menu (Esc or the HUD's MENU button): Resume, Save, Load, Settings,
-## Restart and Quit to missions over a dimmed map. It takes every click and key while open (the
-## map behind it cannot be ordered about); Main pauses the sim clock and the camera.
-## Esc closes it (or, with the settings open, the settings).
+## The in-mission menu (Esc, the pause key or the HUD's MENU button): Resume, Save,
+## Load, Settings, How to play, Restart and Quit to missions over a dimmed map. It
+## takes every click and key while open (the map behind it cannot be ordered about);
+## Main pauses the sim clock and the camera. Esc closes it (or, with the settings,
+## the slots or How to play open, those).
 
 signal resume_pressed
 signal settings_pressed
+signal how_to_play_pressed
 signal save_pressed
 signal load_pressed
 signal restart_pressed
@@ -56,6 +58,7 @@ func _ready() -> void:
 	column.add_child(_button("SAVE", save_pressed))
 	column.add_child(_button("LOAD", load_pressed))
 	column.add_child(_button("SETTINGS", settings_pressed))
+	column.add_child(_button("HOW TO PLAY", how_to_play_pressed))
 	column.add_child(_button("RESTART MISSION", restart_pressed))
 	_quit = _button("QUIT TO MISSIONS", quit_pressed)
 	column.add_child(_quit)
@@ -76,7 +79,8 @@ func _input(event: InputEvent) -> void:
 	if key == null:
 		return
 	# Nothing reaches the map while paused; Esc resumes (the settings close first).
-	if key.pressed and not key.echo and key.keycode == KEY_ESCAPE and _settings_hidden():
+	var back: bool = key.keycode == KEY_ESCAPE or key.is_action_pressed(&"pause_menu", false, true)
+	if key.pressed and not key.echo and back and _settings_hidden():
 		resume_pressed.emit()
 		get_viewport().set_input_as_handled()
 	elif _settings_hidden() or not _is_menu_key(key):
@@ -101,6 +105,9 @@ func _settings_hidden() -> bool:
 			return false
 		var slots: SaveLoadPanel = sibling as SaveLoadPanel
 		if slots != null and slots.visible:
+			return false
+		var info: InfoPanel = sibling as InfoPanel
+		if info != null and info.visible:
 			return false
 	return true
 

@@ -33,7 +33,7 @@ func _process(delta: float) -> void:
 	vfx.explosion(Vector3(0, 0.6, -2), 2.2)
 	vfx.explosion(Vector3(8, 0.6, 0), 3.5)
 	vfx.sparks(Vector3(-3, 1.0, 4), CombatVfx.FIRE_COLOR, 8)
-	vfx.flash(Vector3(3, 1.0, 4), CombatVfx.CONCORD_COLOR, 0.9, 0.3)
+	vfx.flash(Vector3(3, 1.0, 4), TeamColors.shot_color(TeamColors.PLAYER), 0.9, 0.3)
 	for index: int in 3:
 		var shot := Node3D.new()
 		add_child(shot)
