@@ -471,6 +471,7 @@ func _make_attack(
 	if mode == AttackGroup.MODE_DEFEND:
 		return made
 	var search: bool = searching or mode == AttackGroup.MODE_LAST_STAND
+	made.searching = search
 	made.next_target = func(from: Vector3) -> Vector3:
 		var next: Vector3 = knowledge.attack_target(from, port.now())
 		if next == Vector3.INF and search:
@@ -578,8 +579,9 @@ func _restore_attack(data: Dictionary) -> AttackGroup:
 	var target: Vector3 = str_to_var(target_text)
 	var group_home: Vector3 = str_to_var(home_text)
 	var group_staging: Vector3 = str_to_var(staging_text)
+	var searching: bool = data.get("searching", false)
 	var group: AttackGroup = _make_attack(
-		units, StringName(mode), target, group_home, group_staging
+		units, StringName(mode), target, group_home, group_staging, searching
 	)
 	group.from_dict(data)
 	return group

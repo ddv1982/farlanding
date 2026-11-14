@@ -489,9 +489,11 @@ func open_settings() -> void:
 
 
 ## Starts the briefed mission: a campaign landing gets its modifiers.
-func _land(mission: MissionDef) -> void:
+## `level`: the difficulty a single mission keeps (a restart); empty takes the
+## player's current choice.
+func _land(mission: MissionDef, level: StringName = &"") -> void:
 	if campaign == null:
-		start_mission(mission, single_modifiers(Settings.difficulty))
+		start_mission(mission, single_modifiers(Settings.difficulty if level == &"" else level))
 		return
 	if campaign.state.current_node != _landing_node and not campaign.select(_landing_node):
 		show_star_map()
@@ -525,8 +527,11 @@ func _back_from_landing() -> void:
 
 
 func _on_restart() -> void:
+	# A restarted single mission keeps the level it was being played at (a loaded
+	# save's, which may differ from the level chosen for new missions).
+	var level: StringName = _single_difficulty() if runner != null else &""
 	resume()
-	_land(current)
+	_land(current, level)
 
 
 func _set_map_running(running: bool) -> void:
@@ -624,7 +629,7 @@ func _on_info_closed() -> void:
 
 
 func _on_retry() -> void:
-	_land(current)
+	_land(current, _single_difficulty() if runner != null else &"")
 
 
 ## Shows `page` (or nothing) of the full-screen menus; hides the others.

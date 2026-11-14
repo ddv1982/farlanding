@@ -47,6 +47,9 @@ var focus: Node3D = null
 ## Why it last retreated (&"outnumbered", &"losses", &"unreachable", &"recalled",
 ## &"no_target", &"clear").
 var retreat_reason: StringName = &""
+## True for a group that keeps looking sector by sector when it knows no target (a
+## hunt or a last stand). Saved, so a restored group goes on searching.
+var searching: bool = false
 
 
 func _init(
@@ -116,6 +119,7 @@ func to_dict() -> Dictionary:
 	data["home"] = var_to_str(home)
 	data["staging"] = var_to_str(staging)
 	data["reason"] = String(retreat_reason)
+	data["searching"] = searching
 	return data
 
 

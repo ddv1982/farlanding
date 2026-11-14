@@ -163,3 +163,12 @@ func test_reading_the_group_right_after_a_member_is_freed_is_safe() -> void:
 	assert_eq(group.centroid(), (units[1].sim_position() + units[2].sim_position()) / 2.0)
 	assert_eq(group.members.size(), 2)
 	assert_almost_eq(group.strength(), 100.0, 0.01)
+
+
+func test_a_hunting_group_saves_that_it_is_searching() -> void:
+	var group: AttackGroup = _group(_f.soldiers(2, STAGING))
+	var plain: bool = group.to_dict()["searching"]
+	assert_false(plain, "an ordinary wave is not")
+	group.searching = true
+	var hunting: bool = group.to_dict()["searching"]
+	assert_true(hunting, "a hunt is, and says so in its save")
