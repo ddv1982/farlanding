@@ -79,6 +79,10 @@ var _result: NavigationPathQueryResult3D = NavigationPathQueryResult3D.new()
 func _init(map: RID, walk_grid: WalkGrid = null, region: NavigationRegion3D = null) -> void:
 	_map = map
 	_avoidance_map = map
+	# The map follows the simulation in step: with the engine's default (updates on
+	# worker threads over several frames) a unit could plan a route over ground the
+	# tide had just closed, when the machine was busy or the sim ran ahead of real time.
+	NavigationServer3D.map_set_use_async_iterations(_map, false)
 	_walk_grid = walk_grid
 	if walk_grid != null:
 		_terrain_cells = walk_grid.cells.duplicate()
@@ -421,6 +425,7 @@ func _make_hover_service(lowest: NavigationMesh, area: Rect2, cell_size: float) 
 	NavigationServer3D.map_set_edge_connection_margin(
 		_hover_map, NavigationServer3D.map_get_edge_connection_margin(_map)
 	)
+	NavigationServer3D.map_set_use_async_iterations(_hover_map, false)
 	NavigationServer3D.map_set_active(_hover_map, true)
 	var region: RID = NavigationServer3D.region_create()
 	NavigationServer3D.region_set_map(region, _hover_map)
