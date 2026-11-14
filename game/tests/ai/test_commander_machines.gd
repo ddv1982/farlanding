@@ -66,9 +66,13 @@ func _builder(at: Vector3) -> Unit:
 	return _f.spawn(_f.base.fabricator, 1, at)
 
 
-## One armed unit by home: a claim needs at least one escort (ADR 0018).
-func _escort() -> Array[Unit]:
-	return [_f.spawn(_f.combat.soldier, 1, HOME + Vector3(0, 0, 14))]
+## `count` armed units by home (priced at 100 Alloy each) to escort a claim.
+func _escort(count: int = 1) -> Array[Unit]:
+	_f.combat.soldier.cost_alloy = 100
+	var units: Array[Unit] = []
+	for i: int in count:
+		units.append(_f.spawn(_f.combat.soldier, 1, HOME + Vector3(i * 2.0, 0, 14)))
+	return units
 
 
 func test_nothing_happens_without_the_rule_or_when_it_wants_no_engines() -> void:
@@ -198,14 +202,104 @@ func test_no_lone_worker_and_no_second_worker_where_one_died() -> void:
 	# alone, to engines whose guards had just killed the last one.
 	var engine: Building = _engine(Vector3(-40, 0, -40))
 	_start()
+	_f.discovery.warden.cost_alloy = 100
+	_f.spawn(_f.discovery.warden, Factions.CUSTODIANS, Vector3(-40, 0, -48))
 	_explore(Vector3(-40, 0, -40))
 	var first: Unit = _builder(HOME + Vector3(8, 0, 8))
 	assert_eq(_keeper.decide(HOME, [first], []), [] as Array[Unit], "no escort, no claim")
-	assert_true(_keeper.decide(HOME, [first], _escort()).has(first), "with one, it goes")
+	assert_true(_keeper.decide(HOME, [first], _escort(2)).has(first), "with one, it goes")
 	first.health.take(10000.0, null)
 	_f.tick()
 	var second: Unit = _builder(HOME + Vector3(-8, 0, 8))
-	assert_false(_keeper.decide(HOME, [second], _escort()).has(second), "not into the same guns")
+	assert_false(_keeper.decide(HOME, [second], _escort(2)).has(second), "not into the same guns")
 	_seconds(MachineKeeper.FAILED_CLAIM_TICKS / 10.0 + 1.0)
-	assert_true(_keeper.decide(HOME, [second], _escort()).has(second), "later, again")
+	assert_true(_keeper.decide(HOME, [second], _escort(2)).has(second), "later, again")
 	assert_eq(engine.machine.is_dormant(), true)
+
+
+func test_the_escort_is_sized_to_win_and_unseen_engines_count_as_guarded() -> void:
+	# Found by the balance harness (ADR 0018): escorts of a quarter of the guards'
+	# price lost to them, and an engine whose guards were not seen yet counted as free.
+	var engine: Building = _engine(Vector3(-40, 0, -40))
+	_start()
+	assert_eq(
+		_keeper.escort_needed(engine),
+		MachineKeeper.UNSEEN_GUARDS * MachineKeeper.GUARD_WEIGHT * MachineKeeper.ESCORT_RATIO,
+		"not seen: a Warden's worth"
+	)
+	_f.discovery.warden.cost_alloy = 400
+	_f.spawn(_f.discovery.warden, Factions.CUSTODIANS, Vector3(-40, 0, -48))
+	_explore(Vector3(-40, 0, -40))
+	var builder: Unit = _builder(HOME + Vector3(8, 0, 8))
+	# 400 weighted by half, 1.5 times over: 300, three soldiers of 100.
+	assert_eq(_keeper.decide(HOME, [builder], _escort(2)), [] as Array[Unit], "too few")
+	var used: Array[Unit] = _keeper.decide(HOME, [builder], _escort(4))
+	assert_true(used.has(builder), "enough: it goes")
+	assert_eq(used.size(), 4, "the worker and three escorts")
+
+
+func test_a_worker_goes_alone_to_an_engine_it_saw_unguarded() -> void:
+	var engine: Building = _engine(Vector3(-40, 0, -40))
+	_start()
+	_explore(Vector3(-40, 0, -40))
+	var builder: Unit = _builder(HOME + Vector3(8, 0, 8))
+	var used: Array[Unit] = _keeper.decide(HOME, [builder], [])
+	assert_eq(used, [builder] as Array[Unit], "nobody guards it: no escort needed")
+	_f.tick()
+	assert_eq(builder.reactivator.target, engine)
+
+
+func test_a_glimpse_of_the_engine_alone_does_not_count_it_unguarded() -> void:
+	# Found by the balance harness (ADR 0018): with the engine in sight and its Warden
+	# just outside it, the engine counted as unguarded and a worker went alone.
+	var engine: Building = _engine(Vector3(-40, 0, -40))
+	_start()
+	_f.discovery.warden.cost_alloy = 400
+	_f.spawn(_f.discovery.warden, Factions.CUSTODIANS, Vector3(-40, 0, -52))
+	_f.world.vision.reveal_area(1, engine.position, 4.0, 30)
+	_f.tick(4)
+	_keeper.decide(HOME, [], [])
+	assert_false(_keeper.guards_seen.has(engine.entity_id), "it has not seen around it")
+	_explore(engine.position)
+	_keeper.decide(HOME, [], [])
+	var seen: float = _keeper.guards_seen.get(engine.entity_id, 0.0)
+	assert_eq(seen, 400.0, "now it has")
+
+
+func test_the_enemy_army_by_an_engine_counts_among_its_guards() -> void:
+	# Found by the balance harness (ADR 0018): the Combine sent a Rigger and three
+	# escorts, again and again, to take over engines the player's army stood by.
+	var engine: Building = _engine(Vector3(-40, 0, -40))
+	_start()
+	engine.faction = 0
+	engine.machine.set_state(Machine.RUNNING)
+	_f.combat.soldier.cost_alloy = 100
+	for i: int in 4:
+		_f.spawn(_f.combat.soldier, 0, Vector3(-44 + i * 2, 0, -46))
+	_explore(engine.position)
+	var builder: Unit = _builder(HOME + Vector3(8, 0, 8))
+	assert_eq(_keeper.decide(HOME, [builder], _escort(3)), [] as Array[Unit], "outgunned there")
+	var seen: float = _keeper.guards_seen.get(engine.entity_id, 0.0)
+	assert_almost_eq(seen * MachineKeeper.GUARD_WEIGHT, 400.0, 0.1, "at full strength")
+	var used: Array[Unit] = _keeper.decide(HOME, [builder], _escort(7))
+	assert_true(used.has(builder), "with an army that can win, it goes")
+
+
+func test_it_knows_the_engines_by_its_own_base_without_exploring_them() -> void:
+	# Found by the balance harness (ADR 0018): its scout explored the far side of the
+	# deck first, so the Combine crossed the map for the player's engines before taking
+	# the one forty metres from its own Hub.
+	var near: Building = _engine(HOME + Vector3(30, 0, 0))
+	var far: Building = _engine(Vector3(60, 0, 60))
+	_start()
+	assert_false(_f.world.vision.grid.is_explored(1, near.position), "never seen")
+	_explore(far.position)
+	var builder: Unit = _builder(HOME + Vector3(8, 0, 8))
+	var used: Array[Unit] = _keeper.decide(HOME, [builder], _escort(6))
+	assert_true(used.has(builder), "it goes")
+	assert_eq(_keeper.claim_engine, near.entity_id, "for the one by its base")
+	_seconds(10.0)
+	assert_true(_f.world.vision.grid.is_explored(1, near.position), "now it has seen it")
+	_keeper.decide(HOME, [], [])
+	_f.tick()
+	assert_eq(builder.reactivator.target, near, "and the work starts")

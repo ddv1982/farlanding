@@ -113,6 +113,7 @@ func test_it_builds_a_siphon_on_a_known_calm_vent_near_home() -> void:
 	rig_def.builds = [siphon]
 	var rig: Unit = _f.spawn(rig_def, 1, Vector3(-50, 0, -50))
 	_start()
+	_f.tick()  # the HQ's power is counted
 	var used: Unit = _keeper.decide(Vector3(-60, 0, -60), [rig])
 	assert_eq(used, rig, "its builder goes to work")
 	_f.tick()
@@ -158,9 +159,39 @@ func test_a_refused_vent_is_left_alone_for_a_while() -> void:
 	_f.world.spawn_building(_f.hq, 0, Vector3(-40, 0, -58), true)
 	var rig: Unit = _f.spawn(_f.base.fabricator, 1, Vector3(-50, 0, -50))
 	_start()
+	_f.tick()  # the HQ's power is counted
 	assert_eq(_keeper.decide(Vector3(-60, 0, -60), [rig]), rig, "it tries once")
 	_f.tick()
 	assert_eq(_f.world.buildings_of(1).size(), 1, "refused: only its HQ stands")
 	assert_null(_keeper.decide(Vector3(-60, 0, -60), [rig]), "not again right away")
 	_f.tick(VentKeeper.RETRY_TICKS)
 	assert_eq(_keeper.decide(Vector3(-60, 0, -60), [rig]), rig, "but later")
+
+
+func test_no_extractor_without_the_power_to_run_it() -> void:
+	# Found by the balance harness (ADR 0018): on Hollow Meridian a second Tap went up
+	# with no power free, and the whole base ran at the low-power rate for minutes.
+	var siphon: BuildingDef = load(SIPHON)
+	_profile.extractor = siphon
+	_profile.extractors_wanted = 1
+	var pile: Stockpile = _f.world.economy.stockpile(1)
+	pile.alloy = 1000
+	_f.world.spawn_resource_node(_f.base.vent, Vector3(-40, 0, -60))
+	var rig_def: UnitDef = _f.base.fabricator.duplicate() as UnitDef
+	rig_def.builds = [siphon]
+	var rig: Unit = _f.spawn(rig_def, 1, Vector3(-50, 0, -50))
+	_start()
+	_f.tick()
+	pile.power_used = pile.power_produced - siphon.power_use + 1
+	assert_null(_keeper.decide(Vector3(-60, 0, -60), [rig]), "it would brown the base out")
+	pile.power_used = pile.power_produced - siphon.power_use
+	assert_eq(_keeper.decide(Vector3(-60, 0, -60), [rig]), rig, "just enough")
+	# A factory the base has lost keeps its power.
+	var forge: BuildingDef = BuildingDef.new()
+	forge.id = &"forge"
+	forge.power_use = 5
+	_profile.factory = forge
+	_keeper = VentKeeper.new(_port, _f.world, _profile)
+	assert_null(_keeper.decide(Vector3(-60, 0, -60), [rig]), "the factory's power is kept")
+	pile.power_used = pile.power_produced - siphon.power_use - forge.power_use
+	assert_eq(_keeper.decide(Vector3(-60, 0, -60), [rig]), rig, "enough for both")

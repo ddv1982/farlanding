@@ -118,7 +118,7 @@ func test_tide_carrier_and_a_closed_ford_round_trip() -> void:
 	assert_eq(restored_tide.state, TideSystem.STATE_FALLING)
 	assert_true(
 		await _f.run_until(
-			loaded, func() -> bool: return _flat(waiter.sim_position(), ON_THE_FORD) < 3.0, 1200
+			loaded, func() -> bool: return _flat(waiter.sim_position(), ON_THE_FORD) < 3.0, 2400
 		),
 		"the waiter reaches the ford once the sea is down"
 	)

@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" path="res://core/defs/map_def.gd" id="1_def"]
 [ext_resource type="NavigationMesh" path="res://maps/hollow_meridian_deck/hollow_meridian_deck_navmesh.res" id="2_navmesh"]
-[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit.tres" id="5_deposit"]
-[ext_resource type="Resource" path="res://data/resources/kessel_alloy_deposit_rich.tres" id="6_rich"]
+[ext_resource type="Resource" path="res://data/resources/hollow_alloy_deposit.tres" id="5_deposit"]
+[ext_resource type="Resource" path="res://data/resources/hollow_alloy_deposit_rich.tres" id="6_rich"]
 [ext_resource type="Resource" path="res://data/resources/kessel_flux_vent.tres" id="7_vent"]
 [ext_resource type="Script" path="res://core/defs/discovery_def.gd" id="8_discovery_def"]
 [ext_resource type="Script" path="res://core/defs/unit_def.gd" id="9_unit_def"]
@@ -34,11 +34,11 @@ deposit_positions = PackedVector3Array(-104, 0, 96, -58, 0, 102, -106, 0, 66, -3
 rich_deposit = ExtResource("6_rich")
 rich_deposit_positions = PackedVector3Array(-60, 0, -12, 8, 0, 56, 60, 0, 12, -8, 0, -56)
 vent = ExtResource("7_vent")
-vent_positions = PackedVector3Array(-96, 0, 106, -50, 0, 40, -46, 0, -26, 96, 0, -106, 50, 0, -40, 46, 0, 26)
+vent_positions = PackedVector3Array(-96, 0, 100, -50, 0, 40, -46, 0, -24, 96, 0, -100, 50, 0, -40, 46, 0, 24)
 discoveries = Array[ExtResource("8_discovery_def")]([ExtResource("d0"), ExtResource("d1"), ExtResource("d2"), ExtResource("d3"), ExtResource("d4"), ExtResource("d5")])
 discovery_positions = PackedVector3Array(-100, 0, 2, 44, 0, -22, -70, 0, 52, 60, 0, 52, -56, 0, -56, 0, 0, -100)
-custodian_roster = Array[ExtResource("9_unit_def")]([ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel")])
-custodian_positions = PackedVector3Array(-52, 0, 62, -88, 0, 48, -96, 0, 40, -22, 0, -20, -30, 0, -12, -38, 0, -24, -74, 0, -70, -94, 0, -70, -84, 0, -86, -12, 0, -26, 12, 0, -12, -12, 0, -12, 52, 0, -62, 88, 0, -48, 96, 0, -40, 22, 0, 20, 30, 0, 12, 38, 0, 24, 74, 0, 70, 94, 0, 70, 84, 0, 86, 12, 0, 26, -12, 0, 12, 12, 0, 12)
+custodian_roster = Array[ExtResource("9_unit_def")]([ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel"), ExtResource("10_warden"), ExtResource("10_warden"), ExtResource("11_sentinel")])
+custodian_positions = PackedVector3Array(-52, 0, 62, -88, 0, 48, -22, 0, -20, -30, 0, -12, -38, 0, -24, -74, 0, -70, -94, 0, -70, -84, 0, -86, -12, 0, -26, 12, 0, -12, -12, 0, -12, 52, 0, -62, 88, 0, -48, 22, 0, 20, 30, 0, 12, 38, 0, 24, 74, 0, 70, 94, 0, 70, 84, 0, 86, 12, 0, 26, -12, 0, 12, 12, 0, 12)
 machine = ExtResource("13_engine")
 machine_positions = PackedVector3Array(-52, 0, 70, -96, 0, 48, -30, 0, -20, -84, 0, -76, 52, 0, -70, 96, 0, -48, 30, 0, 20, 84, 0, 76)
 prop_layout = ExtResource("12_props")

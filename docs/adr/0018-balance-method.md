@@ -79,8 +79,8 @@ changes below (route landings with the typical techs). Won/lost/timeout; median 
 | Emberfall Conquest | 1/2/0 | 14:29 | 4/0/0 | 23:46 | |
 | Emberfall Holdout | 0/3/0 | 5:34 | 2/2/0 (4/1 in an earlier 5-seed run) | 11:30 | losses come at the 10:30 surge |
 | Verdance Conquest | 0/3/0 | 10:12 | 3/1/0 | 22:10 | first wave no longer wipes the player |
-| Hollow Power | 0/2/1 | 24:53 | 0/2/2 | 36:42 | unresolved, see open questions |
-| Hollow Finale | 0/2/1 | 13:20 | 2/0/2 | 31:38 | |
+| Hollow Power | 0/2/1 | 24:53 | 4/0/0 | 16:20 | Phase 9b pass below (was 0/2/2, 36:42) |
+| Hollow Finale | 0/2/1 | 13:20 | 3/0/1 | 28:10 | Phase 9b pass below (was 2/0/2, 31:38) |
 
 Easy and Hard (seeds 1-3; Verdance and Hollow re-run after the last AI changes):
 
@@ -93,8 +93,8 @@ Easy and Hard (seeds 1-3; Verdance and Hollow re-run after the last AI changes):
 | Emberfall Conquest | 3/0/0, 19:47 | 3/0/0, 18:50 |
 | Emberfall Holdout | 3/0/0, 12:00 (5/5 in an earlier run) | 1/2/0, 11:08 (scale 1.15) |
 | Verdance Conquest | 1/2/0, 16:43 | 3/0/0, 23:35 |
-| Hollow Power | 1/1/1, 19:10 | 1/2/0, 24:27 |
-| Hollow Finale | 1/0/2, 40:00 | 1/0/2, 40:00 |
+| Hollow Power | 3/0/0, 20:38 (was 1/1/1, 19:10) | 3/0/0, 18:57 (was 1/2/0, 24:27) |
+| Hollow Finale | 2/0/1, 20:07 (was 1/0/2, 40:00) | 3/0/0, 16:22 (was 1/0/2, 40:00) |
 
 With three seeds and a non-deterministic sim, single cells (Verdance Easy below Hard)
 are noise; over Proving, Storm, Recovery and Holdout the order is Easy > Normal > Hard.
@@ -168,6 +168,146 @@ Tests that pinned old numbers were updated on purpose: tech count and costs
 (`test_tidal_landing_round_trip`) and the Hollow Lander's power
 (`test_hollow_landing_round_trip`).
 
+### Hollow Meridian pass (Phase 9b)
+
+Hollow Power and the Beacon Core were the two missions off target. Baseline (seeds
+1-4, Normal, `--log`, the data as left above): Power 3/0/1 (19:38, 20:28, 27:30, one
+timeout), the finale 0/0/4. The earlier table's 0/2/2 for Power shows how wide the spread
+of this sim is. What the traces showed (`out/balance/.../logs`, per-minute `[reference]`
+lines, and engines held per side now in every sample):
+
+- **Every timeout was the reference's economy frozen, not a fight.** Two deadlocks in
+  the shared commander:
+  - *No factory, no money for one, no harvesters*: `_grow_economy` tried the factory
+    and returned, so it never built the 120-Alloy Hauler that would pay for the
+    300-Alloy factory. Three finales sat on 14-230 Alloy for 25 minutes.
+  - *No power*: the Lander gives 7 here; Sentries took the last of it, so the lost
+    factory could not be rebuilt; with no army, `MachineKeeper` sent no worker (a claim
+    needs an escort); with no engine, no power. One finale sat on 9,560 Alloy, army 0.
+- **Flux starvation.** The vent by each base, (∓96, ±106), lay outside the build bounds
+  (z ≤ 104: the Flux Tap's footprint reaches 2.6 m past its vent), and (-46, -26) stood
+  on ground cut from the navmesh, so the reference tapped one vent and ran at 5-40 Flux
+  all game. Every Foundry unit costs Flux; Combine units cost none.
+- **Producers.** The Muster Bay (the only Flux-free Concord army) was opening-only and
+  never rebuilt after the first Combine wave, and `_build_army` stopped asking every
+  producer once one pick could not be paid, so the Muster Bay was never asked.
+- **Escorts lost to the guards.** An escort was sized at a quarter of the guards'
+  price (`GUARD_WEIGHT` 0.5 / `GUARD_LIMIT` 2: two Rangers for a Warden, which takes
+  about six), and an engine whose guards it had not seen yet counted as unguarded, so
+  the first escorts died. Both sides lost most to Custodians (player 17-35k damage from
+  them against 0.7-5k from the Combine; 12-24 Fabricators per game).
+
+A first round with the fixes below showed two more: a second Flux Tap went up on no free
+power and the base ran at the low-power rate for minutes (Alloy piled up to 3,800 with
+an army of three; one Lander fell to the 5:00 wave); and a glimpse of an engine with
+its Warden just out of sight counted as "no guards", so a Fabricator went alone.
+
+A second round (Power 2/1/1, finale 0/1/3) showed the rest:
+
+- A Tap took the power of the Muster Bay the Combine had just destroyed, so it could
+  not be rebuilt until an engine ran.
+- All three timeouts ended with no Haulers and 50-95 Alloy: the army kept
+  `economy_reserve` (100) in the bank, below a Hauler's 120, so it spent the money a
+  new Hauler needed and nothing came in again. One finale had 5 engines, an army of
+  1,100 and the Combine wiped out, and could not afford the Surveyor to link.
+- With the escorts sized honestly, the only engines a young army could take were the
+  single-Warden one by each base (the second engine by each base had a Warden and a
+  Sentinel), so both sides crossed the deck in the first two minutes for the other's.
+  The briefing says the engines near the Lander are lightly watched.
+
+Round three (Power 4/0/0 in 17-21 min, finale 0/0/4) and four:
+
+- Every finale timed out with the reference running 5-6 engines, an army of 20-50 and
+  the Combine wiped out, but no Surveyor: Surveyors come only from the Foundry, which
+  it had no power for early and never rebuilt, and the army spent the 60 Alloy one
+  costs. With one made, the linker walked onto the dais alone or ahead of its escort
+  (sent once, only if three guards were home) and died to the dais guards at 1-5 %.
+- On Hard the Combine sent a Rigger and three escorts eight times in eleven minutes to
+  take over engines the player's army stood by: `MachineKeeper` counted only
+  Custodians as an engine's guards.
+- With those fixed (traced finale: 3 won in 15:08, 19:47, 37:22, one lost at 40:31;
+  Power 2/0/2), the long games were all Alloy-starved: the five deposits within reach of
+  each base hold 7,500 Alloy and were gone by minute 13-19, before either side could
+  hold four engines; both sides then sat at 0-60 Alloy until the cap.
+
+What changed (each with a test):
+
+- `CommanderBrain._grow_economy`: with no factory and too few harvesters, a harvester
+  comes before saving for the factory (`test_commander_brain.gd`).
+- `CommanderBrain._build_defence`: a tower does not take the power a missing factory
+  needs (`test_commander_brain.gd`).
+- `CommanderBrain._build_army`: a pick one producer cannot pay moves on to the next
+  producer instead of ending the round (`test_commander_brain.gd`).
+- `CommanderBrain._build_army`: while harvesters are short, the price of one stays in
+  the bank (`test_commander_brain.gd`).
+- `VentKeeper`: no extractor without the free power to run it, keeping a lost factory's
+  power for it (`test_commander_vents.gd`).
+- `MachineKeeper`: an escort must reach 1.5× the guards' weighted strength (0.75× their
+  price: six Rangers for a Warden), and an engine it cannot field that for is passed
+  over; an engine not yet seen counts as guarded by a Warden (public: the briefing says
+  every engine is guarded); a worker goes alone only to an engine seen with no guards;
+  a guard count stands only when it sees all round the engine; the enemy's armed units
+  and towers it sees by an engine count among its guards at full strength; an engine
+  within `base_radius` of home counts as known even before its ground is explored (the
+  worker and escort walk there, and the work starts once it is seen: the sim's
+  `ReactivateCommand` still wants it explored). Before, the Combine's Hornet explored the
+  far side first and the Combine crossed the deck with 10-12 units for the player's
+  engines before taking the one 40 m from its Hub; on Hard the scout leaves sooner, so
+  Hard played easier than Normal (`test_commander_machines.gd`).
+- Map: vents at (∓96, ±100) and (∓46, ∓24) (were ±106 and ∓26), so all six take a Tap
+  or a Siphon (`test_hollow_map.gd`).
+- Map: the Sentinels by the second engine of each base, (∓96, ±40), are gone (22
+  guardians, 6 Sentinels): the two engines by each base have one Warden each, the four
+  contested ones three guards (`test_hollow_map.gd`).
+- `Commander.site_anywhere`: with no room for a building by its anchor, the site search
+  tries near the faction's other buildings (engines included), nearest first. The
+  Concord corner of the deck (chasm, map edge, deposits, two Muster Bays, three Sentries,
+  two Taps) had no Foundry-sized site within 64 m of the Lander that passed the
+  open-ground rules: up to 116 "no room" refusals in one finale, and no Surveyor to
+  link with six engines held (`test_commander_sites.gd`).
+- Map: the deck has its own deposits, `hollow_alloy_deposit` (2,500, was 1,500) and
+  `hollow_alloy_deposit_rich` (4,500, was 3,000): about 12,500 Alloy in reach of each
+  base instead of 7,500. Symmetric, so the Combine gains as much (`test_hollow_map.gd`).
+- **Power Up's hold (a design change)**: run *three* engines for four minutes in all
+  (was four for three), before the Combine holds three for eight (was four for four).
+  Three for five was tried first: the Combine reaches its third engine sooner than the
+  player (its Hub powers its base, so its early army goes to engines), and it won 4 of
+  the first 8 Easy/Normal/Hard runs at 13-18 min while the player sat at two.
+  With every fix above the finale went 4/0/0, but Power still stalled in half the seeds:
+  four of eight engines means the two by the base and two of the four contested ones,
+  and against a Combine that contests them neither side held four long enough (both
+  sat at 2-3 for thirty minutes, trading armies). Three is the two by the base and one
+  contested; the longer clocks keep it from being a walkover, and the player's clock
+  stays a minute shorter, as before (`test_hollow_missions.gd`). Briefing and titles
+  say so.
+- Reference player on Hollow Meridian: the Muster Bay is its factory (4 power, fits the
+  Lander's 7; Rangers need no Flux), so it is rebuilt; the Foundry stays in the opening.
+- Reference player on the finale (`_drive_core`): it keeps two units that can link,
+  ordering Surveyors at a Foundry (making the Foundry its kept factory while none
+  stands and there is the power and money to build it at once; otherwise the Muster
+  Bay stays the kept factory, since a Foundry kept unbuildable on the Lander's power
+  left a lost Muster Bay unrebuilt and held the last Fabricator home) and holding army
+  production while it saves for one; the linker waits until
+  an escort of at least six is near the Core, and a spent escort is sent again.
+
+Results (won/lost/timeout, median time; Normal seeds 1-4, Easy and Hard seeds 1-3):
+
+| Mission | Baseline Normal | Normal after | Easy after | Hard after |
+|---|---|---|---|---|
+| Hollow Power | 3/0/1, 23:59 (the earlier pass: 0/2/2, 36:42) | 4/0/0, 16:20 (12-32 min) | 3/0/0, 20:38 | 3/0/0, 18:57 |
+| The Beacon Core | 0/0/4, 45:00 (earlier: 2/0/2, 31:38) | 3/0/1, 28:10 (23-29 min) | 2/0/1, 20:07 | 3/0/0, 16:22 |
+
+The Combine is no walkover: it holds two or three engines through the first 10-15
+minutes, sends 3-6 waves (10-30 units on Hard), and on the finale links and charges
+(up to 27 % seen) when the player's linker is down. Power's median units lost per game: Easy
+157, Normal 106, Hard 139; peak Combine army 1,500-2,000.
+
+Spot-check of the other missions after the shared commander changes (Normal, seeds
+1-2): Kessel Proving 2/0/0 (23:31), Kessel Storm 2/0/0 (11:21), Thalassa Shallows
+2/0/0 (17:54), Thalassa Recovery 2/0/0 (4:23), Emberfall Conquest 2/0/0 (17:40),
+Emberfall Holdout 1/1/0 (the loss at 10:28, the known surge), Verdance Conquest 2/0/0
+(22:38). Nothing broke.
+
 ### Campaign economy
 
 Discovery sites pay on every landing on their map (the campaign keeps no per-site
@@ -209,10 +349,22 @@ takes about 126 s; shortening it belongs to the audio lane.
 
 ## What only a human play-test can settle
 
-- **Hollow Power** is a 35-minute grind decided by Custodians; the reference lost or
-  timed out in every Normal seed after the last changes (2/3 won in an intermediate
-  pass). Engines needed, hold time and guard counts need a human's eye: is fighting the
-  guardians the fun part or the chore?
+- **Hollow Meridian, difficulty order**: on these two missions Easy, Normal and Hard
+  all end mostly won, and Hard is not slower or losing more (Hard's Combine spends its
+  bigger army sooner, and the finale then opens up). The engine contest (`MachineKeeper`,
+  the hold clocks, the Core) does not scale with the commander level; only waves and
+  decision pace do. Whether the engine game itself should scale (escort sizes, the
+  Combine's hold clock or appetite per level) is open.
+- **Hollow Meridian, what remains**: the finale's median (28 min) is at the top of its
+  range, and one Normal and one Easy seed still timed out, both short of Alloy late
+  (no money for a Surveyor; the deck's Alloy, even deeper now, is gone by 20-25 min).
+  Power was changed by design to three engines (player four minutes, Combine eight);
+  whether three of eight is the right bar, and whether the hold or the Core is the fun
+  part rather than the Custodians, needs a human's eye. The reference also over-extends
+  at times (claims on the Combine's side with the base unguarded: one Easy finale lost
+  at 5:08, one Normal Power lost at 7:31 in an earlier round).
+- Not this lane: ADR 0017 still says 24 guardians and vents at (∓96, ±106); the map
+  now has 22 and (∓96, ±100), (∓46, ∓24).
 - **Recovery and Survey are short by nature** on these maps: a carry across Thalassa
   takes under a minute, and ten Kessel sites go in a few minutes. Recovery lasts about
   5 min, Survey 4-15 min. A longer Recovery needs a mechanic (for instance a seal that
@@ -229,3 +381,14 @@ takes about 126 s; shortening it belongs to the audio lane.
 - Not from this lane: the `check_scripts` step of `tools/check.sh` reports leaked
   objects at exit on a clean HEAD as well (since the settings/UI commit), so the gate
   stops there until that is fixed.
+
+### A guard check that was tried and taken back
+
+Review of the Hollow Meridian follow-up pointed out that the engine keeper samples
+visibility only three quarters of the way out to the guard radius, so a guardian at the
+edge can go unseen and a worker is sent in alone. Requiring sight of the whole radius
+was tried: over four Normal seeds Power Up still won 4 of 4 (median 23:12), but the
+finale fell from 3 wins and 1 timeout to 1 win and 3 timeouts, because a worker's own
+sight never covers the full radius and every engine then waited for an escort. The
+looser check stays. Its cost is one worker now and then; the engine is avoided for three
+minutes after a worker dies there.

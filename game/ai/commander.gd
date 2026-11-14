@@ -25,6 +25,8 @@ const SITE_RINGS: Array[float] = [
 	0.0, 8.0, 12.0, 16.0, 20.0, 24.0, 28.0, 32.0, 38.0, 44.0, 50.0, 57.0, 64.0
 ]
 const SITE_DIRECTIONS: int = 16
+## With no room by the anchor, this many of its other buildings are tried as anchors.
+const FALLBACK_ANCHORS: int = 4
 ## New buildings keep this far from producers' doors and drop-off docks.
 const DOOR_CLEARANCE: float = 7.0
 ## New buildings need open ground this far around them: none in a corridor, where it
@@ -290,6 +292,8 @@ func build_view(tick: int) -> CommanderView:
 		view.building_counts[building.def.id] = view.building_counts.get(building.def.id, 0) + 1
 		if building.is_under_construction:
 			view.sites.append(building)
+			# It draws nothing until it stands: its power is spoken for already.
+			view.power_free -= building.def.power_use
 		elif building.producer != null:
 			view.producers.append(building)
 			for queued: UnitDef in building.producer.queue:
@@ -383,7 +387,7 @@ func _apply(action: AiAction, tick: int) -> void:
 
 func _place(action: AiAction, tick: int) -> void:
 	var def: BuildingDef = action.def as BuildingDef
-	var spot: Vector3 = find_site(def, action.position)
+	var spot: Vector3 = site_anywhere(def, action.position)
 	if spot == Vector3.INF:
 		memory.back_off(def, tick + CommanderDifficulty.ticks(CommanderBrain.BACKOFF_SECONDS))
 		_log("no room for %s" % def.id)
@@ -749,6 +753,28 @@ func known_placement_rules() -> PlacementRules:
 ## A free spot for `def` near `near`: rings outward, the first spot the placement
 ## rules accept that keeps doors, docks and deposits clear, judged only on what the
 ## faction knows (`known_placement_rules`). Vector3.INF if none.
+## A site for `def` near `near`, or, with no room there, near the faction's other
+## buildings, nearest first (found by the balance harness, ADR 0018: the Concord corner
+## of Hollow Meridian had no room left for a Foundry within reach of the Lander).
+func site_anywhere(def: BuildingDef, near: Vector3) -> Vector3:
+	var spot: Vector3 = find_site(def, near)
+	if spot != Vector3.INF:
+		return spot
+	var anchors: Array[Vector3] = []
+	for building: Building in world.buildings_of(faction):
+		if not building.is_dead and AiGroup.flat_distance(building.position, near) > 20.0:
+			anchors.append(building.position)
+	anchors.sort_custom(
+		func(a: Vector3, b: Vector3) -> bool:
+			return AiGroup.flat_distance(a, near) < AiGroup.flat_distance(b, near)
+	)
+	for anchor: Vector3 in anchors.slice(0, FALLBACK_ANCHORS):
+		spot = find_site(def, anchor)
+		if spot != Vector3.INF:
+			return spot
+	return Vector3.INF
+
+
 func find_site(def: BuildingDef, near: Vector3) -> Vector3:
 	var rules: PlacementRules = known_placement_rules()
 	var keep_clear: Array[Vector3] = []

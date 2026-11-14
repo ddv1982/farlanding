@@ -47,6 +47,7 @@ func setup(p_world: SimWorld, p_player_faction: int) -> void:
 	for unit: Unit in world.units:
 		_on_entity_spawned(unit)
 	for building: Building in world.buildings:
+		_watch_tap(building)
 		if building.machine != null:
 			_show_machine(building)
 	_find_core()
@@ -126,6 +127,10 @@ func _drop_freed() -> void:
 
 
 func _on_entity_spawned(entity: Node3D) -> void:
+	var tap: Building = entity as Building
+	if tap != null:
+		_watch_tap(tap)
+		return
 	var unit: Unit = entity as Unit
 	if unit == null or unit.def == null:
 		return
@@ -159,12 +164,34 @@ func _on_machine_changed(machine: Node3D, _faction: int) -> void:
 
 
 ## An engine's lit part shows while it runs, in its owner's colour.
+## A Tap knocked out by an eruption goes dark and throws sparks until it restarts
+## (the look of a sabotaged building, which it keeps if it really is one).
+func _watch_tap(building: Building) -> void:
+	var extractor: FluxExtractor = building.flux_extractor
+	if extractor == null or extractor.knocked_out_changed.is_connected(_on_tap_knocked_out):
+		return
+	extractor.knocked_out_changed.connect(_on_tap_knocked_out.bind(building))
+	if extractor.is_stalled():
+		_on_tap_knocked_out(true, building)
+
+
+func _on_tap_knocked_out(knocked_out: bool, building: Building) -> void:
+	if not is_instance_valid(building):
+		return
+	for child: Node in building.get_children():
+		var visual: BuildingVisual = child as BuildingVisual
+		if visual != null:
+			visual.set_sabotaged(knocked_out or building.is_sabotaged)
+
+
 func _show_machine(building: Building) -> void:
 	for child: Node in building.get_children():
 		var visual: BuildingVisual = child as BuildingVisual
 		if visual != null:
 			visual.set_team_color(TeamColors.for_faction(building.faction))
 			visual.set_active(building.machine.is_running())
+	if building.get_node_or_null(^"ClaimRing") == null:
+		ClaimRing.attach(building)
 
 
 func _find_core() -> void:

@@ -120,3 +120,15 @@ func test_a_unit_a_mission_script_commands_is_never_an_idle_builder() -> void:
 	assert_true(_commander.build_view(1000).guards.has(soldier))
 	_commander.hands_off[soldier.entity_id] = true
 	assert_false(_commander.build_view(1000).guards.has(soldier), "nor one of its guards")
+
+
+func test_a_building_going_up_already_counts_against_free_power() -> void:
+	_f.building(_f.hub, Vector3(80, 0, 80))
+	_start_commander()
+	_look()
+	var before: int = _commander.build_view(1000).power_free
+	_f.world.spawn_building(_f.combat.sentry, AiFixture.AI, Vector3(70, 0, 70), false)
+	_look()
+	var after: int = _commander.build_view(1001).power_free
+	assert_eq(after, before - _f.combat.sentry.power_use, "its power is spoken for")
+	assert_gt(_f.combat.sentry.power_use, 0, "the test means something")

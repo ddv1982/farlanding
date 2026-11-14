@@ -138,6 +138,58 @@ func test_the_dais_is_climbed_by_its_ramps_only() -> void:
 	assert_false(paths.is_walkable(Vector3(0, 0, 0)), "the Core itself blocks")
 
 
+func test_the_engines_by_each_base_are_lightly_watched() -> void:
+	# The briefing's promise, and the balance harness's finding (ADR 0018): with a
+	# Sentinel at the second engine by each base, the only engines a young army could
+	# take were the single-Warden one by each base, and both sides crossed the deck for
+	# the other's. The two by each base have one guard; the contested ones three.
+	var map_def: MapDef = load(MAP)
+	for engine: Vector3 in map_def.machine_positions:
+		var guards: int = 0
+		for guard: Vector3 in map_def.custodian_positions:
+			if _flat(guard, engine) <= MachineKeeper.GUARD_RADIUS:
+				guards += 1
+		var by_base: bool = (
+			_flat(engine, CONCORD_BASE) < 50.0 or _flat(engine, -CONCORD_BASE) < 50.0
+		)
+		if by_base:
+			assert_eq(guards, 1, "one Warden by the engine at %s" % engine)
+		else:
+			assert_gte(guards, 3, "the contested engine at %s is well guarded" % engine)
+
+
+func test_the_deck_holds_more_alloy_than_other_worlds() -> void:
+	# Found by the balance harness (ADR 0018): with the standard deposits the Alloy in
+	# reach of each base (7,500) was gone by minute 16-19, before either side could hold
+	# four engines, and finales timed out with both sides bankrupt.
+	var map_def: MapDef = load(MAP)
+	var standard: ResourceNodeDef = load("res://data/resources/kessel_alloy_deposit.tres")
+	var rich: ResourceNodeDef = load("res://data/resources/kessel_alloy_deposit_rich.tres")
+	assert_eq(map_def.deposit.resource, &"alloy")
+	assert_gte(map_def.deposit.amount, standard.amount * 5 / 3, "deeper deposits")
+	assert_gte(map_def.rich_deposit.amount, rich.amount * 3 / 2, "deeper rich deposits")
+
+
+func test_every_vent_takes_a_flux_extractor() -> void:
+	# Found by the balance harness (ADR 0018): a vent by each base lay outside the build
+	# bounds, so that side tapped one vent of its three and starved for Flux.
+	var map: LandingMap = await _land(&"hollow_power")
+	var world: SimWorld = map.world
+	var placement: PlacementRules = world.placement_rules()
+	var vents: int = 0
+	for def: BuildingDef in [
+		load("res://data/buildings/concord_flux_tap.tres") as BuildingDef,
+		load("res://data/buildings/combine_flux_siphon.tres") as BuildingDef,
+	]:
+		for node: ResourceNode in world.resource_nodes:
+			if node.resource() != def.requires_resource:
+				continue
+			vents += 1
+			var reason: StringName = placement.check(def, node.position)
+			assert_eq(reason, PlacementRules.OK, "%s on the vent at %s" % [def.id, node.position])
+	assert_eq(vents, 12, "six vents, each checked for both factions' extractor")
+
+
 func _land(id: StringName) -> LandingMap:
 	var map: LandingMap = await _f.land(SaveFixture.mission(id))
 	_maps.append(map)
