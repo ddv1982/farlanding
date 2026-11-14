@@ -35,3 +35,5 @@ node_modules/
 tools/web_tests/test-results/
 tools/web_tests/playwright-report/
 .audit/
+.vercel/
+.vercel-source/

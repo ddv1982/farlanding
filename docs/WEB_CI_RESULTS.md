@@ -133,5 +133,33 @@ limit of the first browser milestone, not a passing result for the original targ
 A human listening receipt, a complete campaign playthrough in Safari, and GPU /
 WebAssembly memory-leak qualification have not been represented as completed.
 Automated mixer evidence supplements those checks; it is not a fabricated listener.
-Hosting, mobile controls, PWA, cloud saves, and branch-protection changes remain
-outside this milestone.
+Mobile controls, PWA, cloud saves, and branch-protection changes remain outside
+this milestone. Hosting is covered by the Vercel follow-up below.
+
+## Vercel follow-up
+
+The Vercel Hobby project and both projects' CI Node steps use Node 26.x. A staged
+Farlanding deployment successfully retrieved the green `7d92b3e` CI artifact,
+verified its archive digest and all nine release files, and served the full game
+without a plan upgrade. The hosted browser smoke reached a Kessel landing with no
+browser errors. It reproduced missing audio worklets on a protected deployment
+until the automation bypass cookie was enabled; the corrected check passed.
+
+Review also caught GitHub's one-minute artifact-redirect lifetime. Preparation now
+stores only artifact identity and digest; the build resolves the URL immediately
+before downloading with a job-scoped read-only token. Six deployment-tool tests
+cover that handoff and rejection of incorrect/dirty/diagnostic/corrupt releases.
+The revised download path also retrieved and verified the real nine-file artifact
+locally. It does not forward authorization to the redirected storage host.
+
+A native CI run failed the calm-scene comparison at 3.517 LU against its 3.5 LU
+limit. The mix fixture seeded only the global RNG, leaving the directors' private
+RNGs and bed playback positions uncontrolled. It now resets those scene inputs
+without changing production audio or the loudness limits. The full native audio
+suite passed 416 tests / 6,374 assertions with no engine errors or warnings; the
+calm-scene spread was approximately 2.6 LU.
+
+Production promotion is wired into CI after native/browser gates and the staged
+hosted game check. A separate unauthenticated check verifies the stable production
+domain after promotion. See [ADR 0020](adr/0020-vercel-ci-deployment.md) for the
+artifact handoff, headers, credentials, and rollback constraints.

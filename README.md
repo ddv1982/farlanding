@@ -142,7 +142,7 @@ at this origin. Wait for the saved confirmation before reloading. Denied storage
 or failed persistence produces a warning. Clearing site data or changing the port
 or origin can make existing progress unavailable. Fullscreen requires a user
 click. Leaving the tab pauses the mission; resume explicitly when returning.
-Keyboard and mouse are required. Mobile and hosting are outside this milestone.
+Keyboard and mouse are required. Mobile controls remain outside this milestone.
 
 Every successful CI `web` job publishes `farlanding-web-<commit>` in the run's
 Artifacts section. Download and extract it, then run the same manifest verification
@@ -152,7 +152,7 @@ and every bundle file's hash. It describes required HTTP headers; a ZIP has none
 
 ### Browser checks
 
-Node **20+** is needed only for testing. Export diagnostics separately:
+Node **26.x** is needed only for testing and deployment. Export diagnostics separately:
 
 ```sh
 tools/export.sh Web WebDiagnostics
@@ -174,3 +174,38 @@ opt-in to avoid competing with software WebGL on CI runners. The broad mission
 matrix also runs from CI's manual **Run workflow** action. `WebDiagnostics` is for
 testing only; play the release under `build/web`. Browser versions and acceptance
 evidence are tracked in [the Web results](docs/WEB_CI_RESULTS.md).
+
+### Production deployment
+
+Successful pushes to `main` deploy to [Farlanding](https://farlanding.vercel.app)
+after native checks and browser gameplay pass. Pull requests and manual test runs
+do not deploy. Both the CI Node steps and the Vercel project use Node 26.x.
+
+The Vercel Hobby project uses the same team and CI-controlled deployment policy as
+Space Explorer. Its Git auto-deploys are disabled. Because the exported game exceeds
+Hobby's 100 MB CLI source-upload limit, CI uploads a small build script referring
+to that run's tested GitHub artifact by ID and digest. Vercel resolves a fresh
+download URL when its build starts, using that CI job's short-lived GitHub token
+as a build-only secret with repository contents/Actions read permissions. It is
+never stored in source files or public assets and is not forwarded to artifact
+storage. The build verifies GitHub's archive digest and the release's complete
+file inventory and commit. Godot is not rebuilt on Vercel.
+
+CI first creates an unaliased production deployment and runs real browser input
+against it, including the isolation headers and WebAssembly MIME type. Only a
+passing staged game is promoted. CI then checks the public production domain
+without authentication. Use that stable domain for play so browser saves stay at
+the same origin across deployments.
+
+Repository secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, and
+`VERCEL_AUTOMATION_BYPASS_SECRET`. The last one lets the staged browser check pass
+Vercel's preview protection; traces are disabled when it is used so request
+credentials are not recorded. `VERCEL_PRODUCTION_URL` is a repository variable.
+The deployment uses the GitHub `production` environment and Vercel CLI 65.16.0.
+
+Deploy through CI rather than rebuilding an old deployment in the Vercel dashboard:
+the job's GitHub token expires when that job finishes. Rerun the deployment job in
+a push-to-`main` workflow while its tested artifact is retained, or rerun that entire push workflow
+to create a fresh artifact. Manual **Run workflow** runs remain test-only.
+Existing ready deployments can still be promoted or rolled back without
+downloading the source artifact again.
