@@ -81,3 +81,14 @@ test('browser blur pauses until the player resumes', async ({ page }) => {
   await button(page, 'RESUME');
   await expect.poll(async () => (await state(page)).paused).toBe(false);
 });
+
+test('browser fullscreen events confirm settings on enter and exit', async ({ page }) => {
+  await boot(page);
+  await expect.poll(async () => (await state(page)).fullscreen).toBe(false);
+  await page.locator('canvas').click();
+  await page.evaluate(() => document.querySelector('canvas').requestFullscreen());
+  await expect.poll(async () => (await state(page)).fullscreen).toBe(true);
+  await page.evaluate(() => document.exitFullscreen());
+  await expect.poll(async () => (await state(page)).fullscreen).toBe(false);
+  expect(await page.evaluate(() => window.farlanding.errors)).toEqual([]);
+});

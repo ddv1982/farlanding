@@ -109,6 +109,9 @@ async function confirmFile(path, expected, slot) {
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) window.farlandingFocusLost?.(); });
 window.addEventListener('blur', () => window.farlandingFocusLost?.());
+for (const event of ['fullscreenchange', 'fullscreenerror']) {
+  document.addEventListener(event, () => window.farlandingFullscreenChanged?.(!!document.fullscreenElement));
+}
 canvas.addEventListener('contextmenu', event => event.preventDefault());
 canvas.addEventListener('wheel', event => event.preventDefault(), {passive:false});
 document.getElementById('start').addEventListener('click', async event => {

@@ -40,6 +40,7 @@ func _process(delta: float) -> void:
 		"quality": Settings.quality,
 		"scheme": Settings.control_scheme,
 		"ui_scale": Settings.ui_scale,
+		"fullscreen": Settings.fullscreen,
 		"audio_playback": "stream" if playback_type == 0 else "sample",
 		"music_source_layers": _score.clips[0].layers.size(),
 		"music_layers": _score.clips[0].layer_names.size(),

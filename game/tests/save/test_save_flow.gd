@@ -102,6 +102,17 @@ func test_browser_autosave_confirmation_is_silent_but_failures_are_reported() ->
 	assert_true(_feedback.has(&"save_failed"), "autosave failures still warn the player")
 
 
+func test_browser_save_confirmation_updates_the_open_slot_panel() -> void:
+	_main._slots.visible = true
+	_main._slots.show_status("Saving…")
+	_main._on_storage_confirmed(SaveSlots.QUICKSAVE, true)
+	assert_eq(_main._slots._status.text, "Saved to %s." % SaveSlots.label_of(SaveSlots.QUICKSAVE))
+	_main._slots.show_status("Saving…")
+	_main._on_storage_confirmed(SaveSlots.QUICKSAVE, false)
+	assert_eq(_main._slots._status.text, _main._message)
+	assert_true(_main._message_failed)
+
+
 func test_f5_quicksaves_and_f9_quickloads() -> void:
 	await _start(&"conquest")
 	await wait_frames(20)

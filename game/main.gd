@@ -658,6 +658,8 @@ func _report(text: String, failed: bool) -> void:
 	_message = text
 	_message_failed = failed
 	_notice.show_text(text, failed)
+	if _slots.visible:
+		_slots.show_status(text, failed)
 	if failed:
 		print("Main: %s" % text)
 

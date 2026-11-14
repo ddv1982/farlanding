@@ -109,6 +109,7 @@ var hints_seen: PackedStringArray = PackedStringArray()
 var missions_won: PackedStringArray = PackedStringArray()
 ## Where settings are saved (tests point it elsewhere).
 var path: String = PATH
+var _web_fullscreen_callback: JavaScriptObject
 
 
 func _ready() -> void:
@@ -116,6 +117,9 @@ func _ready() -> void:
 	load_from(path)
 	if OS.has_feature("web"):
 		fullscreen = false
+		_web_fullscreen_callback = JavaScriptBridge.create_callback(_on_web_fullscreen_changed)
+		var browser: JavaScriptObject = JavaScriptBridge.get_interface("window")
+		browser.set("farlandingFullscreenChanged", _web_fullscreen_callback)
 	apply_display()
 
 
@@ -221,6 +225,12 @@ func set_pan_speed(value: float) -> void:
 
 func set_fullscreen(enabled: bool) -> void:
 	if enabled == fullscreen:
+		return
+	if OS.has_feature("web"):
+		# The browser confirms this asynchronous request through fullscreenchange.
+		DisplayServer.window_set_mode(
+			DisplayServer.WINDOW_MODE_FULLSCREEN if enabled else DisplayServer.WINDOW_MODE_WINDOWED
+		)
 		return
 	fullscreen = enabled
 	apply_display()
@@ -379,10 +389,8 @@ static func _nearest(value: Variant, choices: Array[float], fallback: Variant) -
 	return fallback
 
 
-func _process(_delta: float) -> void:
-	if not OS.has_feature("web") or not is_inside_tree():
-		return
-	var actual: bool = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+func _on_web_fullscreen_changed(arguments: Array) -> void:
+	var actual: bool = arguments[0]
 	if fullscreen != actual:
 		fullscreen = actual
 		_changed()
