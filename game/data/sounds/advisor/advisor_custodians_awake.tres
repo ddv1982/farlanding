@@ -13,3 +13,4 @@ max_instances = 1
 cooldown = 1.0
 positional = false
 max_distance = 0.0
+subtitle = "The Custodians are awake."

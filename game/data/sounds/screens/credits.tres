@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ScreenMusic" format=3]
+
+[ext_resource type="Script" path="res://audio/screen_music.gd" id="1_screen"]
+[ext_resource type="Resource" path="res://data/sounds/music/ending.tres" id="2_score"]
+
+[resource]
+script = ExtResource("1_screen")
+screen = &"credits"
+score = ExtResource("2_score")
+state = &"ending"

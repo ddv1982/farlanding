@@ -3,15 +3,21 @@ extends RefCounted
 ## Pure mix rules: which player setting drives which bus, and how camera zoom
 ## reshapes the mix (close: unit and movement detail; far: music and ambience).
 
-## Bus -> Settings property holding its linear volume.
+## Bus -> Settings property holding its linear volume. A setting the Settings
+## autoload does not (yet) have counts as 1.0. Phase 9: the Advisor has its own
+## slider (`voice_volume`, the Advisor bus; unit replies on Barks stay with the
+## effects) and so has the planet ambience (`ambience_volume`, the Ambience bus;
+## the weather, which warns, stays with the effects). The Voice bus itself has
+## no setting, so the Advisor is not scaled by the effects slider as well.
 const SETTING_FOR_BUS: Dictionary[StringName, StringName] = {
 	&"Master": &"master_volume",
 	&"Music": &"music_volume",
-	&"Ambience": &"sfx_volume",
+	&"Ambience": &"ambience_volume",
 	&"SFX": &"sfx_volume",
 	&"Discovery": &"sfx_volume",
 	&"Stealth": &"sfx_volume",
-	&"Voice": &"sfx_volume",
+	&"Barks": &"sfx_volume",
+	&"Advisor": &"voice_volume",
 	&"UI": &"ui_volume",
 	&"Weather": &"sfx_volume",
 }

@@ -1,7 +1,12 @@
 """Renders every sound recipe into game/assets/audio, analyses the result and
 writes audio_src/manifest.json.
 
-    uv run --python 3.12 --with numpy --with scipy audio_src/build.py [--only SUBSTRING]
+    uv run --python 3.12 --with numpy==2.5.4 --with scipy==1.18.1 audio_src/build.py [--only SUBSTRING]
+    uv run --python 3.12 --with numpy==2.5.4 --with scipy==1.18.1 audio_src/build.py --check
+
+`--check` renders every recipe into a temporary directory instead and compares
+each file's SHA-256 with the manifest, touching nothing in the tree: it proves
+the committed assets are exactly what the recipes produce (docs/AUDIO_PROVENANCE.md).
 
 Exits non-zero if any file clips, misses its loudness target, has DC offset,
 breaks its duration bounds, or (for loops) has an audible seam. The analysis
@@ -250,6 +255,14 @@ EVENT_OVERRIDES = {
     "weapon_sentinel_fire": dict(priority=60, max_instances=2, cooldown=0.2, max_distance=110.0),
     "death_sentinel": dict(priority=76, max_instances=1, cooldown=0.2, max_distance=160.0),
     "mus_core_awakened": dict(cooldown=10.0),
+    # Phase 9. Settings pages and credits; the engine-claim loop plays on the
+    # MachineClaimSound's own players (these settings document it).
+    "ui_rebind_listen": dict(cooldown=0.1, max_instances=1),
+    "ui_rebind_done": dict(cooldown=0.1, max_instances=1),
+    "ui_rebind_conflict": dict(cooldown=0.2, max_instances=1),
+    "ui_tab_changed": dict(cooldown=0.06, max_instances=1),
+    "ui_credits_open": dict(cooldown=2.0, max_instances=1),
+    "loop_engine_claim": dict(priority=40, max_instances=2, cooldown=0.0, max_distance=80.0),
 }
 
 
@@ -415,13 +428,50 @@ def table(rows: list[tuple[Sound, dict]]) -> str:
     return "\n".join(out)
 
 
+# --------------------------------------------------------------------------- check
+
+
+def check(only: str) -> int:
+    """Renders the chosen sounds into a temporary directory and compares their
+    hashes with the manifest. Writes nothing in the tree."""
+    import tempfile
+
+    recorded = {e["id"]: e for e in json.loads(MANIFEST.read_text())["sounds"]}
+    sounds = [s for s in load_all() if only in s.id]
+    missing = sorted(set(recorded) - {s.id for s in load_all()})
+    differ = []
+    t0 = time.time()
+    with tempfile.TemporaryDirectory() as tmp:
+        for s in sounds:
+            path = Path(tmp) / s.path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            (io.write_wav if s.fmt == "wav" else io.write_ogg)(path, render(s), s.seed)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            entry = recorded.get(s.id)
+            on_disk = OUT / s.path
+            disk = hashlib.sha256(on_disk.read_bytes()).hexdigest() if on_disk.exists() else "missing"
+            if entry is None or entry["sha256"] != digest or disk != digest:
+                differ.append(s.id)
+                print(f"  DIFFERS {s.path}: rendered {digest[:12]}, manifest "
+                      f"{entry['sha256'][:12] if entry else 'none'}, on disk {disk[:12]}")
+    for sid in missing:
+        print(f"  in the manifest but no recipe: {sid}")
+    print(f"\n{len(sounds)} files checked in {time.time() - t0:.1f}s: "
+          f"{len(sounds) - len(differ)} identical, {len(differ)} differ, {len(missing)} orphaned.")
+    return 1 if differ or missing else 0
+
+
 # --------------------------------------------------------------------------- main
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="", help="render only sounds whose id contains this")
+    ap.add_argument("--check", action="store_true",
+                    help="render into a temporary directory and compare hashes with the manifest")
     args = ap.parse_args()
+    if args.check:
+        return check(args.only)
 
     sounds = load_all()
     ids = [s.id for s in sounds]

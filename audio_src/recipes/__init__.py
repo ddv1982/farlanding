@@ -57,7 +57,7 @@ def load_all() -> list[Sound]:
     from . import (  # noqa: F401
         advisor, aircraft, ambience, antecedent, buildings, campaign, combine, discovery, emberfall, hollow, impacts, interface, missions,
         movement, music_emberfall, music_kessel, music_kessel_combat, music_kessel_score, music_kessel_stealth, music_kessel_trail, music_meridian,
-        music_hollow, music_thalassa, music_verdance,
+        music_hollow, music_thalassa, music_verdance, polish,
         specialists,
         stealth, thalassa, units, verdance, vertical_slice, weapons, weather, world,
     )

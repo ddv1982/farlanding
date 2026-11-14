@@ -28,6 +28,10 @@ extends Resource
 ## A movement loop (`move_<set>`) that keeps sounding while its unit stands
 ## still, quieter and lower: an aircraft's engine never stops (Phase 8c).
 @export var loops_at_rest: bool = false
+## What a spoken line means, shown as a subtitle while it plays (Phase 9). Every
+## Advisor event has one: the Advisor speaks in tones, so the subtitle carries
+## the words. Empty for everything else.
+@export var subtitle: String = ""
 
 
 ## Picks a variation index. `last` is the previous pick (-1 if none), `roll` a

@@ -15,6 +15,8 @@ extends Node
 ## the campaign hovers (map_node_hover, tech_hover) the CampaignSoundRouter's.
 
 const BUILDINGS_GROUP: StringName = &"buildings"
+## The speaker named in the Advisor's subtitles.
+const ADVISOR_SPEAKER: StringName = &"advisor"
 ## A production_started this soon after the same producer finished a unit is
 ## its queue moving on, not the player clicking: no queue click.
 const QUEUE_ADVANCE_WINDOW: float = 0.5
@@ -34,6 +36,13 @@ var alert_position: Callable = func(_kind: StringName) -> Vector3: return Vector
 ## Called with each Advisor kind as its phrase starts: `func(kind: StringName) -> void`
 ## (the AudioService raises the score's urgency layer on under_attack).
 var on_alert_played: Callable = func(_kind: StringName) -> void: pass
+## Plays an Advisor line: the first existing event of the candidates, returning
+## its id only if a voice actually started (else &""), so a line the voice budget
+## refused is never subtitled: `func(candidates: Array[StringName]) -> StringName`.
+var play_line: Callable = func(ids: Array[StringName]) -> StringName:
+	return play_first.call(ids, Vector3.INF)
+## The subtitle of an event (empty if none): `func(event_id: StringName) -> String`.
+var subtitle_of: Callable = func(_id: StringName) -> String: return ""
 ## Listener focus on the ground; set by the AudioService.
 var focus: Vector3 = Vector3.INF
 
@@ -61,15 +70,20 @@ func _process(_delta: float) -> void:
 
 
 ## Plays the next waiting Advisor phrase if none is sounding. Returns the
-## alert kind played, or &"".
+## alert kind played, or &"". The moment a line actually starts, its subtitle
+## goes out (`Events.subtitle`, speaker &"advisor", the line's real length):
+## never for an alert that was throttled, dropped, superseded or refused a voice.
 func pump_advisor(now: float) -> StringName:
 	var kind: StringName = _advisor.pop_ready(now)
 	if kind == &"":
 		return &""
-	var played: StringName = play_first.call(AudioCueSelector.advisor_events(kind), Vector3.INF)
+	var played: StringName = play_line.call(AudioCueSelector.advisor_events(kind))
 	var seconds: float = 0.0
 	if played != &"":
 		seconds = event_seconds.call(played)
+		var text: String = subtitle_of.call(played)
+		if not text.is_empty():
+			Events.subtitle.emit(ADVISOR_SPEAKER, text, seconds)
 	_advisor.started(now, seconds)
 	on_alert_played.call(kind)
 	return kind

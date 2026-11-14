@@ -860,8 +860,13 @@ most abrupt moment). Ogg files are decoded again and compared with the source (c
 
 **Buses.** `Master` ← `Music`, `Ambience`, `Weather`, `SFX` (`Weapons`, `Explosions`, `Units`,
 `Buildings`), `Voice` (`Barks`, `Advisor`), `UI`, `Discovery`, `Stealth`. Player settings:
-Master → `master_volume`, Music → `music_volume`, UI → `ui_volume`, everything else
-(Ambience, Weather, SFX, Voice, Discovery, Stealth) → `sfx_volume`.
+Master → `master_volume`, Music → `music_volume`, UI → `ui_volume`, Advisor →
+`voice_volume` (Phase 9), Ambience → `ambience_volume` (Phase 9), everything else (Weather, SFX,
+Barks, Discovery, Stealth) → `sfx_volume`. The Voice bus itself has no setting, so the Advisor is
+not scaled by the effects slider too; unit replies (Barks) stay with the effects, and so does the
+Weather bus, because it carries warnings. At default settings the mix is unchanged: both new
+settings default to 1.0, as the effects volume did, and an older settings file carries its
+effects volume over to both.
 
 | Bus | Effects | Why |
 |---|---|---|
@@ -959,10 +964,80 @@ assert what the others do (no clipping, headroom, the loudness windows, the voic
 Advisor 3 LU over the music); calm also asserts the Core's first layer and the engines' hum, the
 finale that the recording is inside the awakening.
 
+Phase 9 changes the finale: the awakening is now the one moment the Advisor does **not** duck the
+music. `CoreSound` switches the Music bus's `DuckUnderVoice` compressor off when the awakening
+starts and back on when it ends or a new mission starts. The Advisor still speaks over it,
+level with the cue rather than above it, and the cue sits 2 dB lower (`mus_core_awakened`
+`volume_db = -2`) so that the unducked peak stays with the other fights (table below). The test now
+asserts that the duck is off and that the music while the Advisor speaks is within 1.5 LU of its
+level over the whole recording.
+
 The first measurement found one problem, fixed: heavy combat with the storm and urgency layers
 stacked integrated to −21.7 LUFS of music, louder than the weapons (−25) and level with the
 Advisor. `combat_heavy` was pulled back 2–4 dB per layer, the storm layer capped at −3 dB
 (the Weather beds carry the storm), and urgency set to −4..−6 under fighting states.
+
+## Across the campaign (Phase 9)
+
+Each planet has a calm scene (its score in `calm` and its ambience; Hollow Meridian also has
+the Core's first layer and two engines humming) and a busy one (its worst fight).
+`test_final_mix.gd` records all ten through the real buses, with the same settings as the
+Phase 6 table above. Its last test, `test_zz_planets_sit_together`, asserts that the calm scenes
+sit within 2.5 LU of each other and the busy scenes within 3.0 LU. Measured in Phase 9 on the
+full `tests/audio` run:
+
+| Planet | Calm: integrated | Calm: peak before the limiter | Busy scene | Busy: integrated | Busy: peak before the limiter |
+|---|---|---|---|---|---|
+| Kessel Reach | −29.0 LUFS | −19.4 dBFS | worst case (storm fight) | −19.6 LUFS | −6.9 dBFS |
+| Thalassa Low | −28.0 LUFS | −17.6 dBFS | fight at high tide | −17.6 LUFS | −4.0 dBFS |
+| Emberfall | −27.9 LUFS | −15.5 dBFS | Holdout fight with an eruption | −18.0 LUFS | −5.0 dBFS |
+| Verdance | −30.0 LUFS | −19.6 dBFS | air war | −17.1 LUFS | −4.5 dBFS |
+| Hollow Meridian | −28.3 LUFS | −16.9 dBFS | finale (awakening) | −16.7 LUFS | −1.9 dBFS |
+| **Spread** | **2.1 LU** | | | **2.9 LU** | |
+
+The same six-second scene moves by up to about 1.5 LU from run to run, because the beds wander
+and the details are random. Across four runs the calm scenes spanned 1.5–2.6 LU and the busy ones
+2.4–2.9 LU, and every peak stayed under the −1 dBFS limiter ceiling, so the limiter never acted.
+The finale's peak varied most (−1.9 to −5.0 dBFS): it is the campaign's one unducked climax, with
+explosions landing on top of the cue.
+
+Fixed in Phase 9:
+
+- **Hollow Meridian calm was 2.5–4 LU hot** (−25.5 against about −28.5). Its `calm` state played
+  pad, trail, melodies and the Core layers 2 dB above the other planets' (Music −24.1 LUFS before
+  its fader, against −25.4 to −26.9). The state is now 2 dB lower on every sounding layer except
+  urgency. Result: −27.7 to −28.3.
+- **Hollow Meridian finale**: the awakening is no longer ducked (see the finale above), so the cue
+  plays 2 dB lower (Music −23.1 before its fader, from −21.1). The finale stays the loudest scene in
+  the campaign and the only one near the limiter.
+- Left as it is: **Verdance calm** (−29.7 to −30.0) is the quietest, because the camera sits
+  under a crown and the canopy shades the Ambience high band; raising its score's calm layers by
+  1.5 dB changed nothing measurable, so the change was reverted. **Kessel's worst case** is the
+  quietest busy scene: its score is actually the loudest of the five fights (−25.3 before its
+  fader), but the storm covers its ambience, and it has none of the extras the other planets'
+  fights add (tide, eruption, air war, awakening).
+
+Phase 9 also rechecked three assets (the build's own analysis):
+
+| Asset | Check | Before | Now |
+|---|---|---|---|
+| `amb_verdance_leaves.ogg` | codec fidelity (median segmental SNR, floor 18 dB) | 18 dB (on the floor) | 20 dB: the hush layer is now 55 % shared between the channels, so the encoder's channel coupling has less to code |
+| `amb_kessel_air.ogg` | codec fidelity | 18 dB (on the floor) | 21 dB, by the same change (60 % shared) |
+| `mus_hollow_explore_trail.ogg` | loop seam curvature (limit 1.5) | 1.43 | 1.31: the bell-air swell now peaks at the loop point, so the join falls in a steady tone instead of near-silence |
+
+**Subtitles.** Every Advisor event (`game/data/sounds/advisor/*.tres`) has a `subtitle`: one
+short line saying in words what the tones mean ("Eruption warning.", "Engine online."). When a
+line actually starts playing, the AudioEventRouter emits `Events.subtitle(&"advisor", text,
+seconds)`, where `seconds` is the stream's real length. A line that is throttled, dropped,
+superseded, cancelled or refused a voice is never subtitled. `test_phase9_audio.gd` fails if any
+Advisor event has no subtitle, so add one with every new Advisor line.
+
+**Phase 9 sounds** (`audio_src/recipes/polish.py`): `ui_tab_changed`, `ui_rebind_listen`,
+`ui_rebind_done`, `ui_rebind_conflict` (the settings pages emit these names as `ui_feedback`
+kinds), `ui_credits_open`, `advisor_extraction_moved`, and `loop_engine_claim`: a ratchet over a
+faint D+A drone that `MachineClaimSound` plays at an old engine while the player's workers bring
+it back. Its pitch rises from 0.8 to 1.3 with the work done, and it fades when the work stops,
+finishes, or is the enemy's.
 
 ## Naming
 
@@ -1245,7 +1320,7 @@ it, an enemy seizure within 90 m of the camera is always heard).
 
 1. Write a recipe: a function `(rng) -> np.ndarray` in `audio_src/recipes/<module>.py`,
    decorated with `@sound("<id>", "<group>", <target_lufs>, ...)`. Tune it by editing numbers.
-2. Render: `uv run --python 3.12 --with numpy --with scipy audio_src/build.py` (or `--only <id>`).
+2. Render: `uv run --python 3.12 --with numpy==2.5.4 --with scipy==1.18.1 audio_src/build.py` (or `--only <id>`).
    The report must say `0 failed`.
 3. The build scaffolds `game/data/sounds/<group>/<event>.tres` with group defaults if the event
    is new. Tune bus, priority, caps, cooldown and volume there (it is never overwritten).

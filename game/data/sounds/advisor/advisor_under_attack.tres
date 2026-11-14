@@ -13,3 +13,4 @@ max_instances = 1
 cooldown = 5.0
 positional = false
 max_distance = 0.0
+subtitle = "We are under attack."

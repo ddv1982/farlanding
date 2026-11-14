@@ -43,6 +43,10 @@
 ## "Machines": the old engines' spin-up, wind-down and the enemy's seizure, and
 ## the running engines' hum; BaseLoops leaves those machines alone) and screen
 ## music (ScreenMusic: a campaign screen with a score of its own, the ending).
+## Phase 9 adds subtitles for the Advisor (the AudioEventRouter emits
+## `Events.subtitle` as a line starts), the Advisor's and the ambience's own
+## volume settings (AudioMix), and the MachineClaimSound (child "Claims": the
+## player's workers bringing an engine back, heard rising with the work).
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -120,6 +124,7 @@ var _holdout: HoldoutSound
 var _canopy: CanopySound
 var _core: CoreSound
 var _machines: MachineSound
+var _claims: MachineClaimSound
 ## Canopy shade over the camera's focus (0 open .. 1 under a crown).
 var _shade: float = 0.0
 
@@ -134,6 +139,10 @@ func _ready() -> void:
 	_router = AudioEventRouter.new()
 	_router.name = &"EventRouter"
 	_router.play_first = play_first
+	_router.play_line = _play_line
+	_router.subtitle_of = func(event_id: StringName) -> String:
+		var line: SoundEvent = get_event(event_id)
+		return line.subtitle if line != null else ""
 	_router.event_seconds = func(event_id: StringName) -> float:
 		var event: SoundEvent = get_event(event_id)
 		return event.longest_seconds() if event != null else 0.0
@@ -263,6 +272,10 @@ func _ready() -> void:
 		return play_at(event_id, at)
 	add_child(_machines)
 	_base_loops.claimed = _machines.is_tracked
+	_claims = MachineClaimSound.new()
+	_claims.name = &"Claims"
+	_claims.resolve_event = get_event
+	add_child(_claims)
 	_campaign = CampaignSoundRouter.new()
 	_campaign.name = &"CampaignRouter"
 	_campaign.play_first = play_first
@@ -319,6 +332,7 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 	_eruption.focus = focus
 	_canopy.focus = focus
 	_machines.focus = focus
+	_claims.focus = focus
 	if absf(_zoom - _applied_zoom) >= ZOOM_EPSILON:
 		_apply_volumes()
 
@@ -422,6 +436,15 @@ func play_first(candidates: Array[StringName], position: Vector3 = Vector3.INF) 
 	return &""
 
 
+## Plays the first existing candidate as an Advisor line; returns its id only
+## if a voice started (the subtitle follows only a line that is heard).
+func _play_line(candidates: Array[StringName]) -> StringName:
+	for event_id: StringName in candidates:
+		if _events.has(event_id):
+			return event_id if _start(event_id, Vector3.INF) else &""
+	return &""
+
+
 ## Briefly lowers music, ambience and effects for `hold` seconds (plus a
 ## release), so a discovery phrase stands out.
 func duck_for(hold: float) -> void:
@@ -515,7 +538,7 @@ func stop_all_voices() -> void:
 	for i: int in _positional_players.size():
 		_positional_players[i].stop()
 		_positional_budget.release(i)
-	for node: Node in [_loops, _base_loops, _pulses, _tones, _machines]:
+	for node: Node in [_loops, _base_loops, _pulses, _tones, _machines, _claims]:
 		ShutdownGuard._stop_all(node)
 	_ducker = BusDucker.new()
 	_ducking = false
