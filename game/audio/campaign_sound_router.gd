@@ -19,7 +19,8 @@ extends Node
 ##   (`advisor_campaign_return_won` / `_lost`, through the Advisor queue) on
 ##   the first ship screen after it, skipped if a mission-ending sting played
 ##   within CampaignCues.RETURN_QUIET (the debrief's verdict already spoke).
-## - campaign_saved(slot): `ui_campaign_saved`, rate-limited (autosaves rarely).
+## - campaign_saved(slot) (native) / campaign_save_confirmed(slot) (Web):
+##   `ui_campaign_saved`, rate-limited (autosaves rarely).
 ## - campaign_loaded, mission_started: anything pending is dropped.
 
 const HOVER_KINDS: Array[StringName] = [&"map_node_hover", &"tech_hover"]
@@ -53,7 +54,10 @@ func _ready() -> void:
 	Events.ui_feedback.connect(_on_ui_feedback)
 	Events.tech_unlocked.connect(_on_tech_unlocked)
 	Events.landing_resolved.connect(_on_landing_resolved)
-	Events.campaign_saved.connect(_on_campaign_saved)
+	var saved: Signal = (
+		Events.campaign_save_confirmed if OS.has_feature("web") else Events.campaign_saved
+	)
+	saved.connect(_on_campaign_saved)
 	Events.campaign_loaded.connect(_on_campaign_loaded)
 	Events.mission_started.connect(_on_mission_started)
 

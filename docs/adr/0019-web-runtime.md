@@ -58,6 +58,9 @@ Emscripten IDBFS `FILE_DATA` store. The shell warns on denied storage, failed wr
 or a 30-second acknowledgement timeout, and requests confirmation before leaving
 while writes are pending. This adapter is version-specific and must be revalidated
 on engine upgrades. Storage eviction and a changed origin remain browser limits.
+`campaign_saved` announces the local file write and starts synchronization. Web
+save audio listens to `campaign_save_confirmed`, emitted only after the persistent
+store acknowledges that file; failed writes cannot play the success chime.
 
 One-shot synthesized WAV assets become MP3 through the existing reproducible audio
 pipeline. Sample-exact WAV loops and Ogg music retain their formats. Recipes remain

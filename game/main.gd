@@ -770,7 +770,11 @@ func _on_storage_confirmed(slot: StringName, success: bool) -> void:
 	if not success:
 		_report("Browser storage could not confirm the save. Keep this tab open.", true)
 		Events.ui_feedback.emit(&"save_failed")
-	elif slot not in [&"settings", CampaignSession.SLOT, SaveSlots.AUTOSAVE]:
+		return
+	if slot == &"settings":
+		return
+	Events.campaign_save_confirmed.emit(slot)
+	if slot not in [CampaignSession.SLOT, SaveSlots.AUTOSAVE]:
 		_report("Saved to %s." % SaveSlots.label_of(slot), false)
 		Events.ui_feedback.emit(&"save_done")
 

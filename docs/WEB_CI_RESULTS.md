@@ -13,9 +13,11 @@ dirty, so a working-tree build is not represented as a committed release.
 - Five Python tooling tests passed. They exercise isolation headers and WebAssembly
   MIME, manifest tampering, corrupt template downloads, exporter errors despite a
   zero exit, and stale model-import invalidation.
-- The full real-mixer suite passed inside Chromium with 415 tests and 6,374
+- The full real-mixer suite passed inside Chromium with 416 tests and 6,374
   assertions. Actual Web Audio output was captured as well. Mixer checks include
   limiter headroom, ducking, planet loudness, and the finale.
+  The save-audio regression verifies that Web local writes stay silent until
+  persistent storage confirms them; failed writes emit no success event.
 - Browser gameplay checks selected workers, built a Reactor, gathered resources,
   produced a unit, caused combat damage, saved a landing, reloaded, and recovered
   the saved Reactor and extra unit. Return-to-title, denied storage, and corrupt

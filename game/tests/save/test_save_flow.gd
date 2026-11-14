@@ -113,6 +113,16 @@ func test_browser_save_confirmation_updates_the_open_slot_panel() -> void:
 	assert_true(_main._message_failed)
 
 
+func test_only_successful_browser_saves_emit_durable_confirmation() -> void:
+	watch_signals(Events)
+	_main._on_storage_confirmed(SaveSlots.QUICKSAVE, false)
+	assert_signal_not_emitted(Events, "campaign_save_confirmed")
+	_main._on_storage_confirmed(&"settings", true)
+	assert_signal_not_emitted(Events, "campaign_save_confirmed")
+	_main._on_storage_confirmed(SaveSlots.QUICKSAVE, true)
+	assert_signal_emitted_with_parameters(Events, "campaign_save_confirmed", [SaveSlots.QUICKSAVE])
+
+
 func test_f5_quicksaves_and_f9_quickloads() -> void:
 	await _start(&"conquest")
 	await wait_frames(20)

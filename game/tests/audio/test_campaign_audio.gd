@@ -238,6 +238,18 @@ func test_saves_are_rate_limited_in_the_router() -> void:
 	assert_eq(_played, [&"ui_campaign_saved"] as Array[StringName])
 
 
+func test_save_chime_uses_the_platform_persistence_boundary() -> void:
+	Events.campaign_saved.emit(&"slot_1")
+	if OS.has_feature("web"):
+		assert_true(_played.is_empty(), "a local Web write must not sound successful")
+		Events.campaign_save_confirmed.emit(&"slot_1")
+		assert_eq(_played, [&"ui_campaign_saved"] as Array[StringName])
+	else:
+		assert_eq(_played, [&"ui_campaign_saved"] as Array[StringName])
+		Events.campaign_save_confirmed.emit(&"slot_1")
+		assert_eq(_played.size(), 1, "native saves keep their existing confirmation")
+
+
 func test_screens_are_forwarded() -> void:
 	Events.campaign_screen_changed.emit(&"tech_web")
 	assert_eq(_screens, [&"tech_web"] as Array[StringName])
