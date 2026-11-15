@@ -98,6 +98,8 @@ func _on_projectile_impacted(weapon: Resource, at: Vector3, victim: Node3D) -> v
 
 
 func _on_entity_died(entity: Node3D) -> void:
+	if is_instance_valid(entity) and entity is Building and (entity as Building).is_sold:
+		return
 	if not is_instance_valid(entity) or _hidden(entity):
 		return
 	var size: float = 1.6

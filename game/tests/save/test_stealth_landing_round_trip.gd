@@ -22,7 +22,7 @@ func after_each() -> void:
 		_f.dispose(map)
 	_maps.clear()
 	# Let the renderer release what the freed visuals used (sabotage sparks).
-	await wait_frames(3)
+	await wait_physics_frames(3)
 
 
 func test_quiet_uplink_round_trip_carries_on() -> void:

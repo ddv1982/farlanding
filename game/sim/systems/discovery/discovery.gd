@@ -40,6 +40,7 @@ func setup(p_world: SimWorld, p_player_faction: int) -> void:
 
 func add_site(site: DiscoverySite) -> void:
 	sites.append(site)
+	_refresh_site_visibility(site)
 	site.tree_exiting.connect(func() -> void: sites.erase(site))
 
 
@@ -97,6 +98,7 @@ func resolve(site: DiscoverySite, faction: int) -> void:
 		var next: DiscoverySite = site_of(def.leads_to)
 		if next != null and not next.charted:
 			next.chart()
+			_refresh_site_visibility(next)
 
 
 ## One sim tick: heal fields, field option cooldowns, the player's view of the sites.
@@ -109,14 +111,27 @@ func tick(tick_number: int, dt: float) -> void:
 	_tick = tick_number
 	field_options.tick(tick_number)
 	_tick_heal_fields(dt)
+	refresh_visibility()
+
+
+## Apply restored exploration immediately, including when the sim clock is paused.
+func refresh_visibility() -> void:
 	for site: DiscoverySite in sites:
-		if world.vision == null:
-			site.is_visible_to_player = site.charted
-		else:
-			site.is_visible_to_player = (
-				site.charted
-				and world.vision.grid.is_area_visible(player_faction, site.blocked_area())
-			)
+		_refresh_site_visibility(site)
+
+
+## Models appear only after their ground has been explored; charted controls chain
+## availability, not a free orbital reveal. VisionGrid already persists exploration.
+func _refresh_site_visibility(site: DiscoverySite) -> void:
+	if world.vision == null:
+		site.is_visible_to_player = site.charted
+		site.visible = site.charted
+		return
+	var grid: VisionGrid = world.vision.grid
+	site.is_visible_to_player = (
+		site.charted and grid.is_area_visible(player_faction, site.blocked_area())
+	)
+	site.visible = site.charted and grid.is_area_explored(player_faction, site.blocked_area())
 
 
 func _apply_payoff(site: DiscoverySite, faction: int) -> void:

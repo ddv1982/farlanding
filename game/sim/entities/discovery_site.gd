@@ -1,7 +1,6 @@
 class_name DiscoverySite
 extends Node3D
-## A discovery site on the map (PLAN 2.4): first an unresolved signal the orbital scan
-## charted (a "?" the player sees even under fog), resolved when a Surveyor has
+## A discovery site on the map (PLAN 2.4), found by exploring and resolved when a Surveyor has
 ## scanned it for its DiscoveryDef's scan time. Neutral: it belongs to no faction.
 ## Sites in a chain start uncharted (hidden, not scannable) until the site leading to
 ## them is resolved. Spawned by SimWorld; scanning is driven by Scanner components and
@@ -41,10 +40,10 @@ var is_being_scanned: bool:
 var discovery_type: StringName:
 	get:
 		return def.discovery_type if def != null else &""
-## The player knows a signal is here (it was charted), resolved or not.
+## The site is available and its ground has been encountered, resolved or not.
 var is_signal_known_to_player: bool:
 	get:
-		return charted
+		return charted and visible
 
 ## Units scanning it now.
 var _scanners: Array[Unit] = []

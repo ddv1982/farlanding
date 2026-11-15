@@ -1,3 +1,4 @@
+const { openSingleMissions } = require('./release_navigation.cjs');
 const { play } = require('./launch.cjs');
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs/promises');
@@ -61,7 +62,7 @@ test('release starts on WebGL2 and uses real menu input', async ({ page }, info)
   expect(renderer).toBeTruthy();
   await info.attach('runtime', { body: JSON.stringify({ renderer, startupMs: Date.now() - started }), contentType: 'application/json' });
   await page.screenshot({ path: info.outputPath('release-title.png') });
-  await page.mouse.click(630, 388);
+  await openSingleMissions(page);
   await page.screenshot({ path: info.outputPath('release-menu.png') });
   await page.mouse.click(600, 285, { delay: 80 });
   const landing = page.waitForEvent('console', { predicate: entry => entry.text().includes('kessel_proving: 18 resource nodes and the bases placed'), timeout: 90000 });

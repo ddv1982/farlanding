@@ -2,8 +2,8 @@ extends GutTest
 ## Saving and loading through the game's flow (ADR 0013): F5 quicksaves and F9
 ## quickloads a mission, the pause menu's Save and Load use the slot screen, a
 ## campaign landing autosaves as it starts and loads back into its campaign, and
-## Continue on the title picks the newest of the campaign autosave and the saved
-## landings. A missing, damaged, newer or incomplete save is refused with a message
+## Continue on the title resumes the most recently saved unfinished landing.
+## A missing, damaged, newer or incomplete save is refused with a message
 ## and leaves the game in play as it was.
 
 const SAVES: String = "user://test_save_flow_saves/"
@@ -43,7 +43,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	_main.queue_free()
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	Events.ui_feedback.disconnect(_on_feedback)
 	Events.campaign_saved.disconnect(_on_saved)
 	Events.campaign_loaded.disconnect(_on_loaded)
@@ -85,7 +85,7 @@ func _key(code: Key) -> void:
 
 func _start(id: StringName) -> void:
 	_main.start_mission(SaveFixture.mission(id))
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_not_null(_main.runner, "landed")
 
 
@@ -125,7 +125,7 @@ func test_only_successful_browser_saves_emit_durable_confirmation() -> void:
 
 func test_f5_quicksaves_and_f9_quickloads() -> void:
 	await _start(&"conquest")
-	await wait_frames(20)
+	await wait_physics_frames(20)
 	var hauler: Unit = SaveFixture.unit_of(_world(), 0, &"concord_hauler")
 	var hauler_id: int = hauler.entity_id
 	var saved_at: Vector3 = hauler.sim_position()
@@ -138,9 +138,9 @@ func test_f5_quicksaves_and_f9_quickloads() -> void:
 	assert_eq(_saved_slots, [SaveSlots.QUICKSAVE] as Array[StringName])
 	var first_map: Node = _main.map
 	_world().economy.add(0, 500, 0)
-	await wait_frames(20)
+	await wait_physics_frames(20)
 	_key(KEY_F9)
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_ne(_main.map, first_map, "a fresh map")
 	assert_true(_feedback.has(&"load_done"))
 	assert_eq(_loaded_slots, [SaveSlots.QUICKSAVE] as Array[StringName])
@@ -171,7 +171,7 @@ func test_the_pause_menu_saves_and_loads_through_the_slot_screen() -> void:
 	assert_true(_main._slots._buttons[SaveSlots.QUICKSAVE].disabled, "nothing to load there")
 	var first_map: Node = _main.map
 	_main._slots._buttons[SaveSlots.MANUAL[1]].pressed.emit()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_ne(_main.map, first_map, "loaded")
 	assert_false(_main.paused, "and running")
 	assert_false(_main._slots.visible)
@@ -183,7 +183,7 @@ func test_a_campaign_landing_autosaves_and_loads_into_its_campaign() -> void:
 	_main.campaign.state.intel = 77
 	_main.launch(&"kessel_proving")
 	_main._briefing._on_start()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_true(SaveSlots.exists(SaveSlots.AUTOSAVE), "the landing autosaved")
 	var game: SaveGame = SaveSlots.read(SaveSlots.AUTOSAVE)
 	assert_eq(game.kind, SaveGame.KIND_CAMPAIGN)
@@ -192,7 +192,7 @@ func test_a_campaign_landing_autosaves_and_loads_into_its_campaign() -> void:
 	_main.show_title()
 	assert_null(_main.campaign)
 	assert_true(_main.load_game(SaveSlots.AUTOSAVE))
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_not_null(_main.campaign, "back in the campaign")
 	assert_eq(_main.campaign.state.intel, 77, "as it was when the landing began")
 	assert_not_null(_main.campaign.landing, "with the landing in play")
@@ -205,13 +205,13 @@ func test_loading_a_landing_puts_the_campaign_file_back_too() -> void:
 	_main.campaign.state.intel = 77
 	_main.launch(&"kessel_proving")
 	_main._briefing._on_start()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_true(_main.save_game(SaveSlots.MANUAL[0]))
 	# Later in the same campaign: more Intel, written to the campaign file.
 	_main.campaign.state.intel = 300
 	_main.campaign.save()
 	assert_true(_main.load_game(SaveSlots.MANUAL[0]))
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	var on_disk: CampaignSession = CampaignSession.new(_main.campaign_def)
 	assert_true(on_disk.load_quietly())
 	assert_eq(on_disk.state.intel, 77, "memory and the campaign file are one timeline")
@@ -222,7 +222,7 @@ func test_a_resolved_landing_drops_its_quicksave_and_autosave() -> void:
 	_main.new_campaign()
 	_main.launch(&"kessel_proving")
 	_main._briefing._on_start()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_true(_main.save_game(SaveSlots.QUICKSAVE))
 	assert_true(_main.save_game(SaveSlots.MANUAL[0]))
 	_main.runner.finish(true)
@@ -232,7 +232,7 @@ func test_a_resolved_landing_drops_its_quicksave_and_autosave() -> void:
 	# The manual save is from the same second as the result: Continue takes the result.
 	_main.show_title()
 	_main._title.continue_pressed.emit()
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	assert_null(_main.map, "the star map, not the landing already won")
 	assert_eq(_main.campaign.state.won, [&"kessel_proving"] as Array[StringName])
 
@@ -254,11 +254,11 @@ func test_continue_picks_the_newest_of_campaign_and_landing() -> void:
 	_main.new_campaign()
 	_main.launch(&"kessel_proving")
 	_main._briefing._on_start()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	_main.show_title()
 	assert_true(_main._title._continue.visible)
 	_main._title.continue_pressed.emit()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_not_null(_main.map, "the landing autosave is newer: back into the mission")
 	assert_not_null(_main.campaign)
 	_main.show_title()
@@ -267,7 +267,7 @@ func test_continue_picks_the_newest_of_campaign_and_landing() -> void:
 	data["saved_at"] = 1000
 	_write_raw(SaveSlots.AUTOSAVE, var_to_str(data))
 	_main._title.continue_pressed.emit()
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	assert_null(_main.map, "the star map, not the old landing")
 	assert_true(_main._star_map.visible)
 
@@ -276,14 +276,14 @@ func test_continue_falls_back_to_the_campaign_when_the_landing_cannot_load() -> 
 	_main.new_campaign()
 	_main.launch(&"kessel_proving")
 	_main._briefing._on_start()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	_main.show_title()
 	# The newest save names a campaign this build cannot read.
 	var data: Dictionary = SaveSlots.read_data(SaveSlots.AUTOSAVE)
 	data["campaign"] = {"version": 9999}
 	_write_raw(SaveSlots.AUTOSAVE, var_to_str(data))
 	_main._title.continue_pressed.emit()
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	assert_null(_main.map, "no landing")
 	assert_not_null(_main.campaign, "the campaign itself still continues")
 	assert_true(_main._star_map.visible)
@@ -295,7 +295,7 @@ func test_single_missions_continue_too() -> void:
 	_main.show_title()
 	assert_true(_main._title._continue.visible, "a saved landing can be continued")
 	_main._title.continue_pressed.emit()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_not_null(_main.map)
 	assert_null(_main.campaign, "a single mission")
 
@@ -368,6 +368,46 @@ func test_a_save_naming_a_missing_definition_is_refused() -> void:
 	assert_string_contains(_main._message, "not_a_unit")
 	data["mission"] = "res://data/missions/gone.tres"
 	assert_string_contains(SaveGame.check(data), "mission")
+
+
+func test_malformed_loads_preserve_the_existing_map_runner_and_pause_state() -> void:
+	await _start(&"conquest")
+	assert_true(_main.save_game(SaveSlots.MANUAL[0]))
+	var original: Dictionary = SaveSlots.read_data(SaveSlots.MANUAL[0])
+	var map: LandingMap = _main.map
+	var runner: Mission = _main.runner
+	_main.open_pause()
+	var cases: Array = [
+		[["landing", "world", "units"], {}],
+		[["landing", "world", "units"], [null]],
+		[["landing", "world", "units", 0, "def"], original.mission],
+		[["landing", "world", "units", 0, "locomotion"], []],
+		[["landing", "world", "units", 0, "locomotion", "mover"], []],
+		[["landing", "world", "units", 0, "locomotion", "mover", "position"], "42"],
+		[["landing", "world", "units", 0, "orders", "queue"], [null]],
+		[["landing", "world", "units", 0, "health", "version"], Health.SAVE_VERSION + 1],
+		[["landing", "world", "buildings", 0, "def"], original.mission],
+		[["landing", "mission", "objectives"], [null]],
+		[["landing", "world", "units", 0, "watcher"], {"version": 1, "last_noticed": "42"}],
+		[["landing", "mission", "commander", "home"], "42"],
+		[["landing", "mission", "commander", "staging"], "42"],
+	]
+	for broken: Array in cases:
+		var data: Dictionary = original.duplicate(true)
+		var keys: Array = broken[0]
+		var container: Variant = data
+		for i: int in keys.size() - 1:
+			container = container[keys[i]]
+		container[keys.back()] = broken[1]
+		_write_raw(SaveSlots.MANUAL[0], var_to_str(data))
+		assert_false(_main.load_game(SaveSlots.MANUAL[0]), str(keys))
+		_expect_untouched(map)
+		assert_eq(_main.runner, runner, "the same running mission survives")
+		assert_true(map.is_inside_tree())
+		assert_false(map.is_queued_for_deletion())
+		assert_true(_main.paused, "the pause menu stays open")
+		assert_true(runner.context.sim_clock.paused)
+	assert_true(_loaded_slots.is_empty(), "no successful load event is emitted")
 
 
 ## Writes `payload` into `slot` with a valid header (to test what is inside).

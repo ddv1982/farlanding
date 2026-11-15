@@ -32,7 +32,7 @@ const AIM_HINT: String = "Left-click the map: use it there  ·  right-click or E
 ## %s = the command button ("Left-click" or "Right-click").
 const BUILD_HINT: String = "Pick a building, then left-click the ground  ·  %s a site to help build"
 const HAUL_HINT: String = "%s an Alloy deposit to harvest it  ·  new Haulers start on their own"
-const SCAN_HINT: String = "%s a ? on the map to scan it for Intel  ·  moving away stops the scan"
+const SCAN_HINT: String = "%s a discovered site to scan it for Intel  ·  moving away stops the scan"
 const PRODUCE_HINT: String = (
 	"Left-click: queue  ·  right-click a button: cancel  ·  " + "%s ground: rally point"
 )
@@ -71,6 +71,8 @@ var _progress: ProgressBar
 var _hint: Label
 var _mode: String = ""
 var _entries: Array[Dictionary] = []  # { def, button, caption, badge, bar }
+var _sell_confirming: bool = false
+var _sell_pending: bool = false
 
 
 func setup(p_controller: SelectionController, p_world: SimWorld, p_faction: int) -> void:
@@ -161,6 +163,8 @@ func _unit_mode() -> String:
 
 
 func _rebuild() -> void:
+	_sell_confirming = false
+	_sell_pending = false
 	for child: Node in _buttons.get_children():
 		child.queue_free()
 	_entries.clear()
@@ -187,6 +191,8 @@ func _rebuild() -> void:
 				_add_option_button(option, building)
 		if building.is_operational() and _eruptions_on(building) != null:
 			_add_vent_button(building)
+		if SellBuildingCommand.can_sell(building, faction):
+			_add_sell_buttons(building)
 	elif _mode.begins_with("aim:"):
 		_title.text = controller.targeting_option.display_name.to_upper()
 	elif _mode == "stealth":
@@ -227,6 +233,9 @@ func _refresh() -> void:
 	elif _mode.begins_with("building:"):
 		_refresh_building(controller.selected_building)
 	for entry: Dictionary in _entries:
+		if entry.has("sell"):
+			_refresh_sell(entry)
+			continue
 		if entry.has("stealth"):
 			continue
 		if entry.has("vent"):
@@ -339,6 +348,60 @@ func _refresh_entry(entry: Dictionary, pile: Stockpile) -> void:
 	bar.visible = in_progress
 	if in_progress:
 		bar.value = producer.progress()
+
+
+## Inline confirmation stays in the horizontally scrollable command row.
+func _add_sell_buttons(building: Building) -> void:
+	var holder := VBoxContainer.new()
+	var button: Button = HudStyle.make_button(null, "SELL")
+	button.pressed.connect(_on_sell_pressed.bind(building))
+	holder.add_child(button)
+	var cancel: Button = Button.new()
+	cancel.text = "Cancel"
+	cancel.pressed.connect(_on_sell_cancelled)
+	holder.add_child(cancel)
+	_buttons.add_child(holder)
+	_entries.append({"sell": true, "button": button, "cancel": cancel, "building": building})
+
+
+func _refresh_sell(entry: Dictionary) -> void:
+	var building: Building = entry["building"]
+	var button: Button = entry["button"]
+	var cancel: Button = entry["cancel"]
+	var eligible: bool = SellBuildingCommand.can_sell(building, faction)
+	button.disabled = not eligible or _sell_pending
+	cancel.visible = _sell_confirming and not _sell_pending and eligible
+	if not eligible:
+		return
+	var refund: Vector2i = SellBuildingCommand.refund_for(building)
+	var action: String = "Confirm sell" if _sell_confirming else "SELL"
+	if _sell_pending:
+		action = "Selling…"
+	button.text = "%s\n+%d Alloy  ·  +%d Flux" % [action, refund.x, refund.y]
+	button.tooltip_text = (
+		"Remove %s. Refund includes cancelled queued units.\nReturns %d Alloy and %d Flux."
+		% [building.def.display_name, refund.x, refund.y]
+	)
+
+
+func _on_sell_pressed(building: Building) -> void:
+	if (
+		_sell_pending
+		or controller.selected_building != building
+		or not SellBuildingCommand.can_sell(building, faction)
+	):
+		return
+	if _sell_confirming:
+		_sell_pending = true
+		world.context.command_queue.push(SellBuildingCommand.new(faction, building))
+	else:
+		_sell_confirming = true
+	_refresh()
+
+
+func _on_sell_cancelled() -> void:
+	_sell_confirming = false
+	_refresh()
 
 
 func _add_build_button(def: BuildingDef) -> void:

@@ -1,6 +1,6 @@
 extends Node
-## Scene flow (autoload `Game`). Stub: the project boots straight into MAIN_SCENE;
-## menus, mission loading and the campaign layer hook in here later.
+## Autoload entry point for whole-scene navigation. Main owns the menu, campaign
+## and landing transitions within MAIN_SCENE.
 
 const MAIN_SCENE: String = "res://main.tscn"
 

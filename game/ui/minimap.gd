@@ -4,8 +4,7 @@ extends PanelContainer
 ## dark) under the fog of war, resource nodes the player has explored, the player's
 ## units and buildings in team colour, enemies the player sees in the enemy's team
 ## colour (TeamColors: red by default; enemy buildings seen before but not in sight
-## now stay, dimmed, where they were last seen), discovery signals the orbital scan
-## charted (a "?" even under fog; a dot in the discovery's colour once resolved), and
+## now stay, dimmed, where they were last seen), discoveries the player has scanned, and
 ## the camera's view. Left click or drag moves the camera there. In the modern mouse
 ## scheme a right click orders the selected units to move there (Shift queues); in
 ## the classic scheme, where right click only deselects and cancels, it does nothing
@@ -20,7 +19,6 @@ const REMEMBERED_ALPHA: float = 0.75
 const NODE_COLOR: Color = Color(0.72, 0.84, 0.95)
 const VENT_COLOR: Color = Color(0.45, 0.85, 1.0)
 const VIEW_COLOR: Color = Color(1.0, 1.0, 1.0, 0.85)
-const SIGNAL_COLOR: Color = Color(0.35, 0.92, 1.0)
 
 const FOG_SHADER: String = """
 shader_type canvas_item;
@@ -223,22 +221,22 @@ func track_objective(objective: RefCounted) -> void:
 		_objectives.erase(changed)
 
 
-## Charted sites: an unresolved signal is a "?" in a ring, a resolved one a dot.
-func _draw_sites(scale: float) -> void:
-	if world.discovery == null:
-		return
-	var font: Font = get_theme_default_font()
+## Only the player's completed surveys become map records. Unknown locations have
+## no icon, even if an orbital definition or an enemy already knows about them.
+func recorded_sites() -> Array[DiscoverySite]:
+	var result: Array[DiscoverySite] = []
+	if world == null or world.discovery == null:
+		return result
 	for site: DiscoverySite in world.discovery.sites:
-		if not site.is_signal_known_to_player or site.def == null:
-			continue
-		var at: Vector2 = to_map(site.position)
-		if site.is_resolved:
-			_overlay.draw_circle(at, maxf(site.def.radius * scale, 2.5), site.def.color)
-			continue
-		_overlay.draw_circle(at, 6.0, Color(0, 0, 0, 0.55))
-		_overlay.draw_arc(at, 6.0, 0.0, TAU, 16, SIGNAL_COLOR, 1.5)
-		_overlay.draw_string(
-			font, at + Vector2(-3.0, 4.0), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, SIGNAL_COLOR
+		if site.def != null and site.is_resolved and site.resolved_by == faction and site.visible:
+			result.append(site)
+	return result
+
+
+func _draw_sites(scale: float) -> void:
+	for site: DiscoverySite in recorded_sites():
+		_overlay.draw_circle(
+			to_map(site.position), maxf(site.def.radius * scale, 2.5), site.def.color
 		)
 
 

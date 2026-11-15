@@ -22,7 +22,7 @@ signal survey_log_toggled(is_open: bool)
 const HINT_CLASSIC: String = (
 	"MOUSE    classic (Command & Conquer): left click does it all\n"
 	+ "LEFT     own unit or building: select  ·  drag: box  ·  double-click: all of type\n"
-	+ "         units selected: ground move  ·  enemy in sight attack  ·  ? scan\n"
+	+ "         units selected: ground move  ·  enemy in sight attack  ·  discovery: scan\n"
 	+ "         deposit harvest (Haulers)  ·  own site help build (Fabricators)\n"
 	+ "         building selected: ground sets the rally point\n"
 	+ "RIGHT    deselect  ·  while placing or aiming: cancel (or Esc)\n"
@@ -39,7 +39,7 @@ const HINT_MODERN: String = (
 	"MOUSE    modern: left selects, right commands\n"
 	+ "LEFT     select: click, drag, double-click type  ·  building: click it\n"
 	+ "         enemy in sight: attack  ·  buttons: build, queue units\n"
-	+ "RIGHT    move  ·  enemy in sight: attack  ·  ? site: scan (Surveyors)\n"
+	+ "RIGHT    move  ·  enemy in sight: attack  ·  discovery: scan (Surveyors)\n"
 	+ "         deposit: harvest (Haulers)  ·  site: help build (Fabricators)\n"
 	+ "         building selected: rally point  ·  unit button: cancel one\n"
 	+ "         while placing or aiming: cancel (or Esc)\n"

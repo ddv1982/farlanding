@@ -5,7 +5,8 @@ Short rules for everyone writing code in `game/`. The why lives in `docs/PLAN.md
 ## Before you push
 
 Run `tools/check.sh`. It runs format check, lint, headless import, a script-error check, the
-unit tests and a boot of the main scene, and must exit 0. CI runs the same script.
+unit tests, every-mission smoke, Python tooling tests and source/asset integrity checks.
+It must exit 0. CI runs the same script. Engine and GUT warnings/deprecations fail the gate.
 
 - Format: `cd game && uvx --from gdtoolkit==4.5.0 gdformat .`
 - Tests: `godot --headless --path game -s res://addons/gut/gut_cmdln.gd`
@@ -28,9 +29,12 @@ unit tests and a boot of the main scene, and must exit 0. CI runs the same scrip
 
     core  <-  sim  <-  ai / missions  <-  presentation / ui / audio
 
-A folder may use anything to its left, never to its right. `sim/` never references a UI node, a
-sound or a particle: it emits typed signals on `Events` (or its own nodes) and presentation,
-UI and audio listen.
+Simulation **scripts** must not depend on UI, audio or presentation scripts;
+`tools/project_integrity.py` checks adapter class/path references. Simulation emits typed
+signals on `Events` (or its own nodes), and adapters listen. Entity **scenes** may compose
+simulation and visual children. `Main` and `LandingMap` are composition roots: they wire
+the layers and provide dependencies before children enter the tree. Scene composition
+does not imply that simulation code may call its visual children.
 
 ## Architecture rules in practice
 
@@ -39,7 +43,9 @@ UI and audio listen.
 - **Gameplay runs on `SimClock` ticks (10 Hz)**, not in `_process`. Visuals interpolate with
   `SimClock.get_interpolation_fraction()`.
 - **Mission-scoped things hang off `MissionContext`**, never an autoload. Autoloads are only
-  `Events`, `Game`, `Settings` (and later `Audio`, `Save`).
+  `Events`, `Game`, `Settings`, `Audio` and `UiTheme`; the editor integration also
+  installs `MCPRuntimeProbe` (disabled by release feature, see the Web runtime ADR).
+  `SaveSlots` is a static service, not an autoload.
 - **Definitions are data**: new unit types are new `UnitDef` `.tres` files, not new code.
 - **Composition over inheritance**: an entity is a thin root plus component nodes.
 - **Saveable from day one**: any class that holds gameplay state has `to_dict()` /
@@ -61,3 +67,17 @@ UI and audio listen.
 - Commit `*.import` and `*.uid` files; never commit `.godot/`.
 - Binaries go through Git LFS once it is enabled (see `.gitattributes`).
 - Record expensive-to-reverse choices as a short ADR in `docs/adr/`.
+
+## Ownership and cleanup
+
+- A scene owns its child nodes. Configure dependencies before `add_child()`, which runs `_ready()`.
+- A RefCounted fixture does not own nodes it attaches elsewhere: retain the fixture and call
+  its `dispose()` in `after_each`. Use GUT's autofree helpers only when they actually register ownership.
+- A service that creates server RIDs releases them explicitly (`PathService.release()`).
+  Keep cleanup with the owner, including navigation, traffic registration and shader globals.
+- Restore snapshots in dependency order: identities before references, planetary conditions
+  before path-dependent orders. Preserve the save version unless the serialized shape changes.
+- Audio source recipes own generated streams and import sidecars; existing SoundEvents own
+  hand-tuned mix values. `project_integrity.py` checks hashes/inventory without regenerating audio.
+  Recipe edits also need the deterministic `audio_src/build.py --check` command documented in
+  `docs/AUDIO_PROVENANCE.md`; encoder versions can affect output hashes.

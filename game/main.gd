@@ -30,8 +30,8 @@ extends Node
 ## Saved landings (ADR 0013): the quicksave and quickload keys (F5 and F9 unless
 ## rebound) work in a mission, the pause
 ## menu saves into and loads from any slot, a campaign landing is autosaved as it
-## starts, and the title's Continue picks the newest of the campaign autosave and the
-## saved landings. A save that cannot be loaded is refused before anything in play
+## starts, and the title's Continue resumes the most recently saved unfinished landing.
+## A save that cannot be loaded is refused before anything in play
 ## is touched. One mission map exists at a time; it is taken out of the tree
 ## before the next one loads, so nothing leaks between landings. Behind the menus a
 ## backdrop scene plays when it exists: the menu backdrop (an orbiting view of the
@@ -52,7 +52,7 @@ const CAMPAIGN: String = "res://data/campaign/kessel_trail.tres"
 @export var campaign_def: CampaignDef
 
 ## The mission map in play, or null.
-var map: Node = null
+var map: LandingMap = null
 ## The mission being played or briefed.
 var current: MissionDef = null
 ## The running mission of `map`, or null.
@@ -90,6 +90,7 @@ var _backdrop_path: String = ""
 var _screen_before_credits: StringName = &""
 ## The route node of the campaign landing briefed or played.
 var _landing_node: StringName = &""
+var _slot_return_focus: Control
 var _web_storage: BrowserPersistence
 var _web_focus_callback: JavaScriptObject
 
@@ -118,6 +119,7 @@ func _ready() -> void:
 	_layer.add_child(_title)
 	_title.new_campaign_pressed.connect(new_campaign)
 	_title.continue_pressed.connect(continue_campaign)
+	_title.load_pressed.connect(_open_slots.bind(false))
 	_title.missions_pressed.connect(show_select)
 	_title.settings_pressed.connect(open_settings)
 	_title.how_to_play_pressed.connect(func() -> void: _info.open_how_to_play())
@@ -170,12 +172,13 @@ func _ready() -> void:
 	_pause.controls_pressed.connect(func() -> void: _info.open_controls())
 	_pause.restart_pressed.connect(_on_restart)
 	_pause.quit_pressed.connect(_back_from_landing)
-	_pause.save_pressed.connect(func() -> void: _slots.open(true))
-	_pause.load_pressed.connect(func() -> void: _slots.open(false))
+	_pause.save_pressed.connect(_open_slots.bind(true))
+	_pause.load_pressed.connect(_open_slots.bind(false))
 	_slots = SaveLoadPanel.new()
 	_slots.name = &"SaveLoad"
 	_layer.add_child(_slots)
 	_slots.slot_chosen.connect(_on_slot_chosen)
+	_slots.closed.connect(_on_slots_closed)
 	_notice = SaveNotice.new()
 	_notice.name = &"SaveNotice"
 	_layer.add_child(_notice)
@@ -390,32 +393,35 @@ func show_briefing(mission: MissionDef) -> void:
 func start_mission(
 	mission: MissionDef, modifiers: LandingModifiers = null, restore: Dictionary = {}
 ) -> void:
+	var instance: Node = (
+		mission.map_scene.instantiate() if mission != null and mission.map_scene != null else null
+	)
+	var landing_map: LandingMap = instance as LandingMap
+	if landing_map == null:
+		if instance != null:
+			instance.free()
+		_report("The mission has no landing map.", true)
+		return
 	_close_map()
 	_free_backdrop()
 	current = mission
 	_show_only(null)
 	_set_screen(&"")
-	if mission == null or mission.map_scene == null:
-		push_error("Main: mission has no map scene")
-		show_select()
-		return
 	Events.ui_feedback.emit(&"menu_close")
-	map = mission.map_scene.instantiate()
+	map = landing_map
 	GraphicsSettings.prepare(map)
-	map.set(&"mission", mission)
+	map.mission = mission
 	if modifiers != null:
-		map.set(&"modifiers", modifiers)
+		map.modifiers = modifiers
 	if not restore.is_empty():
-		map.set(&"restore_state", restore)
+		map.restore_state = restore
 	add_child(map)
 	# The flow's screens take input before the map's nodes.
 	move_child(_layer, -1)
-	var found: Variant = map.get(&"runner")
-	runner = found if found is Mission else null
+	runner = map.runner
 	if runner != null:
 		runner.finished.connect(_on_mission_finished)
-	var found_hud: Variant = map.get(&"hud")
-	var hud: Hud = found_hud if found_hud is Hud else null
+	var hud: Hud = map.hud
 	if hud != null:
 		hud.menu_requested.connect(open_pause)
 		hud.survey_log_toggled.connect(func(is_open: bool) -> void: _hints.obscured = is_open)
@@ -428,16 +434,14 @@ func start_mission(
 ## landing to save (none, or it is over) or the file cannot be written.
 func save_game(slot: StringName) -> bool:
 	var problem: String = ""
-	var snapshot: Variant = null
+	var snapshot: Dictionary = {}
 	if map == null or runner == null or current == null:
 		problem = "There is no landing to save."
 	elif runner.result != null:
 		problem = "The landing is over."
-	elif not map.has_method(&"snapshot"):
-		problem = "This map cannot be saved."
 	else:
-		snapshot = map.call(&"snapshot")
-	if problem == "" and snapshot is Dictionary:
+		snapshot = map.snapshot()
+	if problem == "":
 		var landing_data: Dictionary = snapshot
 		var game: SaveGame = SaveGame.capture(
 			current, landing_data, runner.elapsed_seconds(), campaign, _single_difficulty()
@@ -528,7 +532,7 @@ func resume() -> void:
 	paused = false
 	_hints.suspended = false
 	_settings.visible = false
-	_slots.visible = false
+	_slots.close()
 	_info.visible = false
 	_pause.visible = false
 	_set_map_running(true)
@@ -566,12 +570,9 @@ func _land(mission: MissionDef, level: StringName = &"") -> void:
 	start_mission(mission, modifiers)
 	# The landing autosave: a lost landing can be retried from its first moment.
 	if runner != null:
-		var snapshot: Variant = map.call(&"snapshot") if map.has_method(&"snapshot") else null
-		if snapshot is Dictionary:
-			var landing_data: Dictionary = snapshot
-			var game: SaveGame = SaveGame.capture(mission, landing_data, 0.0, campaign)
-			if SaveSlots.write(SaveSlots.AUTOSAVE, game) == "":
-				Events.campaign_saved.emit(SaveSlots.AUTOSAVE)
+		var game: SaveGame = SaveGame.capture(mission, map.snapshot(), 0.0, campaign)
+		if SaveSlots.write(SaveSlots.AUTOSAVE, game) == "":
+			Events.campaign_saved.emit(SaveSlots.AUTOSAVE)
 
 
 ## Back from a briefing, the debrief or the pause menu: the star map in a campaign,
@@ -598,14 +599,13 @@ func _on_restart() -> void:
 func _set_map_running(running: bool) -> void:
 	if runner != null and runner.context != null:
 		runner.context.sim_clock.paused = not running
-	var found: Variant = map.get(&"camera") if map != null else null
-	var camera: Node = found if found is Node else null
+	var camera: RtsCamera = map.camera if map != null else null
 	if camera != null:
 		camera.process_mode = Node.PROCESS_MODE_INHERIT if running else Node.PROCESS_MODE_DISABLED
 
 
 func _on_mission_finished(result: MissionResult) -> void:
-	var played: Node = map
+	var played: LandingMap = map
 	# A won mission of the catalog opens the next single mission, also when it was
 	# won as a campaign landing (the campaign plays the same missions).
 	if result.won and current != null and catalog != null and catalog.missions.has(current):
@@ -626,6 +626,36 @@ func _on_mission_finished(result: MissionResult) -> void:
 	var final: bool = campaign != null and campaign.state.is_complete() and result.won
 	_debrief.show_result(result, banked, final)
 	_debrief.visible = true
+
+
+func _open_slots(saving: bool) -> void:
+	_slot_return_focus = get_viewport().gui_get_focus_owner()
+	_slots.open(saving)
+	# Mouse input stops at the modal; keyboard focus must also stay above the
+	# title/pause buttons so Enter and Tab cannot activate the menu underneath.
+	_title.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_DISABLED
+	_pause.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_DISABLED
+	var first: Button = null
+	for node: Node in _slots.find_children("*", "Button", true, false):
+		var button: Button = node as Button
+		if button == null:
+			continue
+		button.focus_mode = Control.FOCUS_ALL
+		button.add_theme_stylebox_override(&"focus", HudStyle.button_style(&"hover"))
+		if first == null and not button.disabled and button.is_visible_in_tree():
+			first = button
+	if first != null:
+		first.grab_focus()
+
+
+func _on_slots_closed() -> void:
+	_title.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_INHERITED
+	_pause.focus_behavior_recursive = Control.FOCUS_BEHAVIOR_INHERITED
+	if is_instance_valid(_slot_return_focus) and _slot_return_focus.is_visible_in_tree():
+		_slot_return_focus.grab_focus()
+	elif map == null and screen == &"title":
+		_title._load.grab_focus()
+	_slot_return_focus = null
 
 
 func _on_slot_chosen(slot: StringName, saving: bool) -> void:
@@ -766,11 +796,11 @@ func _free_backdrop() -> void:
 
 
 func _close_map() -> void:
+	_slots.close()
 	if paused:
 		paused = false
 		_pause.visible = false
 		_settings.visible = false
-		_slots.visible = false
 		_info.visible = false
 		Events.ui_feedback.emit(&"pause_close")
 	_hints.end_mission()

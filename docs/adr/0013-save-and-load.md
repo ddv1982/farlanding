@@ -144,3 +144,16 @@ camera looks where it did.
   versions keep reading their older dictionaries.
 - Not saved: commands younger than a tick, transient AI timers, and the shooter of a
   projectile in flight.
+
+## Continue and explicit Load game (2026-11-15)
+
+The title now offers Load game for choosing a slot. Continue resumes the newest
+readable landing directly when it is the latest saved state. A newer campaign
+save between landings continues there. A campaign that already records a landing as won continues
+on its star map or ending; old manual landings remain available through Load game.
+With no usable landing, Continue falls back to the campaign save.
+
+Slot payloads may include optional integer `write_order` metadata to break equal
+whole-second `saved_at` timestamps by actual write order. Legacy files default to
+zero, older builds ignore the extra key, and the save format stays at 2. The displayed
+date still uses the original seconds value. No world/component schema changes.

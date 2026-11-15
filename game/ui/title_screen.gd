@@ -1,11 +1,12 @@
 class_name TitleScreen
 extends MenuScreen
-## The first screen: Continue (when an autosave exists), New campaign, Single missions
+## The first screen: Continue (when an autosave exists), New campaign, Single missions, Load game
 ## (the mission select), How to play, Controls, Settings, Credits and Quit. New campaign first
 ## asks for the difficulty (remembered in the settings for next time); START emits
 ## `new_campaign_pressed`. On a short window the menu buttons scroll under the name.
 
 signal new_campaign_pressed
+signal load_pressed
 signal continue_pressed
 signal missions_pressed
 signal settings_pressed
@@ -17,6 +18,7 @@ signal credits_pressed
 ## Space kept free above and below the column, px.
 const SCREEN_MARGIN: int = 24
 
+var _load: Button
 var _continue: Button
 var _menu: VBoxContainer
 var _menu_scroll: ScrollContainer
@@ -44,9 +46,12 @@ func _build() -> void:
 	_menu_scroll = column.add_scroll(_menu)
 	_continue = _add_button(_menu, "CONTINUE", continue_pressed)
 	var start: Button = HudStyle.make_menu_button("NEW CAMPAIGN", 280.0)
+	_keyboard_button(start)
 	start.pressed.connect(show_new_campaign)
 	_menu.add_child(start)
 	_add_button(_menu, "SINGLE MISSIONS", missions_pressed)
+	_load = _add_button(_menu, "LOAD GAME", load_pressed)
+	_load.name = &"LoadGame"
 	_add_button(_menu, "HOW TO PLAY", how_to_play_pressed)
 	_add_button(_menu, "CONTROLS", controls_pressed)
 	_add_button(_menu, "SETTINGS", settings_pressed)
@@ -72,6 +77,7 @@ func _build() -> void:
 	buttons.add_theme_constant_override(&"separation", 10)
 	_new_campaign.add_child(buttons)
 	var back: Button = HudStyle.make_menu_button("BACK", 135.0)
+	_keyboard_button(back)
 	back.pressed.connect(_show_menu)
 	buttons.add_child(back)
 	_add_button(buttons, "START", new_campaign_pressed).custom_minimum_size = Vector2(135, 40)
@@ -106,6 +112,7 @@ func _show_menu() -> void:
 
 func _add_button(column: BoxContainer, caption: String, pressed: Signal) -> Button:
 	var button: Button = HudStyle.make_menu_button(caption, 280.0)
+	_keyboard_button(button)
 	button.pressed.connect(
 		func() -> void:
 			Events.ui_feedback.emit(&"click")
@@ -113,3 +120,8 @@ func _add_button(column: BoxContainer, caption: String, pressed: Signal) -> Butt
 	)
 	column.add_child(button)
 	return button
+
+
+func _keyboard_button(button: Button) -> void:
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_stylebox_override(&"focus", HudStyle.button_style(&"hover"))

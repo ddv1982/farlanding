@@ -47,13 +47,10 @@ import_log="$BUILD/logs/export-import.log"
 status=0
 perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "${EXPORT_TIMEOUT:-1800}" \
 	"$GODOT" --headless --path "$GAME" --import >"$import_log" 2>&1 || status=$?
-sed -e $'s/\x1b\[[0-9;]*m//g' "$import_log" >"$import_log.txt"
-cat "$import_log.txt"
+diagnostic_status=0
+python3 "$ROOT/tools/godot_diagnostics.py" "$import_log" --allow-import-noise || diagnostic_status=$?
 [ "$status" -eq 0 ] || fail "export import failed (status $status; $import_log)"
-if grep -E '^(SCRIPT ERROR|ERROR|WARNING|USER ERROR|USER WARNING):' "$import_log.txt" \
-	| grep -Ev '^ERROR: \[GUT\] Could not get version info' >/dev/null; then
-	fail "export import reported errors or warnings ($import_log)"
-fi
+[ "$diagnostic_status" -eq 0 ] || fail "export import reported errors or warnings ($import_log)"
 
 for preset in "${presets[@]}"; do
 	case "$preset" in
@@ -73,12 +70,10 @@ for preset in "${presets[@]}"; do
 	status=0
 	perl -e 'alarm shift; exec @ARGV or die "exec: $!"' "${EXPORT_TIMEOUT:-1800}" \
 		"$GODOT" --headless --path "$GAME" --export-release "$preset" "$out" >"$log" 2>&1 || status=$?
-	sed -e $'s/\x1b\[[0-9;]*m//g' "$log" >"$log.txt"
-	cat "$log.txt"
+	diagnostic_status=0
+	python3 "$ROOT/tools/godot_diagnostics.py" "$log" || diagnostic_status=$?
 	[ "$status" -eq 0 ] || fail "export of $preset failed (status $status; $log)"
-	if grep -E '^(SCRIPT ERROR|ERROR|WARNING|USER ERROR|USER WARNING):' "$log.txt" >/dev/null; then
-		fail "export of $preset reported errors or warnings ($log)"
-	fi
+	[ "$diagnostic_status" -eq 0 ] || fail "export of $preset reported errors or warnings ($log)"
 	[ -e "$out" ] || fail "export of $preset produced no $out"
 	if [[ "$preset" == Web* ]]; then
 		python3 "$ROOT/tools/web_manifest.py" "$(dirname "$out")" --preset "$preset"

@@ -729,12 +729,14 @@ func _explored_nodes() -> Array[ResourceNode]:
 	return found
 
 
-## Placement rules over what the faction may know: terrain, bounds, its own
-## buildings, the enemy buildings it remembers seeing, sites refused lately, and the
+## Placement rules over what the faction may know: public terrain and prop obstacles,
+## bounds, its own buildings, the enemy buildings it remembers seeing, sites refused
+## lately, and the
 ## resource nodes it has explored. Never the live footprints of unseen buildings; the
 ## real rules still judge the PlaceBuildingCommand when it runs.
 func known_placement_rules() -> PlacementRules:
 	var rules: PlacementRules = world.placement_rules()
+	# Only replace building knowledge; public prop obstacles stay in rules.obstacles.
 	rules.footprints = []
 	for building: Building in world.buildings_of(faction):
 		rules.footprints.append(building.footprint())

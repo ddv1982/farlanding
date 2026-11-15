@@ -21,7 +21,7 @@ var deposit: ResourceNodeDef
 var vent: ResourceNodeDef
 
 
-## Builds the fixture under `parent` (a GutTest, which frees it with autofree).
+## Builds nodes under `parent`; the caller must call `dispose()` in teardown.
 func _init(parent: Node) -> void:
 	rules = EconomyRules.new()
 	rules.start_alloy = 1000

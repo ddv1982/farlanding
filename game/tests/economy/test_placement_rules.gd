@@ -101,3 +101,17 @@ func test_every_refusal_has_a_player_facing_reason() -> void:
 		PlacementRules.TOO_STEEP,
 	]:
 		assert_ne(PlacementRules.describe(reason), "", String(reason))
+
+
+func test_public_obstacles_use_exact_overlap_even_between_ground_samples() -> void:
+	# This sliver falls between the 1.5 m ground samples of the reactor.
+	_rules.obstacles.append(Rect2(-2.4, -0.1, 0.1, 0.2))
+	assert_eq(_rules.check(_reactor, Vector3.ZERO), PlacementRules.UNWALKABLE)
+	_rules.footprints = []
+	assert_eq(_rules.check(_reactor, Vector3.ZERO), PlacementRules.UNWALKABLE)
+	assert_eq(_rules.check(_reactor, Vector3(1, 0, 0)), PlacementRules.OK)
+
+
+func test_public_obstacles_do_not_require_the_building_gap() -> void:
+	_rules.obstacles.append(Rect2(3.25, -1, 2, 2))
+	assert_eq(_rules.check(_reactor, Vector3.ZERO), PlacementRules.OK, "0.25 m is clear")
