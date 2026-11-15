@@ -42,6 +42,9 @@ var _frame_ms: Array[float] = []
 var _last_frame_usec: int = 0
 var _peak_units: int = 0
 var _finished: bool = false
+var _quality: StringName = Settings.QUALITY_MEDIUM
+var _normal_mission: bool = false
+var _msaa: Viewport.MSAA = Viewport.MSAA_DISABLED
 var _logic_start: int = 0
 var _render_start: int = 0
 var _physics_start: int = 0
@@ -59,10 +62,18 @@ func _ready() -> void:
 	RenderingServer.frame_post_draw.connect(_on_post_draw)
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_storm = args.has("--storm")
+	_normal_mission = args.has("--normal-mission")
+	if args.has("--bench-msaa=2"):
+		_msaa = Viewport.MSAA_2X
 	for arg: String in args:
 		if arg.begins_with("--seconds="):
 			_seconds = float(arg.get_slice("=", 1))
+		elif arg.begins_with("--bench-quality="):
+			var requested: StringName = StringName(arg.get_slice("=", 1))
+			if Settings.QUALITIES.has(requested):
+				_quality = requested
 	_map = (load("res://maps/kessel_proving/kessel_proving.tscn") as PackedScene).instantiate()
+	GraphicsSettings.prepare(_map)
 	_map.mission = load(MISSION) as MissionDef
 	if args.has("--no-props"):
 		_map.with_props = false
@@ -71,8 +82,29 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		# Keep the reference benchmark comparable when fresh-profile defaults change.
 		get_viewport().scaling_3d_scale = 1.0
-		GraphicsSettings.apply(_map, Settings.QUALITY_MEDIUM)
-		_map.camera.center_on(Vector3.ZERO)
+		get_viewport().msaa_3d = _msaa
+		GraphicsSettings.apply(_map, _quality)
+		(
+			JavaScriptBridge
+			. eval(
+				(
+					"window.farlanding.benchmarkProfile = "
+					+ (
+						JSON
+						. stringify(
+							{
+								"quality": _quality,
+								"render_scale": 1.0,
+								"msaa": get_viewport().msaa_3d,
+								"normal_mission": _normal_mission,
+							}
+						)
+					)
+				)
+			)
+		)
+		if not _normal_mission:
+			_map.camera.center_on(Vector3.ZERO)
 		JavaScriptBridge.eval("window.farlanding.ready = true")
 
 
@@ -93,8 +125,9 @@ func _process(_delta: float) -> void:
 
 func _drop_armies() -> void:
 	var world: SimWorld = _map.world
-	_spawn(world, PLAYER_ROSTER, 0, PLAYER_CENTRE, ENEMY_CENTRE)
-	_spawn(world, ENEMY_ROSTER, 1, ENEMY_CENTRE, PLAYER_CENTRE)
+	if not _normal_mission:
+		_spawn(world, PLAYER_ROSTER, 0, PLAYER_CENTRE, ENEMY_CENTRE)
+		_spawn(world, ENEMY_ROSTER, 1, ENEMY_CENTRE, PLAYER_CENTRE)
 	_peak_units = world.units.size()
 	world.profiling = OS.get_cmdline_user_args().has("--sections")
 	world.profiling_units = world.profiling

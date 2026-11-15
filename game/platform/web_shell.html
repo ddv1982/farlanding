@@ -9,6 +9,7 @@ html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#131b
 #canvas { display:block; width:100%; height:100%; outline:none; }
 #launch { position:fixed; inset:0; display:grid; place-content:center; text-align:center; background:#131b20; z-index:2; }
 button { padding:16px 32px; background:#df813a; color:#10171c; border:0; border-radius:4px; font:inherit; cursor:pointer; }
+select { margin:8px 0 16px; padding:10px; background:#202c34; color:#e5edf0; border:1px solid #536572; border-radius:4px; font:inherit; }
 #message { max-width:34em; white-space:pre-wrap; }
 #storage-warning { position:fixed; bottom:8px; left:8px; max-width:36em; padding:10px; background:#7b311f; z-index:3; }
 </style>
@@ -16,7 +17,7 @@ $GODOT_HEAD_INCLUDE
 </head>
 <body>
 <canvas id="canvas" tabindex="0" aria-label="Farlanding game"></canvas>
-<div id="launch"><h1>Farlanding</h1><p>A Concord Survey expedition</p><button id="start">Play Farlanding</button><p id="message">Keyboard and mouse required. Saves stay in this browser.</p><progress id="progress" hidden></progress></div>
+<div id="launch"><h1>Farlanding</h1><p>A Concord Survey expedition</p><label for="graphics">Graphics</label><select id="graphics"><option value="saved">Saved settings / recommended for a new player</option><option value="high">High — full resolution, shadows and glow</option><option value="medium">Balanced — full resolution, lighter effects</option><option value="low">Performance — reduced resolution and effects</option></select><button id="start">Play Farlanding</button><p id="message">Keyboard and mouse required. Saves stay in this browser.</p><progress id="progress" hidden></progress></div>
 <div id="storage-warning" role="alert" hidden></div>
 <noscript>Enable JavaScript to play Farlanding.</noscript>
 <script src="$GODOT_URL"></script>
@@ -29,7 +30,16 @@ if (window.FARLANDING_DIAGNOSTICS) {
   if (query.has('encounter')) config.args.push('--', '--web-encounter');
   if (query.has('latency')) config.args.push('--', '--web-audio', '--web-latency');
   if (query.has('audio')) config.args.push('--', '--web-audio');
-  if (query.has('bench')) config.args.push('--', '--web-bench', '--seconds=' + (query.get('seconds') === '30' ? '30' : '120'));
+  if (query.has('visual')) {
+    const visual = query.get('visual');
+    if (/^[a-z_]+$/.test(visual)) config.args.push('--', '--web-visual', '--visual=' + visual,
+      '--visual-quality=' + (query.get('quality') === 'low' ? 'low' : 'high'),
+      '--visual-scale=' + (query.get('scale') === '0.5' ? '0.5' : '1'));
+  }
+  if (query.has('bench')) {
+    config.args.push('--', '--web-bench', '--seconds=' + (query.get('seconds') === '30' ? '30' : '120'), '--bench-quality=' + (query.get('quality') === 'high' ? 'high' : 'medium'), '--bench-msaa=' + (query.get('msaa') === '2' ? '2' : '0'));
+    if (query.has('normal')) config.args.push('--normal-mission');
+  }
 }
 const engine = new Engine(config);
 const canvas = document.getElementById('canvas');
@@ -115,6 +125,8 @@ for (const event of ['fullscreenchange', 'fullscreenerror']) {
 canvas.addEventListener('contextmenu', event => event.preventDefault());
 canvas.addEventListener('wheel', event => event.preventDefault(), {passive:false});
 document.getElementById('start').addEventListener('click', async event => {
+  const profile = document.getElementById('graphics').value;
+  if (['high','medium','low'].includes(profile)) config.args.push('--', '--graphics-profile=' + profile);
   event.target.disabled = true;
   const missing = Engine.getMissingFeatures({ threads:$GODOT_THREADS_ENABLED });
   if (missing.length) {

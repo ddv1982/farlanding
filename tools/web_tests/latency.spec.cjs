@@ -1,3 +1,4 @@
+const { play } = require('./launch.cjs');
 const { test, expect } = require('@playwright/test');
 const { captureAudio } = require('./audio-capture.cjs');
 test.use({ video: 'off', trace: 'off' });
@@ -5,7 +6,7 @@ if (process.env.WEB_LATENCY) {
   test('measures keydown to captured UI cue', async ({ page }, info) => {
     await page.addInitScript(captureAudio);
     await page.goto('http://127.0.0.1:8071/?latency');
-    await page.getByRole('button', { name: 'Play Farlanding' }).click();
+    await play(page);
     await expect.poll(() => page.evaluate(() => window.farlanding?.ready), { timeout: 90000 }).toBe(true);
     await page.locator('#canvas').click();
     await page.evaluate(() => {

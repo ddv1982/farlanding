@@ -147,6 +147,8 @@ jobs:
       - name: Browser gameplay
         working-directory: tools/web_tests
         timeout-minutes: 30
+        env:
+          WEB_GRAPHICS_PROFILE: low
         run: npm test
 
       - name: Every mission in browser
@@ -155,6 +157,7 @@ jobs:
         timeout-minutes: 30
         env:
           WEB_BROAD: '1'
+          WEB_GRAPHICS_PROFILE: low
         run: npm test
 
       - name: Full browser audio qualification
@@ -163,6 +166,7 @@ jobs:
         timeout-minutes: 15
         env:
           WEB_AUDIO_QA: '1'
+          WEB_GRAPHICS_PROFILE: low
         run: npm test -- --grep real-mixer
 
       - name: Upload browser evidence and export logs
@@ -244,6 +248,7 @@ jobs:
           WEB_DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
           WEB_DEPLOYMENT_COMMIT: ${{ github.sha }}
           WEB_DEPLOYMENT_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          WEB_GRAPHICS_PROFILE: low
         run: npx playwright test --config playwright.deployment.config.cjs
 
       - name: Promote production

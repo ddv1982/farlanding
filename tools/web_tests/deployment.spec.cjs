@@ -1,3 +1,4 @@
+const { play } = require('./launch.cjs');
 const { test, expect } = require('@playwright/test');
 
 if (process.env.WEB_DEPLOYMENT_URL && !process.env.WEB_DEPLOYMENT_PUBLIC_ONLY) {
@@ -21,7 +22,7 @@ if (process.env.WEB_DEPLOYMENT_URL && !process.env.WEB_DEPLOYMENT_PUBLIC_ONLY) {
     expect(manifest.dirty).toBe(false);
     expect(manifest.preset).toBe('Web');
     await page.goto(url);
-    await page.getByRole('button', { name: 'Play Farlanding' }).click();
+    await play(page);
     await expect.poll(() => page.evaluate(() => window.farlanding?.ready), { timeout: 90000 }).toBe(true);
     expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
     expect(await page.evaluate(() => window.farlanding.diagnostics)).toBeUndefined();

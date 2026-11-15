@@ -1,8 +1,9 @@
+const { play } = require('./launch.cjs');
 const { test, expect } = require('@playwright/test');
 async function state(page) { return page.evaluate(() => window.farlanding?.diagnostics); }
 async function boot(page, query = '') {
   await page.goto('http://127.0.0.1:8071/' + query);
-  await page.getByRole('button', { name: 'Play Farlanding' }).click();
+  await play(page);
   await expect.poll(() => page.evaluate(() => window.farlanding?.ready), { timeout: 90000 }).toBe(true);
   await expect.poll(async () => !!(await state(page))).toBe(true);
 }
@@ -34,6 +35,7 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 1920, height: 108
       await button(page, `${Math.round((await state(page)).ui_scale * 100)}%`);
       await option(page, `${Math.round(scale * 100)}%`);
       await expect.poll(async () => (await state(page)).ui_scale).toBe(scale);
+      expect((await state(page)).display_scale).toBeCloseTo(scale * await page.evaluate(() => devicePixelRatio));
       const back = (await state(page)).buttons.find(item => item.text.startsWith('BACK'));
       expect(back.pixel[0]).toBeGreaterThan(0);
       expect(back.pixel[0]).toBeLessThan(viewport.width);
@@ -67,7 +69,7 @@ test('modern mouse scheme accepts movement and persists across reload', async ({
   }).toBeGreaterThan(1);
   await expect.poll(() => page.evaluate(() => window.farlanding.saves.settings?.status)).toBe('saved');
   await page.reload();
-  await page.getByRole('button', { name: 'Play Farlanding' }).click();
+  await play(page);
   await expect.poll(async () => (await state(page))?.scheme, { timeout: 90000 }).toBe('modern');
   expect(await page.evaluate(() => window.farlanding.errors)).toEqual([]);
 });

@@ -1,3 +1,4 @@
+const { play } = require('./launch.cjs');
 const { test, expect } = require('@playwright/test');
 async function state(page) { return page.evaluate(() => window.farlanding?.diagnostics); }
 async function button(page, text) {
@@ -9,7 +10,7 @@ async function button(page, text) {
 if (process.env.WEB_CAMPAIGN || process.env.WEB_BROAD) {
 test('campaign launch and Continue preserve the landing across reload', async ({ page }) => {
   await page.goto('http://127.0.0.1:8071');
-  await page.getByRole('button', { name: 'Play Farlanding' }).click();
+  await play(page);
   await expect.poll(async () => (await state(page))?.screen, { timeout: 90000 }).toBe('title');
   await button(page, 'NEW CAMPAIGN');
   await button(page, 'START');
@@ -26,7 +27,7 @@ test('campaign launch and Continue preserve the landing across reload', async ({
   await expect.poll(async () => (await state(page)).quicksave).not.toBe('');
   const saved = (await state(page)).quicksave;
   await page.reload();
-  await page.getByRole('button', { name: 'Play Farlanding' }).click();
+  await play(page);
   await expect.poll(async () => (await state(page))?.quicksave, { timeout: 90000 }).toBe(saved);
   await button(page, 'CONTINUE');
   await expect.poll(async () => (await state(page)).tick).toBeGreaterThan(0);

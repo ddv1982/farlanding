@@ -1,9 +1,10 @@
+const { play } = require('./launch.cjs');
 const { test, expect } = require('@playwright/test');
 const { captureAudio } = require('./audio-capture.cjs');
 test('browser emits and records actual streamed audio after a gesture', async ({ page }, info) => {
   await page.addInitScript(captureAudio);
   await page.goto('http://127.0.0.1:8070');
-  await page.getByRole('button', { name: 'Play Farlanding' }).click();
+  await play(page);
   await expect.poll(() => page.evaluate(() => window.farlanding?.ready), { timeout: 90000 }).toBe(true);
   await page.mouse.click(630, 396, { delay: 80 });
   await expect.poll(() => page.evaluate(() => window.audioCapture.rms)).toBeGreaterThan(0.0001);
@@ -24,7 +25,7 @@ if (process.env.WEB_AUDIO_QA) {
     page.on('console', entry => logs.push({ type: entry.type(), text: entry.text() }));
     await page.addInitScript(captureAudio);
     await page.goto('http://127.0.0.1:8071/?audio');
-    await page.getByRole('button', { name: 'Play Farlanding' }).click();
+    await play(page);
     await expect.poll(() => page.evaluate(() => window.farlanding?.ready), { timeout: 90000 }).toBe(true);
     await page.mouse.click(600, 360, { delay: 80 });
     await expect.poll(() => page.evaluate(() => window.farlanding.audioQa), { timeout: 540000 }).toBeTruthy();
