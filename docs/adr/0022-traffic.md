@@ -62,6 +62,18 @@ obstacles are removed.
    grid is not made; the unit then follows its path alone for half a second.
 7. Flying units stay out (the `FlightSystem` keeps them apart, ADR 0016).
 
+Building and deposit cuts use a 0.35 m seam allowance, independent of Traffic
+passing room and the terrain bake's 1.75 m agent radius. The former 2.25 m
+dynamic-obstacle margin closed visible lanes: two buildings 2.4 m apart could
+stop a 1.6 m wide Ranger. The smaller allowance keeps that lane usable, while
+footprints, cliffs and flooded ground remain blocked. This deliberately favours
+responsive movement over enforcing the widest vehicle's physical clearance
+around every building. Terrain navmeshes are unchanged.
+
+`tests/test_building_gaps.gd` reproduces the closed lane on the former margin,
+then verifies a real Ranger definition crosses it with Traffic enabled and
+demolition restores walkability without reopening the remaining footprints.
+
 Formations already hand out slots so that paths do not cross (`Formation.assign`),
 so that part needed no change. Groups retain each unit's own speed: faster units queue behind or pass slower
 ones. Nearby path corners are skipped when the next leg is directly walkable;

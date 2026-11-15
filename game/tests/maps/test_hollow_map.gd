@@ -208,7 +208,8 @@ static func _path_length(paths: PathService, from: Vector3, to: Vector3) -> floa
 	var path: PackedVector3Array = paths.find_path(
 		paths.closest_point(from), paths.closest_point(to)
 	)
-	var length: float = 0.0
+	# find_path omits the snapped start; include its leg to the first corner.
+	var length: float = _flat(paths.closest_point(from), path[0]) if not path.is_empty() else 0.0
 	for i: int in range(1, path.size()):
 		length += _flat(path[i - 1], path[i])
 	return length if not path.is_empty() else INF

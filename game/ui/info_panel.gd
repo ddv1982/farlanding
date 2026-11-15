@@ -294,6 +294,9 @@ static func credits_text() -> String:
 		GAME_NAME.to_upper(),
 		"Design and development: The Farlanding project",
 		"",
+		"FARLANDING LICENCE",
+		FileAccess.get_file_as_string("res://LICENSE.txt").strip_edges(),
+		"",
 		"AUDIO",
 		(
 			"All sound and music is synthesised by the scripts in audio_src: no samples"

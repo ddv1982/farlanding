@@ -3,8 +3,18 @@ const { test, expect } = require('@playwright/test');
 
 async function state(page) { return page.evaluate(() => window.farlanding?.diagnostics); }
 async function button(page, label) {
-  await expect.poll(async () => (await state(page))?.buttons.some(b => b.text.startsWith(label))).toBe(true);
-  const target = (await state(page)).buttons.find(b => b.text.startsWith(label));
+  // Selection changes move the badge bar. Wait for two distinct simulation
+  // samples with the same coordinates before clicking its rendered position.
+  let previous, target;
+  await expect.poll(async () => {
+    const sample = await state(page);
+    target = sample?.buttons.find(b => b.text.startsWith(label));
+    if (!target) return false;
+    const pixel = JSON.stringify(target.pixel);
+    const stable = previous && sample.tick !== previous.tick && pixel === previous.pixel;
+    if (!previous || sample.tick !== previous.tick) previous = { tick: sample.tick, pixel };
+    return Boolean(stable);
+  }).toBe(true);
   await page.mouse.click(...target.pixel, { delay: 80 });
 }
 const sorted = ids => [...ids].sort((a, b) => a - b);

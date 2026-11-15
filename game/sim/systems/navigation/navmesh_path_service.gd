@@ -4,8 +4,8 @@ extends PathService
 ## Units pass each other through Traffic (ADR 0022), not on the navigation server.
 ##
 ## Blocked areas (buildings, deposits) are cut out of the region's navmesh with a
-## NavmeshCutter, grown by CUT_MARGIN so unit centres keep clear of walls like they
-## do of cliffs; the walk grid loses the same cells (ADR 0006).
+## NavmeshCutter with only a small seam margin; the walk grid loses the same cells
+## (ADR 0006). Traffic passing room is advisory, never extra building clearance.
 ##
 ## On a tidal map (ADR 0014) the region holds one of several navmeshes baked for a few
 ## sea levels (`set_flood_stages()`): `set_water()` switches to the stage of the sea
@@ -26,9 +26,10 @@ const LANE_MAX: float = 9.0
 const LANE_SHARES: Array[float] = [1.0, 0.5, 0.0]
 ## How many leading corridor corners a unit may skip when joining.
 const JOIN_LOOKAHEAD: int = 4
-## Blocked areas are cut out of the navmesh grown by this much (metres): the baked
-## agent radius plus room for the widest unit to pass another.
-const CUT_MARGIN: float = NavmeshTools.AGENT_RADIUS + 0.5
+## Small seam allowance around dynamic obstacle footprints, metres. Do not use the
+## largest unit radius here: that closes visible lanes even for small infantry.
+## Terrain/cliff erosion stays in the baked mesh; Traffic handles body spacing.
+const CUT_MARGIN: float = 0.35
 
 ## Benchmark and debug counters: shared group corridors built, and group members
 ## that could not use the corridor and got their own query.
