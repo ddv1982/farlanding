@@ -229,6 +229,11 @@ func test_how_to_play_and_credits() -> void:
 	var credits: String = info.body_text()
 	for part: String in ["FARLANDING", "The Farlanding project", "Godot Engine", "Blender", "GUT"]:
 		assert_string_contains(credits, part)
+	assert_string_contains(credits, "FARLANDING LICENCE")
+	assert_string_contains(credits, "Copyright (c) 2026 ddv1982")
+	assert_string_contains(
+		credits, FileAccess.get_file_as_string("res://LICENSE.txt").strip_edges()
+	)
 	assert_string_contains(credits, "gdtoolkit")
 	assert_string_contains(credits, "no samples")
 	assert_string_contains(credits, "Permission is hereby granted", "Godot's licence text")

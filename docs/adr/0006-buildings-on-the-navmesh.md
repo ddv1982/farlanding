@@ -99,3 +99,7 @@ along the cut edges of the Muster Bay and the Lander, and walked round both.
 - Navigation map changes take effect on the next physics frame; a path requested in
   the same frame as a placement can still cross the new site. Units standing inside a
   new footprint are sent out of it when it is placed.
+
+The dynamic-obstacle margin above is superseded by the building-lane decision
+in [ADR 0022](0022-traffic.md): 0.35 m around footprints, independent of the
+terrain bake radius, so small units retain visible passages.
