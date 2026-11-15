@@ -1,3 +1,4 @@
+const { play } = require('./launch.cjs');
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs/promises');
 const { captureAudio } = require('./audio-capture.cjs');
@@ -5,7 +6,7 @@ const { captureAudio } = require('./audio-capture.cjs');
 async function state(page) { return page.evaluate(() => window.farlanding?.diagnostics); }
 async function boot(page, url) {
   await page.goto(url);
-  await page.getByRole('button', { name: 'Play Farlanding' }).click();
+  await play(page);
   await expect.poll(() => page.evaluate(() => window.farlanding?.ready), { timeout: 90000 }).toBe(true);
 }
 async function button(page, label) {
@@ -80,8 +81,9 @@ test('worker orders construction production and saves survive reload', async ({ 
   expect((await state(page)).music_layers).toBe((await state(page)).music_source_layers);
   expect((await state(page)).music_volumes).toBe((await state(page)).music_source_layers);
   expect((await state(page)).audio_playback).toBe('stream');
-  expect((await state(page)).quality).toBe('low');
-  expect((await state(page)).render_scale).toBe(0.5);
+  const softwareProfile = process.env.WEB_GRAPHICS_PROFILE === 'low' || process.env.WEB_SOFTWARE || process.env.CI;
+  expect((await state(page)).quality).toBe(softwareProfile ? 'low' : 'high');
+  expect((await state(page)).render_scale).toBe(softwareProfile ? 0.5 : 1);
   await page.evaluate(() => {
     const original = confirmFile;
     window.saveChecks = [];
@@ -130,7 +132,7 @@ test('worker orders construction production and saves survive reload', async ({ 
   const saved = (await state(page)).quicksave;
   await page.screenshot({ path: info.outputPath('saved-landing.png') });
   await page.reload();
-  await page.getByRole('button', { name: 'Play Farlanding' }).click();
+  await play(page);
   await expect.poll(async () => (await state(page))?.quicksave, { timeout: 90000 }).toBe(saved);
   await page.keyboard.press('l');
   await expect.poll(async () => (await state(page)).notice).toContain('Loaded Quicksave');
@@ -146,7 +148,7 @@ test('worker orders construction production and saves survive reload', async ({ 
 test('denied storage shows an honest warning', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(window, 'indexedDB', { get() { throw new DOMException('Denied', 'SecurityError'); } }));
   await page.goto('http://127.0.0.1:8070');
-  await page.getByRole('button', { name: 'Play Farlanding' }).click();
+  await play(page);
   await expect(page.getByRole('alert')).toContainText('storage is unavailable');
   await expect.poll(() => page.evaluate(() => window.farlanding.ready), { timeout: 90000 }).toBe(true);
 });

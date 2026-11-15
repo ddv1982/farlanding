@@ -95,13 +95,16 @@ var _web_focus_callback: JavaScriptObject
 
 
 func _ready() -> void:
-	if OS.has_feature("web_diagnostics"):
+	if OS.has_feature("web_diagnostics") and get_parent() == get_tree().root:
 		var args: PackedStringArray = OS.get_cmdline_user_args()
 		if args.has("--web-bench"):
 			get_tree().change_scene_to_file.call_deferred("res://tests/bench/bench_battle.tscn")
 			return
 		if args.has("--web-audio"):
 			get_tree().change_scene_to_file.call_deferred("res://tests/web/audio_qa.tscn")
+			return
+		if args.has("--web-visual"):
+			get_tree().change_scene_to_file.call_deferred("res://tests/web/visual_compare.tscn")
 			return
 	Events.campaign_save_failed.connect(_on_campaign_save_failed)
 	if campaign_def == null and ResourceLoader.exists(CAMPAIGN):
@@ -199,12 +202,31 @@ func _ready() -> void:
 		_web_storage.confirmed.connect(_on_storage_confirmed)
 		Events.campaign_saved.connect(_confirm_storage)
 		Settings.changed.connect(_confirm_settings.call_deferred)
+		if Settings.launch_graphics_changed:
+			_confirm_settings.call_deferred()
 		JavaScriptBridge.eval("window.farlanding.ready = true")
 		if not OS.is_userfs_persistent():
 			JavaScriptBridge.eval("storageFailed()")
 	if OS.has_feature("web_diagnostics"):
 		var probe: Node = (load("res://tests/web/web_probe.gd") as GDScript).new()
 		add_child(probe)
+	if Settings.graphics_upgrade_available:
+		_offer_graphics_upgrade.call_deferred()
+
+
+func _offer_graphics_upgrade() -> void:
+	var prompt: GraphicsUpgradePrompt = GraphicsUpgradePrompt.new()
+	_layer.add_child(prompt)
+	prompt.use_high_pressed.connect(
+		func() -> void:
+			Settings.set_option(&"graphics_profile", Settings.QUALITY_HIGH)
+			prompt.queue_free()
+	)
+	prompt.keep_current_pressed.connect(
+		func() -> void:
+			Settings.set_option(&"graphics_profile", &"saved")
+			prompt.queue_free()
+	)
 
 
 func _notification(what: int) -> void:
@@ -377,6 +399,7 @@ func start_mission(
 		return
 	Events.ui_feedback.emit(&"menu_close")
 	map = mission.map_scene.instantiate()
+	GraphicsSettings.prepare(map)
 	map.set(&"mission", mission)
 	if modifiers != null:
 		map.set(&"modifiers", modifiers)
@@ -716,6 +739,7 @@ func _show_backdrop(path: String) -> void:
 		var scene: PackedScene = load(path) as PackedScene
 		if scene != null:
 			backdrop = scene.instantiate()
+			GraphicsSettings.prepare(backdrop)
 			backdrop.name = &"Backdrop"
 			add_child(backdrop)
 			move_child(backdrop, 0)

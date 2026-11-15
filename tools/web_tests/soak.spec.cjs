@@ -1,3 +1,4 @@
+const { play } = require('./launch.cjs');
 const { test, expect } = require('@playwright/test');
 test.use({ video: 'off', trace: 'off' });
 if (process.env.WEB_SOAK) {
@@ -12,7 +13,7 @@ if (process.env.WEB_SOAK) {
     const started = Date.now();
     const cycles = [];
     await page.goto('http://127.0.0.1:8071/?mission=conquest');
-    await page.getByRole('button', { name: 'Play Farlanding' }).click();
+    await play(page);
     while (Date.now() - started < 1800000) {
       await expect.poll(async () => (await state())?.tick, { timeout: 90000 }).toBeGreaterThan(0);
       const worker = (await state()).units.find(unit => unit.kind === 'concord_fabricator');

@@ -39,8 +39,15 @@ func _process(delta: float) -> void:
 	var data: Dictionary = {
 		"quality": Settings.quality,
 		"render_scale": Settings.render_scale,
+		"msaa": Settings.msaa_3d,
+		"graphics_upgrade_available": Settings.graphics_upgrade_available,
+		"graphics_defaults_version": Settings.graphics_defaults_version,
+		"viewport_size":
+		[get_viewport().get_visible_rect().size.x, get_viewport().get_visible_rect().size.y],
 		"scheme": Settings.control_scheme,
+		"music_volume": Settings.music_volume,
 		"ui_scale": Settings.ui_scale,
+		"display_scale": get_tree().root.content_scale_factor,
 		"fullscreen": Settings.fullscreen,
 		"audio_playback": "stream" if playback_type == 0 else "sample",
 		"music_source_layers": _score.clips[0].layers.size(),
@@ -102,14 +109,14 @@ func _process(delta: float) -> void:
 		for offset: Vector3 in [Vector3(12, 0, 0), Vector3(0, 0, -12), Vector3(15, 0, -15)]:
 			var point: Vector3 = map.camera.get_focus() + offset
 			point.y = map.heights.sample(point.x, point.z)
-			var pixel: Vector2 = camera.unproject_position(point)
+			var pixel: Vector2 = camera.unproject_position(point) * _css_scale()
 			ground.append([pixel.x, pixel.y])
 	JavaScriptBridge.eval("window.farlanding.diagnostics = " + JSON.stringify(data))
 
 
 func _entity(entity: Node3D, camera: Camera3D) -> Dictionary:
 	var point: Vector3 = entity.global_position
-	var pixel: Vector2 = camera.unproject_position(point + Vector3.UP)
+	var pixel: Vector2 = camera.unproject_position(point + Vector3.UP) * _css_scale()
 	return {
 		"id": entity.get("entity_id"),
 		"position": [point.x, point.y, point.z],
@@ -122,7 +129,7 @@ func _buttons(node: Node, result: Array, popups: Array) -> void:
 		var button: Button = node as Button
 		if button.is_visible_in_tree() and not button.disabled:
 			var rect: Rect2 = button.get_global_rect()
-			var point: Vector2 = rect.get_center() * get_tree().root.content_scale_factor
+			var point: Vector2 = rect.get_center() * _css_scale()
 			result.append({"name": button.name, "text": button.text, "pixel": [point.x, point.y]})
 	if node is PopupMenu:
 		var popup: PopupMenu = node as PopupMenu
@@ -136,20 +143,17 @@ func _buttons(node: Node, result: Array, popups: Array) -> void:
 					{
 						"items": items,
 						"position":
-						[
-							popup.position.x * get_tree().root.content_scale_factor,
-							popup.position.y * get_tree().root.content_scale_factor
-						],
-						"size":
-						[
-							popup.size.x * get_tree().root.content_scale_factor,
-							popup.size.y * get_tree().root.content_scale_factor
-						],
+						[popup.position.x * _css_scale(), popup.position.y * _css_scale()],
+						"size": [popup.size.x * _css_scale(), popup.size.y * _css_scale()],
 					}
 				)
 			)
 	for child: Node in node.get_children(true):
 		_buttons(child, result, popups)
+
+
+func _css_scale() -> float:
+	return get_tree().root.content_scale_factor / DisplayServer.screen_get_scale()
 
 
 func _p95() -> float:

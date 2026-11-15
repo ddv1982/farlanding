@@ -48,6 +48,7 @@ uniform vec3 cloak_color : source_color = vec3(0.2, 0.85, 1.0);
 const int BAYER[16] = int[16](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
 
 #include "fog.gdshaderinc"
+#include "compatibility_color.gdshaderinc"
 
 varying vec3 world_pos;
 
@@ -99,4 +100,5 @@ void fragment() {
 	if (build_progress < 1.0) {
 		EMISSION += build_glow * (1.0 - smoothstep(0.0, 0.35, build_front - height)) * 3.0;
 	}
+	EMISSION = display_emission(EMISSION);
 }

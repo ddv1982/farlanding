@@ -20,6 +20,9 @@ func before_each() -> void:
 		"fullscreen",
 		"quality",
 		"render_scale",
+		"msaa_3d",
+		"graphics_defaults_version",
+		"graphics_upgrade_available",
 		"hints_seen",
 		"path",
 	]:
@@ -119,6 +122,14 @@ func test_the_settings_panel_writes_through() -> void:
 	assert_eq(Settings.edge_pan, edge)
 	panel._on_quality_selected(0)
 	assert_eq(Settings.quality, Settings.QUALITY_LOW)
+	assert_eq(Settings.render_scale, 0.5)
+	assert_eq(Settings.msaa_3d, Viewport.MSAA_DISABLED)
+	panel._on_quality_selected(2)
+	assert_eq(Settings.render_scale, 1.0)
+	assert_eq(Settings.msaa_3d, Viewport.MSAA_2X)
+	panel._on_antialiasing_selected(2)
+	assert_eq(Settings.msaa_3d, Viewport.MSAA_4X)
+	assert_eq(panel._quality.selected, 3, "independent AA changes report a custom preset")
 	Settings.mark_hint_seen(&"storm")
 	panel._on_reset_hints()
 	assert_false(Settings.has_seen_hint(&"storm"))

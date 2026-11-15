@@ -61,10 +61,13 @@ const OPTIONS: Dictionary[StringName, String] = {
 	&"sticky_shift": SECTION_ACCESS,
 	&"game_speed": SECTION_GAME,
 	&"difficulty": SECTION_GAME,
+	&"msaa_3d": SECTION_DISPLAY,
 }
 const MIN_PAN_SPEED: float = 0.5
 const MAX_PAN_SPEED: float = 2.0
 const MIN_RENDER_SCALE: float = 0.5
+const GRAPHICS_DEFAULTS_VERSION: int = 2
+const MSAA_MODES: Array[int] = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X]
 
 ## Linear volumes in [0, 1].
 var master_volume: float = 1.0
@@ -85,6 +88,10 @@ var fullscreen: bool = false
 var quality: StringName = QUALITY_HIGH
 ## 3D resolution scale, MIN_RENDER_SCALE..1.
 var render_scale: float = 1.0
+var msaa_3d: Viewport.MSAA = Viewport.MSAA_2X
+var graphics_defaults_version: int = GRAPHICS_DEFAULTS_VERSION
+var graphics_upgrade_available: bool = false
+var launch_graphics_changed: bool = false
 ## One of PALETTES.
 var colour_palette: StringName = PALETTE_DEFAULT
 ## The Advisor's lines are written on screen.
@@ -117,18 +124,22 @@ var _web_fullscreen_pending: bool = false
 
 func _ready() -> void:
 	KeyBindings.install()
-	# Conservative Web defaults keep software WebGL and modest GPUs responsive.
-	# Load afterwards so the player's saved graphics choices take precedence.
-	if OS.has_feature("web"):
-		quality = QUALITY_LOW
-		render_scale = MIN_RENDER_SCALE
 	load_from(path)
 	if OS.has_feature("web"):
 		fullscreen = false
+		get_tree().root.size_changed.connect(_apply_ui_scale)
 		_web_fullscreen_callback = JavaScriptBridge.create_callback(_on_web_fullscreen_changed)
 		var browser: JavaScriptObject = JavaScriptBridge.get_interface("window")
 		browser.set("farlandingFullscreenChanged", _web_fullscreen_callback)
+	# An explicit launcher choice wins over saved preferences; Saved keeps them.
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--graphics-profile="):
+			launch_graphics_changed = _use_graphics_profile(
+				StringName(arg.get_slice("=", 1)), false
+			)
 	apply_display()
+	if launch_graphics_changed:
+		save_to()
 
 
 func save_to(target: String = "") -> Error:
@@ -145,6 +156,7 @@ func save_to(target: String = "") -> Error:
 	config.set_value(SECTION_DISPLAY, "fullscreen", fullscreen)
 	config.set_value(SECTION_DISPLAY, "quality", String(quality))
 	config.set_value(SECTION_DISPLAY, "render_scale", render_scale)
+	config.set_value(SECTION_DISPLAY, "graphics_defaults_version", graphics_defaults_version)
 	config.set_value(SECTION_HINTS, "seen", hints_seen)
 	config.set_value(SECTION_GAME, "missions_won", missions_won)
 	for key: StringName in OPTIONS:
@@ -181,6 +193,18 @@ func load_from(source: String = "") -> void:
 	quality = StringName(preset) if QUALITIES.has(StringName(preset)) else QUALITY_HIGH
 	var scale: float = config.get_value(SECTION_DISPLAY, "render_scale", render_scale)
 	render_scale = clampf(scale, MIN_RENDER_SCALE, 1.0)
+	# Existing files without AA preserve their previous (disabled) antialiasing.
+	var aa: Variant = config.get_value(SECTION_DISPLAY, "msaa_3d", Viewport.MSAA_DISABLED)
+	var aa_code: int = aa if aa is int else Viewport.MSAA_DISABLED
+	msaa_3d = aa_code as Viewport.MSAA if MSAA_MODES.has(aa_code) else Viewport.MSAA_DISABLED
+	var version: Variant = config.get_value(SECTION_DISPLAY, "graphics_defaults_version", 0)
+	graphics_defaults_version = version if version is int else 0
+	graphics_upgrade_available = (
+		OS.has_feature("web")
+		and graphics_defaults_version < GRAPHICS_DEFAULTS_VERSION
+		and quality == QUALITY_LOW
+		and is_equal_approx(render_scale, MIN_RENDER_SCALE)
+	)
 	var seen: PackedStringArray = config.get_value(SECTION_HINTS, "seen", PackedStringArray())
 	hints_seen = seen
 	# Older files have no list: nothing won yet.
@@ -250,6 +274,7 @@ func set_quality(preset: StringName) -> void:
 	if not QUALITIES.has(preset) or preset == quality:
 		return
 	quality = preset
+	_acknowledge_graphics()
 	_changed()
 
 
@@ -258,13 +283,40 @@ func set_render_scale(value: float) -> void:
 	if is_equal_approx(clamped, render_scale):
 		return
 	render_scale = clamped
+	_acknowledge_graphics()
 	apply_display()
 	_changed()
+
+
+## Applies only graphics; audio, controls, accessibility and progress are retained.
+func _use_graphics_profile(preset: StringName, persist: bool = true) -> bool:
+	if not QUALITIES.has(preset) and preset != &"saved":
+		return false
+	if preset != &"saved":
+		var profile: GraphicsProfile = GraphicsProfile.for_quality(preset)
+		quality = preset
+		render_scale = profile.render_scale
+		msaa_3d = profile.msaa_3d
+	_acknowledge_graphics()
+	apply_display()
+	if persist:
+		_changed()
+	return true
+
+
+func _acknowledge_graphics() -> void:
+	graphics_defaults_version = GRAPHICS_DEFAULTS_VERSION
+	graphics_upgrade_available = false
 
 
 ## Sets one of OPTIONS (`key`) to `value`; a value it cannot take is refused.
 ## Returns true when the option changed.
 func set_option(key: StringName, value: Variant) -> bool:
+	if key == &"graphics_profile":
+		if not (value is String or value is StringName):
+			return false
+		var preset: StringName = value
+		return _use_graphics_profile(preset)
 	if not OPTIONS.has(key):
 		return false
 	var current: Variant = get(key)
@@ -272,7 +324,9 @@ func set_option(key: StringName, value: Variant) -> bool:
 	if next == null or next == current:
 		return false
 	set(key, next)
-	if key == &"ui_scale":
+	if key == &"msaa_3d":
+		_acknowledge_graphics()
+	if key in [&"ui_scale", &"msaa_3d"]:
 		apply_display()
 	_changed()
 	return true
@@ -338,7 +392,7 @@ func reset_hints() -> void:
 func apply_display() -> void:
 	if not is_inside_tree():
 		return
-	get_tree().root.content_scale_factor = ui_scale
+	_apply_ui_scale()
 	if DisplayServer.get_name() == "headless":
 		return
 	var mode: DisplayServer.WindowMode = (
@@ -347,6 +401,16 @@ func apply_display() -> void:
 	if DisplayServer.window_get_mode() != mode:
 		DisplayServer.window_set_mode(mode)
 	get_tree().root.scaling_3d_scale = render_scale
+	get_tree().root.msaa_3d = msaa_3d
+
+
+func _apply_ui_scale() -> void:
+	var scale: float = ui_scale
+	if OS.has_feature("web"):
+		# Web canvas sizes are physical pixels; UI preferences are CSS-sized.
+		scale *= DisplayServer.screen_get_scale()
+	if not is_equal_approx(get_tree().root.content_scale_factor, scale):
+		get_tree().root.content_scale_factor = scale
 
 
 ## The InputMap follows the bindings of the current scheme (the autoload only: a
@@ -369,6 +433,8 @@ static func _volume(config: ConfigFile, key: String, fallback: float) -> float:
 ## `value` as option `key` takes it, or `fallback` when it cannot.
 static func _sanitized(key: StringName, value: Variant, fallback: Variant) -> Variant:
 	match key:
+		&"msaa_3d":
+			return value if value is int and MSAA_MODES.has(value) else fallback
 		&"colour_palette":
 			var palette: StringName = StringName(str(value))
 			return palette if PALETTES.has(palette) else fallback

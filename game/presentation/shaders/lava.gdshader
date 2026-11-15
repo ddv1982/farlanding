@@ -5,6 +5,7 @@ render_mode unshaded, cull_back;
 // slide past each other.
 
 #include "fog.gdshaderinc"
+#include "compatibility_color.gdshaderinc"
 
 uniform vec3 hot_color : source_color = vec3(1.0, 0.62, 0.12);
 uniform vec3 flow_color : source_color = vec3(0.95, 0.22, 0.03);
@@ -31,4 +32,5 @@ void fragment() {
 	vec2 fog = fog_at(world_pos);
 	// Unexplored lava is charted dark like everything else; remembered lava dims.
 	ALBEDO = fog_color(color, fog) * mix(3.0, 1.0, fog.r);
+	ALBEDO = display_emission(ALBEDO);
 }

@@ -27,6 +27,7 @@ uniform float panel_size = 0.0;
 uniform vec3 panel_glow : source_color = vec3(0.75, 0.9, 1.0);
 
 #include "fog.gdshaderinc"
+#include "compatibility_color.gdshaderinc"
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -84,4 +85,5 @@ void fragment() {
 	}
 	NORMAL_MAP = texture(detail_normal, world_pos.xz / 7.0).rgb;
 	NORMAL_MAP_DEPTH = mix(0.55, 0.15, cliff);
+	EMISSION = display_emission(EMISSION);
 }

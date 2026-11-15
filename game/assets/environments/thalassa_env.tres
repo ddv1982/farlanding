@@ -12,6 +12,7 @@ sun_angle_max = 12.0
 sky_material = SubResource("sky_mat")
 
 [resource]
+resource_local_to_scene = true
 background_mode = 2
 sky = SubResource("sky")
 ambient_light_source = 3

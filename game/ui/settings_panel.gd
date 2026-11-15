@@ -38,8 +38,8 @@ const VOLUME_LABELS: Dictionary[StringName, String] = {
 	&"ui_volume": "Interface",
 }
 const QUALITY_LABELS: Dictionary[StringName, String] = {
-	&"low": "Low  (no shadows or glow)",
-	&"medium": "Medium",
+	&"low": "Performance",
+	&"medium": "Balanced",
 	&"high": "High",
 }
 
@@ -53,6 +53,7 @@ var _pan_speed: HSlider
 var _fullscreen: CheckButton
 var _quality: OptionButton
 var _render_scale: HSlider
+var _antialiasing: OptionButton
 var _reset_hints: Button
 var _hint_note: Label
 var _palette: OptionButton
@@ -144,12 +145,17 @@ func _build_general(column: VBoxContainer) -> void:
 	var names: Array[String] = []
 	for preset: StringName in Settings.QUALITIES:
 		names.append(QUALITY_LABELS[preset])
+	names.append("Custom")
 	_quality = _options(names)
+	_quality.set_item_disabled(3, true)
 	_quality.item_selected.connect(_on_quality_selected)
-	_row(column, "Quality", _quality)
+	_row(column, "Graphics preset", _quality)
 	_render_scale = _slider(Settings.MIN_RENDER_SCALE, 1.0, 0.05)
 	_render_scale.value_changed.connect(_on_render_scale_changed)
 	_row(column, "Resolution", _render_scale)
+	_antialiasing = _options(["Off", "2× MSAA", "4× MSAA"])
+	_antialiasing.item_selected.connect(_on_antialiasing_selected)
+	_row(column, "Antialiasing", _antialiasing)
 	_section(column, "TUTORIAL")
 	_reset_hints = HudStyle.make_small_button("RESET HINTS")
 	_reset_hints.pressed.connect(_on_reset_hints)
@@ -273,7 +279,15 @@ func sync_from_settings() -> void:
 	_pan_speed.value = Settings.pan_speed
 	_fullscreen.button_pressed = Settings.fullscreen
 	_quality.selected = Settings.QUALITIES.find(Settings.quality)
+	var profile: GraphicsProfile = GraphicsProfile.for_quality(Settings.quality)
+	if (
+		not is_equal_approx(Settings.render_scale, profile.render_scale)
+		or Settings.msaa_3d != profile.msaa_3d
+	):
+		_quality.selected = 3
 	_render_scale.value = Settings.render_scale
+	_render_scale.tooltip_text = "3D resolution: %d%%" % roundi(Settings.render_scale * 100)
+	_antialiasing.selected = Settings.MSAA_MODES.find(Settings.msaa_3d)
 	var seen: int = Settings.hints_seen.size()
 	_hint_note.text = "%d seen" % seen if seen > 0 else "all hints will show"
 	_reset_hints.disabled = seen == 0
@@ -322,9 +336,15 @@ func _on_fullscreen_toggled(on: bool) -> void:
 
 
 func _on_quality_selected(index: int) -> void:
-	if not _syncing:
-		Settings.set_quality(Settings.QUALITIES[index])
+	if not _syncing and index < Settings.QUALITIES.size():
+		Settings.set_option(&"graphics_profile", Settings.QUALITIES[index])
 		Events.ui_feedback.emit(&"toggle")
+
+
+func _on_antialiasing_selected(index: int) -> void:
+	if not _syncing:
+		Settings.set_option(&"msaa_3d", Settings.MSAA_MODES[index])
+		_tick()
 
 
 func _on_render_scale_changed(value: float) -> void:
