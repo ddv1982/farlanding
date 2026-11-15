@@ -33,8 +33,11 @@ test('Alt+1 stores a control group and 1 selects it again in the browser build',
   await page.keyboard.press('Alt+1');
   // The HUD's group bar shows group 1 with its unit count.
   await expect.poll(async () => (await state(page)).buttons.some(b => b.text === `1 · ${group.length}`)).toBe(true);
-  const third = (await state(page)).units.find(unit => onScreen(unit) && !group.includes(unit.id));
-  expect(third, 'another visible unit can be added').toBeTruthy();
+  // The Hauler starts mining immediately; a sampled position can be stale on
+  // software-rendered CI by the time the click arrives. Use the idle Surveyor.
+  const third = (await state(page)).units.find(unit => onScreen(unit)
+    && unit.kind === 'concord_surveyor' && !group.includes(unit.id));
+  expect(third, 'the visible idle Surveyor can be added').toBeTruthy();
   await page.mouse.click(...third.pixel, { delay: 80 });
   await expect.poll(async () => (await state(page)).selected).toEqual([third.id]);
   await page.keyboard.press('Shift+1');
