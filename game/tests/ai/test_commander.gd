@@ -135,10 +135,6 @@ func test_a_lost_retrieval_squad_makes_the_next_bigger_and_later() -> void:
 	def.blocks_sight = false
 	def.carriable = true
 	_f.world.spawn_prop(def, Vector3(0, 0, 0))
-	# Power for the guns, and the guns around the artefact.
-	_f.building(_f.hub, Vector3(-60, 0, -60), AiFixture.ENEMY)
-	for at: Vector3 in [Vector3(6, 0, 4), Vector3(-6, 0, 4), Vector3(0, 0, -6)]:
-		_f.building(_f.combat.sentry, at, AiFixture.ENEMY)
 	_f.world.economy.stockpile(AiFixture.AI).alloy = 0
 	_f.building(_f.hub, Vector3(60, 0, 60))
 	_f.soldiers(3, Vector3(50, 0, 50))
@@ -146,8 +142,18 @@ func test_a_lost_retrieval_squad_makes_the_next_bigger_and_later() -> void:
 	_f.profile.retrieve_squad_size = 2
 	_f.profile.retrieve_after_seconds = 0.0
 	_start_commander()
+	_f.tick(20)
+	assert_not_null(_commander.retrieval, "a retrieval squad formed")
+	if _commander.retrieval == null:
+		return
+	var lost_members: Array[Unit] = _commander.retrieval.members.duplicate()
+	assert_eq(lost_members.size(), 2)
+	# Test the response to a loss, without depending on a particular traffic
+	# trajectory through gunfire (a squad member may legitimately escape).
+	for unit: Unit in lost_members:
+		unit.health.take(unit.health.max_health)
 	_f.tick(900)
-	assert_eq(_commander.retrievals_lost, 1, "the first squad of two fell to the guns")
+	assert_eq(_commander.retrievals_lost, 1, "the first squad of two was lost")
 	assert_eq(_commander.retrieve_squad_size(), 4, "the next one is twice the size")
 	_f.tick(900)
 	assert_null(_commander.retrieval, "the one soldier left is not sent alone")
@@ -158,3 +164,5 @@ func test_a_lost_retrieval_squad_makes_the_next_bigger_and_later() -> void:
 	var saved: Dictionary = _commander.to_dict()
 	var lost: int = saved["retrievals_lost"]
 	assert_eq(lost, 1, "the losses are saved")
+	var retry_after: int = saved["retrieve_after"]
+	assert_gt(retry_after, 20, "another attempt is delayed after the loss")

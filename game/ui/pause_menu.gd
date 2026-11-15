@@ -1,14 +1,15 @@
 class_name PauseMenu
 extends Control
 ## The in-mission menu (Esc, the pause key or the HUD's MENU button): Resume, Save,
-## Load, Settings, How to play, Restart and Quit to missions over a dimmed map. It
+## Load, Settings, How to play, Controls, Restart and Quit to missions over a dimmed map. It
 ## takes every click and key while open (the map behind it cannot be ordered about);
 ## Main pauses the sim clock and the camera. Esc closes it (or, with the settings,
-## the slots or How to play open, those).
+## the slots, How to play or Controls open, those).
 
 signal resume_pressed
 signal settings_pressed
 signal how_to_play_pressed
+signal controls_pressed
 signal save_pressed
 signal load_pressed
 signal restart_pressed
@@ -59,6 +60,7 @@ func _ready() -> void:
 	column.add_child(_button("LOAD", load_pressed))
 	column.add_child(_button("SETTINGS", settings_pressed))
 	column.add_child(_button("HOW TO PLAY", how_to_play_pressed))
+	column.add_child(_button("CONTROLS", controls_pressed))
 	column.add_child(_button("RESTART MISSION", restart_pressed))
 	_quit = _button("QUIT TO MISSIONS", quit_pressed)
 	column.add_child(_quit)

@@ -1,6 +1,6 @@
 # 0004 — Unit navigation: navmesh + group corridors + server RVO
 
-- Status: accepted
+- Status: accepted; decision 3 (server-side RVO) was replaced by ADR 0022 (Traffic)
 - Date: 2026-11-12
 
 ## Context

@@ -17,7 +17,7 @@ Section 9 records the decisions taken with the project owner.
 2. **Landing.** Your dropship, the Lander, sets down and *becomes your HQ*. Build a base, harvest, produce units.
 3. **Explore.** The map is full of things the orbital scan could not resolve. Scanning them earns **Intel** and often changes the mission: a shortcut, a resource bonus, a dormant machine, a weakness in the enemy base.
 4. **Resolve the objective** — which is not always "destroy the enemy".
-5. **Return to orbit** with Intel, artefacts and codex entries. New route options open.
+5. **Return to orbit** with Intel, artefacts and Survey Log entries. New route options open.
 
 **What makes it its own game: Intel is the third resource, and you can only get it by looking.**
 Alloy and Flux come from harvesting. Intel comes only from discovery. It is spent two ways:
@@ -77,7 +77,7 @@ Three knowledge states per map cell: **charted** (orbital scan: terrain shape on
 | Antecedent | Scanning ruins, recovering caches | Tech-web branches that cannot be bought any other way |
 | Enemy | Observing Combine structures unseen | Their build state, patrol routes, a weak point |
 
-Every discovery writes a short **codex** entry. Larger finds are multi-step: a ruin points to a second site, which needs a unit you may not have yet. Some cannot be completed on the first visit, which is a reason to return to a planet.
+Every discovery writes a short **Survey Log** entry. Larger finds are multi-step: a ruin points to a second site, which needs a unit you may not have yet. Some cannot be completed on the first visit, which is a reason to return to a planet.
 
 ### 2.5 Planets
 
@@ -135,7 +135,7 @@ farlanding/
     campaign/           Star map, ship, tech web, persistent state
     presentation/       Camera, selection visuals, VFX, fog rendering
     audio/              Audio service, music director, sound-event map
-    ui/                 HUD, menus, codex
+    ui/                 HUD, menus, Survey Log
     data/               .tres definitions: units, weapons, techs, discoveries, planets, missions, sounds
     assets/             Exported models, textures, audio (generated — never hand-edited)
     maps/
@@ -216,7 +216,7 @@ Sound gets its own track in every phase rather than a pass at the end, because i
 | Movement | Engine/servo loops per chassis, footfalls for walkers |
 | Buildings | Placement, construction loop, completion, idle hum, production, destruction |
 | World | Planet ambience bed, positional spot sounds, weather, hazard warnings |
-| Discovery | Signal pulse, scan loop, resolve stingers per type, codex entry |
+| Discovery | Signal pulse, scan loop, resolve stingers per type, Survey Log entry |
 | Stealth | Suspicion rising, alert, all-clear |
 | Music | Adaptive score per planet (below), ship theme, victory and defeat |
 
@@ -271,8 +271,8 @@ Each phase ends in something playable and has all three tracks. A phase is done 
 - **Done when:** a full Conquest match against the AI is winnable, losable and fun. *Milestone: the classic loop works.*
 
 ### Phase 4 — Exploration and Intel
-- **Code:** orbital-scan layer, signals, Surveyor scanning, discovery definitions and payoffs, Intel, Survey Lab field options, codex, Custodians.
-- **Art:** discovery sites, Antecedent ruins kit, scan effects, codex illustrations.
+- **Code:** orbital-scan layer, signals, Surveyor scanning, discovery definitions and payoffs, Intel, Survey Lab field options, Survey Log, Custodians.
+- **Art:** discovery sites, Antecedent ruins kit, scan effects, Survey Log illustrations.
 - **Audio:** signal pulse, scan loop, resolve stingers, the Trail motif, explore music.
 - **Done when:** playtesters detour to find out what a `?` is without being told to. *Milestone: the game has its identity.*
 

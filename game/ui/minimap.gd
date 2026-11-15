@@ -309,11 +309,5 @@ func _height(x: float, z: float) -> float:
 	return world.heights.sample(x, z) if world != null and world.heights != null else 0.0
 
 
-static func _panel_style() -> StyleBoxFlat:
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = HudStyle.PANEL_COLOR
-	style.border_color = HudStyle.ACCENT_COLOR
-	style.border_width_top = 2
-	style.set_corner_radius_all(3)
-	style.set_content_margin_all(6)
-	return style
+static func _panel_style() -> PlateStyle:
+	return HudStyle.panel_style(6)

@@ -25,6 +25,7 @@ Game="*res://core/game.gd"
 Settings="*res://core/settings.gd"
 MCPRuntimeProbe="*res://addons/godot_mcp/mcp_runtime_probe.gd"
 Audio="*res://audio/audio_service.gd"
+UiTheme="*res://ui/ui_theme.gd"
 
 [debug]
 
@@ -116,8 +117,6 @@ camera_pan_back={
 }
 
 [rendering]
-
-renderer/rendering_method.web="gl_compatibility"
 
 textures/vram_compression/import_etc2_astc=true
 

@@ -1,9 +1,9 @@
 class_name Main
 extends Node
 ## The game's flow (PLAN 1, 2.6; Phases 5 to 9). The title screen offers Continue,
-## New campaign (after a difficulty choice), Single missions, How to play, Settings,
-## Credits and Quit. How to play and the credits are an InfoPanel over any screen;
-## the Advisor's subtitles (SubtitleLine) sit under every menu.
+## New campaign (after a difficulty choice), Single missions, How to play, Controls,
+## Settings, Credits and Quit. How to play, Controls and the credits are an InfoPanel
+## over any screen; the Advisor's subtitles (SubtitleLine) sit under every menu.
 ##
 ## Difficulty (Difficulty): a new campaign takes the one chosen on the title and keeps
 ## it in its state (the Meridian may change it); a single mission is played at the one
@@ -121,6 +121,7 @@ func _ready() -> void:
 	_title.missions_pressed.connect(show_select)
 	_title.settings_pressed.connect(open_settings)
 	_title.how_to_play_pressed.connect(func() -> void: _info.open_how_to_play())
+	_title.controls_pressed.connect(func() -> void: _info.open_controls())
 	_title.credits_pressed.connect(open_credits)
 	_title.quit_pressed.connect(func() -> void: get_tree().quit())
 	_select = MissionSelect.new()
@@ -166,6 +167,7 @@ func _ready() -> void:
 	_pause.resume_pressed.connect(resume)
 	_pause.settings_pressed.connect(open_settings)
 	_pause.how_to_play_pressed.connect(func() -> void: _info.open_how_to_play())
+	_pause.controls_pressed.connect(func() -> void: _info.open_controls())
 	_pause.restart_pressed.connect(_on_restart)
 	_pause.quit_pressed.connect(_back_from_landing)
 	_pause.save_pressed.connect(func() -> void: _slots.open(true))
@@ -251,7 +253,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if key.keycode != KEY_ESCAPE and not key.is_action_pressed(&"pause_menu", false, true):
 		return
-	# Anything in the map that wanted Esc (cancel placement, close the codex) had it.
+	# Anything in the map that wanted Esc (cancel placement, close the Survey Log) had it.
 	if map != null and not paused and not _debrief.visible:
 		open_pause()
 		get_viewport().set_input_as_handled()
@@ -416,6 +418,7 @@ func start_mission(
 	var hud: Hud = found_hud if found_hud is Hud else null
 	if hud != null:
 		hud.menu_requested.connect(open_pause)
+		hud.survey_log_toggled.connect(func(is_open: bool) -> void: _hints.obscured = is_open)
 	_apply_graphics()
 	_apply_speed()
 	_hints.begin_mission(mission)

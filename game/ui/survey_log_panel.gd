@@ -1,9 +1,9 @@
-class_name CodexPanel
+class_name SurveyLogPanel
 extends PanelContainer
-## The codex: every discovery the player has made, newest first, with its codex
+## The Survey Log: every discovery the player has made, newest first, with its log
 ## text. A list of titles on the left, the chosen entry on the right. Opened and
 ## closed from the HUD (button or C). Fills from the Discovery system when it opens
-## and from `Events.codex_entry_added` while the mission runs.
+## and from `Events.survey_log_entry_added` while the mission runs.
 
 ## Type label and colour per discovery type.
 const TYPE_NAMES: Dictionary[StringName, String] = {
@@ -32,7 +32,7 @@ func _init() -> void:
 	add_child(column)
 	var header := HBoxContainer.new()
 	column.add_child(header)
-	var heading: Label = HudStyle.make_label(13, HudStyle.ACCENT_COLOR, "CODEX")
+	var heading: Label = HudStyle.make_label(13, HudStyle.ACCENT_COLOR, "SURVEY LOG")
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(heading)
 	var close: Button = HudStyle.make_small_button("Close  (C)")
@@ -64,7 +64,7 @@ func _init() -> void:
 	_text.custom_minimum_size = Vector2(360, 0)
 	page.add_child(_text)
 	visible = false
-	Events.codex_entry_added.connect(_on_entry_added)
+	Events.survey_log_entry_added.connect(_on_entry_added)
 
 
 ## Shows the panel with `entries` (oldest first, as the Discovery system keeps them).
@@ -72,14 +72,14 @@ func open_panel(entries: Array[DiscoveryDef]) -> void:
 	_entries = entries.duplicate()
 	_rebuild()
 	visible = true
-	Events.ui_feedback.emit(&"codex_open")
+	Events.ui_feedback.emit(&"survey_log_open")
 
 
 func close_panel() -> void:
 	if not visible:
 		return
 	visible = false
-	Events.ui_feedback.emit(&"codex_close")
+	Events.ui_feedback.emit(&"survey_log_close")
 
 
 func entry_count() -> int:
@@ -117,8 +117,8 @@ func _show_entry(index: int) -> void:
 	_type.text = "%s  ·  %s" % [TYPE_NAMES.get(def.discovery_type, "UNKNOWN"), def.display_name]
 	_type.add_theme_color_override(&"font_color", def.color)
 	_title.text = _title_of(def)
-	_text.text = def.codex_text
+	_text.text = def.log_text
 
 
 static func _title_of(def: DiscoveryDef) -> String:
-	return def.codex_title if def.codex_title != "" else def.display_name
+	return def.log_title if def.log_title != "" else def.display_name

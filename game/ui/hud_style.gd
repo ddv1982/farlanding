@@ -1,31 +1,52 @@
 class_name HudStyle
 extends RefCounted
-## The HUD's shared look: one small set of colours, panels, labels and buttons, so
-## every panel reads as the same survey-instrument family.
+## The game's shared look: one small set of colours, plates, labels and buttons, so
+## every panel reads as the same Concord field kit: steel-blue plates with cut
+## corners, thin outlines and cyan instrument lights (PlateStyle draws the plates).
+## Orange and red are kept for warnings and the enemy.
 
-const PANEL_COLOR := Color(0.055, 0.07, 0.09, 0.84)
-const ACCENT_COLOR := Color(0.93, 0.36, 0.05)
-const TEXT_COLOR := Color(0.90, 0.92, 0.94)
-const MUTED_COLOR := Color(0.62, 0.68, 0.74)
+const PANEL_COLOR := Color(0.043, 0.071, 0.098, 0.88)
+## Outline of panels and resting buttons.
+const LINE_COLOR := Color(0.25, 0.35, 0.43)
+## The instrument light: headings, lit lamps, the chosen option.
+const ACCENT_COLOR := Color(0.40, 0.87, 0.95)
+const TEXT_COLOR := Color(0.90, 0.94, 0.96)
+const MUTED_COLOR := Color(0.58, 0.67, 0.74)
 const WARNING_COLOR := Color(1.0, 0.42, 0.25)
 const ALLOY_COLOR := Color(0.80, 0.84, 0.90)
 const FLUX_COLOR := Color(0.45, 0.85, 1.0)
 const POWER_COLOR := Color(1.0, 0.82, 0.35)
 const INTEL_COLOR := Color(0.62, 1.0, 0.78)
-const BUTTON_COLOR := Color(0.10, 0.125, 0.15, 0.95)
-const BUTTON_HOVER_COLOR := Color(0.15, 0.19, 0.23, 0.98)
+const BUTTON_COLOR := Color(0.075, 0.115, 0.15, 0.96)
+const BUTTON_HOVER_COLOR := Color(0.11, 0.18, 0.23, 0.98)
+const BUTTON_PRESSED_COLOR := Color(0.09, 0.25, 0.30, 0.98)
 ## Campaign screens: route node and tech states.
 const LOCKED_COLOR := Color(0.36, 0.40, 0.45)
-const OPEN_COLOR := Color(0.93, 0.36, 0.05)
+const OPEN_COLOR := ACCENT_COLOR
 const WON_COLOR := Color(0.55, 0.95, 0.65)
 const CURRENT_COLOR := Color(1.0, 0.92, 0.55)
 const AVAILABLE_COLOR := Color(0.70, 0.76, 0.82)
 const LINK_COLOR := Color(0.62, 0.68, 0.74, 0.45)
 const MARGIN := 14
 const ICON_SIZE := 52
+## Corner cut of panels and of buttons, px.
+const PANEL_CUT := 10.0
+const BUTTON_CUT := 6.0
+## Labels this large or larger are set in the heading weight.
+const HEADING_SIZE := 18
+## The typeface (Chakra Petch, SIL Open Font License) by weight. Loaded on first use,
+## not preloaded: a fresh checkout parses this script before the fonts are imported.
+const FONT_BODY: String = "res://assets/fonts/ChakraPetch-Regular.ttf"
+const FONT_BUTTON: String = "res://assets/fonts/ChakraPetch-Medium.ttf"
+const FONT_HEADING: String = "res://assets/fonts/ChakraPetch-SemiBold.ttf"
 
 
-## A dark panel with the orange accent along its top edge.
+## The font at `path` (FONT_BODY, FONT_BUTTON, FONT_HEADING).
+static func font(path: String) -> Font:
+	return load(path) as Font
+
+
+## A dark plate with the instrument light along its top edge.
 static func make_panel() -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override(&"panel", panel_style())
@@ -33,24 +54,19 @@ static func make_panel() -> PanelContainer:
 	return panel
 
 
-## The panels' look: dark, the orange accent along the top edge.
-static func panel_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_COLOR
-	style.border_color = ACCENT_COLOR
-	style.border_width_top = 2
-	style.set_corner_radius_all(3)
-	style.set_content_margin_all(10)
+## The panels' look; `margin` is the space kept free inside the edge, px.
+static func panel_style(margin: int = 10) -> PlateStyle:
+	var style := PlateStyle.new(PANEL_COLOR, LINE_COLOR, PANEL_CUT)
+	style.marker = ACCENT_COLOR
+	style.set_content_margin_all(margin)
 	return style
 
 
 ## The same panel without see-through: for screens that open over other panels.
-static func solid_panel_style() -> StyleBoxFlat:
-	var style: StyleBoxFlat = panel_style()
-	style.bg_color = Color(PANEL_COLOR, 1.0)
-	style.set_content_margin_all(16)
-	style.shadow_color = Color(0, 0, 0, 0.5)
-	style.shadow_size = 18
+static func solid_panel_style() -> PlateStyle:
+	var style: PlateStyle = panel_style(18)
+	style.fill = Color(PANEL_COLOR, 1.0)
+	style.shadow = 18.0
 	return style
 
 
@@ -86,6 +102,8 @@ static func make_label(font_size: int, color: Color, text: String = "") -> Label
 	label.text = text
 	label.add_theme_font_size_override(&"font_size", font_size)
 	label.add_theme_color_override(&"font_color", color)
+	if font_size >= HEADING_SIZE:
+		label.add_theme_font_override(&"font", font(FONT_HEADING))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 
@@ -105,13 +123,12 @@ static func make_button(icon: Texture2D, caption: String) -> Button:
 	button.add_theme_color_override(&"font_hover_color", Color.WHITE)
 	button.add_theme_color_override(&"font_disabled_color", MUTED_COLOR)
 	button.add_theme_constant_override(&"icon_max_width", ICON_SIZE)
-	for state: StringName in [&"normal", &"pressed", &"disabled", &"focus"]:
-		button.add_theme_stylebox_override(state, _button_style(BUTTON_COLOR))
-	button.add_theme_stylebox_override(&"hover", _button_style(BUTTON_HOVER_COLOR))
+	style_button(button)
+	button.add_theme_stylebox_override(&"disabled", button_style(&"normal"))
 	return button
 
 
-## A small text button for the HUD's corners (codex, control scheme).
+## A small text button for the HUD's corners (menu, control scheme).
 static func make_small_button(caption: String) -> Button:
 	var button := Button.new()
 	button.text = caption
@@ -119,9 +136,7 @@ static func make_small_button(caption: String) -> Button:
 	button.add_theme_font_size_override(&"font_size", 11)
 	button.add_theme_color_override(&"font_color", TEXT_COLOR)
 	button.add_theme_color_override(&"font_hover_color", Color.WHITE)
-	for state: StringName in [&"normal", &"pressed", &"focus"]:
-		button.add_theme_stylebox_override(state, _button_style(BUTTON_COLOR))
-	button.add_theme_stylebox_override(&"hover", _button_style(BUTTON_HOVER_COLOR))
+	style_button(button)
 	return button
 
 
@@ -206,18 +221,34 @@ static func make_menu_button(caption: String, width: float = 240.0) -> Button:
 	button.custom_minimum_size = Vector2(width, 40)
 	button.add_theme_font_size_override(&"font_size", 14)
 	button.add_theme_color_override(&"font_disabled_color", Color(MUTED_COLOR, 0.5))
-	button.add_theme_stylebox_override(&"disabled", _button_style(Color(BUTTON_COLOR, 0.5)))
 	return button
 
 
-static func _button_style(color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	# The border is the fill colour lightened, at the fill's own alpha. A see-through
-	# white border stacks on the fill where the two meet in the rounded corners and
-	# shows there as bright specks.
-	style.border_color = color.lightened(0.08)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(3)
+## Gives `button` the plate look in every state (resting, hover, pressed, disabled).
+static func style_button(button: Button) -> void:
+	button.add_theme_font_override(&"font", font(FONT_BUTTON))
+	for state: StringName in [&"normal", &"hover", &"pressed", &"disabled"]:
+		button.add_theme_stylebox_override(state, button_style(state))
+	button.add_theme_stylebox_override(&"focus", StyleBoxEmpty.new())
+
+
+## A button's plate in `state`: &"normal", &"hover", &"pressed" or &"disabled". The
+## lamp on its left edge lights on hover and while pressed.
+static func button_style(state: StringName) -> PlateStyle:
+	var style := PlateStyle.new(BUTTON_COLOR, LINE_COLOR, BUTTON_CUT)
+	match state:
+		&"hover":
+			style.fill = BUTTON_HOVER_COLOR
+			style.line = Color(ACCENT_COLOR, 0.75)
+			style.lamp = ACCENT_COLOR
+		&"pressed":
+			style.fill = BUTTON_PRESSED_COLOR
+			style.line = ACCENT_COLOR
+			style.lamp = ACCENT_COLOR
+		&"disabled":
+			style.fill = Color(BUTTON_COLOR, 0.5)
+			style.line = Color(LINE_COLOR, 0.5)
 	style.set_content_margin_all(6)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
 	return style

@@ -6,7 +6,7 @@ extends Resource
 ## Resource and a system script; the engine does not change (ADR 0011).
 
 @export var id: StringName = &""
-## What the rule does, in one line (briefing, codex).
+## What the rule does, in one line (briefing, Survey Log).
 @export_multiline var summary: String = ""
 ## The PlanetRuleSystem subclass that runs this rule on a mission's sim clock.
 @export var system: Script

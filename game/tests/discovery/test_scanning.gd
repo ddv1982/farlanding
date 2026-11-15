@@ -29,9 +29,9 @@ func test_a_scan_resolves_the_site_and_pays_intel() -> void:
 	assert_eq(site.resolved_by, 0)
 	assert_eq(_f.pile().intel, def.intel_reward)
 	assert_signal_emitted_with_parameters(Events, "discovery_made", [site, def, 0])
-	assert_signal_emitted_with_parameters(Events, "codex_entry_added", [def])
+	assert_signal_emitted_with_parameters(Events, "survey_log_entry_added", [def])
 	assert_signal_emitted_with_parameters(Events, "intel_changed", [0, def.intel_reward])
-	assert_eq(_f.world.discovery.codex(0), [def] as Array[DiscoveryDef])
+	assert_eq(_f.world.discovery.survey_log(0), [def] as Array[DiscoveryDef])
 	assert_true(scanner.orders.is_idle(), "the scan order ends with the scan")
 
 

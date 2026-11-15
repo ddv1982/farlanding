@@ -1,7 +1,7 @@
 class_name Discovery
 extends Node
 ## Exploration for one mission (PLAN 2.4, ADR 0009): the discovery sites, resolving
-## them (Intel, codex entry, payoff, chain), the payoffs that last a while (heal
+## them (Intel, log entry, payoff, chain), the payoffs that last a while (heal
 ## fields), and the Survey Lab's field options. Created by SimWorld and ticked on the
 ## sim clock; registered on the MissionContext as `SERVICE_KEY`.
 ##
@@ -17,8 +17,8 @@ var player_faction: int = 0
 var sites: Array[DiscoverySite] = []
 var field_options: FieldOptions = null
 
-## Per faction: resolved DiscoveryDefs in the order found (the codex).
-var _codex: Dictionary[int, Array] = {}
+## Per faction: resolved DiscoveryDefs in the order found (the Survey Log).
+var _survey_log: Dictionary[int, Array] = {}
 ## Running heal fields: { faction, x, z, radius, amount, until }.
 var _heal_fields: Array[Dictionary] = []
 var _tick: int = 0
@@ -59,10 +59,10 @@ static func is_led_to(defs: Array[DiscoveryDef], id: StringName) -> bool:
 	return false
 
 
-## The faction's codex: DiscoveryDefs resolved so far, oldest first.
-func codex(faction: int) -> Array[DiscoveryDef]:
+## The faction's Survey Log: DiscoveryDefs resolved so far, oldest first.
+func survey_log(faction: int) -> Array[DiscoveryDef]:
 	var entries: Array[DiscoveryDef] = []
-	var stored: Array = _codex.get(faction, [])
+	var stored: Array = _survey_log.get(faction, [])
 	entries.assign(stored)
 	return entries
 
@@ -78,19 +78,19 @@ func on_scan_started(site: DiscoverySite) -> void:
 
 
 ## `faction` finished scanning `site`: it is resolved, the faction earns its Intel and
-## codex entry, the payoff happens and the next site of a chain is charted.
+## log entry, the payoff happens and the next site of a chain is charted.
 func resolve(site: DiscoverySite, faction: int) -> void:
 	if site == null or site.is_resolved or site.def == null:
 		return
 	var def: DiscoveryDef = site.def
 	site.resolve(faction)
 	world.economy.add_intel(faction, def.intel_reward)
-	if not _codex.has(faction):
-		_codex[faction] = []
-	_codex[faction].append(def)
+	if not _survey_log.has(faction):
+		_survey_log[faction] = []
+	_survey_log[faction].append(def)
 	Events.discovery_made.emit(site, def, faction)
 	if faction == player_faction:
-		Events.codex_entry_added.emit(def)
+		Events.survey_log_entry_added.emit(def)
 		Events.advisor_alert.emit(&"discovery")
 	_apply_payoff(site, faction)
 	if def.leads_to != &"":
@@ -193,13 +193,13 @@ static func _is_enemy(faction: int, other: int) -> bool:
 
 
 func to_dict() -> Dictionary:
-	var codex_ids: Dictionary = {}
-	for faction: int in _codex:
+	var log_ids: Dictionary = {}
+	for faction: int in _survey_log:
 		var paths: Array[String] = []
-		for entry: Variant in _codex[faction]:
+		for entry: Variant in _survey_log[faction]:
 			var def: DiscoveryDef = entry
 			paths.append(def.resource_path)
-		codex_ids[str(faction)] = paths
+		log_ids[str(faction)] = paths
 	var fields: Array[Dictionary] = []
 	for field: Dictionary in _heal_fields:
 		var saved: Dictionary = field.duplicate()
@@ -208,26 +208,27 @@ func to_dict() -> Dictionary:
 		fields.append(saved)
 	return {
 		"version": SAVE_VERSION,
-		"codex": codex_ids,
+		"codex": log_ids,  # the saved name of the Survey Log: keep it
 		"heal_fields": fields,
 		"field_options": field_options.to_dict(),
 	}
 
 
-## Restores the codex, heal fields and field options (sites are restored by SimWorld).
+## Restores the Survey Log, heal fields and field options (sites are restored by SimWorld).
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
 	assert(version == SAVE_VERSION, "Unsupported Discovery save version")
-	_codex.clear()
-	var codex_ids: Dictionary = data.get("codex", {})
-	for key: Variant in codex_ids:
-		var paths: Array = codex_ids[key]
+	_survey_log.clear()
+	# "codex" is the saved name of the Survey Log (older saves too): keep it.
+	var log_ids: Dictionary = data.get("codex", {})
+	for key: Variant in log_ids:
+		var paths: Array = log_ids[key]
 		var entries: Array = []
 		for entry: Variant in paths:
 			var path: String = entry
 			if ResourceLoader.exists(path):
 				entries.append(load(path))
-		_codex[int(str(key))] = entries
+		_survey_log[int(str(key))] = entries
 	_restored = true
 	_heal_fields.clear()
 	var fields: Array = data.get("heal_fields", [])

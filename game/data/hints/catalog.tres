@@ -46,7 +46,7 @@ mission_types = Array[StringName]([&"conquest", &"survey"])
 script = ExtResource("1_hint")
 id = &"scan_site"
 title = "Scan a signal"
-text = "A \"?\" on the map is an unresolved signal from the orbital scan. {command} it with a Surveyor to walk over and scan it: Intel, a codex entry and sometimes more. Scans stop if the Surveyor leaves."
+text = "A \"?\" on the map is an unresolved signal from the orbital scan. {command} it with a Surveyor to walk over and scan it: Intel, a log entry and sometimes more. Scans stop if the Surveyor leaves."
 trigger = &"selected"
 subject = &"scanner"
 

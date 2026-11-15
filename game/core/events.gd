@@ -88,8 +88,8 @@ signal intel_changed(faction: int, intel: int)
 ## A field option bought at the Survey Lab took effect at `at`. `option` is its definition.
 signal field_option_used(option: Resource, faction: int, at: Vector3)
 
-## The player's codex gained an entry. `entry` is the DiscoveryDef it describes.
-signal codex_entry_added(entry: Resource)
+## The player's Survey Log gained an entry. `entry` is the DiscoveryDef it describes.
+signal survey_log_entry_added(entry: Resource)
 
 ## A mission objective became known to the player. `objective` is an Objective:
 ## `id`, `title`, `kind` (&"primary", &"secondary", &"hidden"), `state`

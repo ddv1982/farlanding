@@ -30,6 +30,9 @@ async function button(page, text) {
 async function legacyProfile(page) {
   await boot(page, 'low');
   await expect.poll(() => page.evaluate(() => window.farlanding.saves.settings?.status)).toBe('saved');
+  // Stop the old engine before editing its persisted fixture, so its sync loop
+  // cannot replace the legacy record while the next profile is being prepared.
+  await page.reload();
   await page.evaluate(async () => {
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('/userfs');
@@ -60,7 +63,6 @@ async function legacyProfile(page) {
     });
     db.close();
   });
-  await page.reload();
   await play(page, 'saved');
   await expect.poll(async () => (await state(page))?.graphics_upgrade_available, { timeout: 90000 }).toBe(true);
 }

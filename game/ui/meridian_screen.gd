@@ -1,7 +1,7 @@
 class_name MeridianScreen
 extends MenuScreen
 ## Aboard the Meridian (PLAN 1): the ship's overview (banked Intel, landings made, the
-## codex, what the next landing will bring, and the campaign's difficulty, which may
+## Survey Log, what the next landing will bring, and the campaign's difficulty, which may
 ## change here between landings), the tech web and the loadout, as tabs. STAR MAP
 ## goes back. The overview and the loadout scroll when the window is too short for
 ## them (the tech web scrolls on its own).
@@ -131,7 +131,7 @@ func loadout() -> LoadoutView:
 	return _loadout
 
 
-## The overview: landings, codex, techs, and what the next landing starts with.
+## The overview: landings, Survey Log, techs, and what the next landing starts with.
 func overview_text() -> String:
 	if session == null:
 		return ""
@@ -139,7 +139,7 @@ func overview_text() -> String:
 	var lines: PackedStringArray = []
 	lines.append(
 		(
-			"Landings surveyed: %d    Techs owned: %d / %d    Codex entries: %d"
+			"Landings surveyed: %d    Techs owned: %d / %d    Log entries: %d"
 			% [
 				state.won.size(),
 				state.techs.size(),

@@ -219,7 +219,7 @@ static func _card_style(color: Color, style_name: StringName) -> StyleBoxFlat:
 	style.border_color = color
 	style.set_border_width_all(1)
 	style.border_width_left = 4
-	style.set_corner_radius_all(3)
+	style.set_corner_radius_all(0)
 	style.set_content_margin_all(8)
 	return style
 

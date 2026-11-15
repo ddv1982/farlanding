@@ -1,12 +1,11 @@
 class_name NavmeshPathService
 extends PathService
 ## PathService backed by NavigationServer3D navmesh queries on one navigation map.
-## Avoidance runs on the same map through server-side RVO agents.
+## Units pass each other through Traffic (ADR 0022), not on the navigation server.
 ##
 ## Blocked areas (buildings, deposits) are cut out of the region's navmesh with a
 ## NavmeshCutter, grown by CUT_MARGIN so unit centres keep clear of walls like they
-## do of cliffs; the walk grid loses the same cells and each area also becomes a
-## static RVO obstacle (ADR 0006).
+## do of cliffs; the walk grid loses the same cells (ADR 0006).
 ##
 ## On a tidal map (ADR 0014) the region holds one of several navmeshes baked for a few
 ## sea levels (`set_flood_stages()`): `set_water()` switches to the stage of the sea
@@ -21,14 +20,16 @@ const HOVER_MERGE_SCALE: float = 1.0
 ## Polygons a path search may visit (the server's default, 4096, cuts long detours
 ## short on a map of 11 000+ polygons).
 const PATH_SEARCH_MAX_POLYGONS: int = 65536
+## A unit's lane lies at most this far beside the shared corridor, metres.
+const LANE_MAX: float = 9.0
+## Shares of its place in the group a unit tries for each corner, widest first.
+const LANE_SHARES: Array[float] = [1.0, 0.5, 0.0]
 ## How many leading corridor corners a unit may skip when joining.
 const JOIN_LOOKAHEAD: int = 4
 ## Blocked areas are cut out of the navmesh grown by this much (metres): the baked
-## agent radius plus room for the widest unit's avoidance radius.
+## agent radius plus room for the widest unit to pass another.
 const CUT_MARGIN: float = NavmeshTools.AGENT_RADIUS + 0.5
 
-## When false, units get no RVO agents (benchmarks compare both).
-var avoidance_enabled: bool = true
 ## Benchmark and debug counters: shared group corridors built, and group members
 ## that could not use the corridor and got their own query.
 var shared_paths_built: int = 0
@@ -48,7 +49,6 @@ var _region: NavigationRegion3D = null
 ## A region made on the server (the hover map's), used when there is no region node.
 var _region_rid: RID = RID()
 var _base_navmesh: NavigationMesh = null
-var _obstacles: Dictionary[int, RID] = {}
 var _apply_scheduled: bool = false
 ## Per flood stage (one entry without a sea): the baked navmesh, its cutter, the cuts
 ## it still lacks, whether it must be rebuilt from scratch, its terrain-only cells.
@@ -64,10 +64,6 @@ var _stage_clips: PackedFloat32Array = PackedFloat32Array()
 ## Hovering units' service (lowest stage on its own map), or null without a sea.
 var _hover_service: NavmeshPathService = null
 var _hover_map: RID = RID()
-## The map RVO agents join (the ground map, also for the hover service).
-var _avoidance_map: RID = RID()
-## False for the hover service: the ground service owns the RVO obstacles.
-var _owns_obstacles: bool = true
 ## The stage whose (cut) navmesh the region holds.
 var _shown_stage: int = 0
 var _parameters: NavigationPathQueryParameters3D = NavigationPathQueryParameters3D.new()
@@ -78,7 +74,6 @@ var _result: NavigationPathQueryResult3D = NavigationPathQueryResult3D.new()
 ## `region` holds the navmesh that blocked areas are cut out of (optional).
 func _init(map: RID, walk_grid: WalkGrid = null, region: NavigationRegion3D = null) -> void:
 	_map = map
-	_avoidance_map = map
 	# The map follows the simulation in step: with the engine's default (updates on
 	# worker threads over several frames) a unit could plan a route over ground the
 	# tide had just closed, when the machine was busy or the sim ran ahead of real time.
@@ -143,12 +138,18 @@ func find_group_paths(
 		if path.is_empty():
 			group_fallback_paths += 1
 			path = find_path(starts[i], goals[i])
+		else:
+			path = _in_lane(path, starts[i], starts[i] - start_centre)
 		result.append(path)
 	return result
 
 
 func is_walkable(point: Vector3) -> bool:
 	return _walk_grid == null or _walk_grid.is_walkable(point.x, point.z)
+
+
+func is_segment_walkable(from: Vector3, to: Vector3) -> bool:
+	return _walk_grid == null or _walk_grid.is_segment_walkable(from, to)
 
 
 ## Makes this a tidal map's service: `navmeshes` are the stages, lowest sea first (the
@@ -214,9 +215,6 @@ func is_terrain_walkable(point: Vector3) -> bool:
 func _on_blocked(id: int, area: Rect2) -> void:
 	var cut: Rect2 = area.grow(CUT_MARGIN)
 	_set_cells(cut, false)
-	var obstacle: RID = _create_obstacle(area)
-	if obstacle.is_valid():
-		_obstacles[id] = obstacle
 	if _hover_service != null:
 		_hover_service.block_area_as(id, area)
 	if _base_navmesh == null:
@@ -227,9 +225,6 @@ func _on_blocked(id: int, area: Rect2) -> void:
 
 
 func _on_unblocked(id: int, area: Rect2) -> void:
-	if _obstacles.has(id):
-		NavigationServer3D.free_rid(_obstacles[id])
-		_obstacles.erase(id)
 	var cut: Rect2 = area.grow(CUT_MARGIN)
 	_restore_cells(cut)
 	if _hover_service != null:
@@ -278,13 +273,6 @@ func apply_cuts() -> void:
 	last_cut_msec = (Time.get_ticks_usec() - started) / 1000.0
 
 
-## Releases the RVO obstacles (call when the mission ends).
-func free_obstacles() -> void:
-	for rid: RID in _obstacles.values():
-		NavigationServer3D.free_rid(rid)
-	_obstacles.clear()
-
-
 ## Builds every other flood stage's cutter now, with the areas blocked so far, so the
 ## first switch to a stage only applies the cuts made since (instead of half a second
 ## of cutting in the middle of play). Call once the landing is placed or restored.
@@ -300,10 +288,9 @@ func prepare_flood_stages() -> void:
 		_stage_rebuild[stage] = false
 
 
-## Releases everything this service made on the navigation server (obstacles, the
-## hover map and its region). Call when the mission ends.
+## Releases everything this service made on the navigation server (the hover map
+## and its region). Call when the mission ends.
 func release() -> void:
-	free_obstacles()
 	if _hover_service != null:
 		_hover_service.release()
 		_hover_service = null
@@ -367,38 +354,8 @@ func _cells_in(area: Rect2) -> Array[Vector2i]:
 	return cells
 
 
-## A static RVO obstacle over `area`, wound so agents are pushed out.
-func _create_obstacle(area: Rect2) -> RID:
-	if not avoidance_enabled or not _owns_obstacles or not _map.is_valid():
-		return RID()
-	var outline: PackedVector2Array = PackedVector2Array(
-		[
-			area.position,
-			Vector2(area.end.x, area.position.y),
-			area.end,
-			Vector2(area.position.x, area.end.y)
-		]
-	)
-	if Geometry2D.is_polygon_clockwise(outline):
-		outline.reverse()
-	var points: PackedVector3Array = PackedVector3Array()
-	for point: Vector2 in outline:
-		points.append(Vector3(point.x, 0.0, point.y))
-	var obstacle: RID = NavigationServer3D.obstacle_create()
-	NavigationServer3D.obstacle_set_map(obstacle, _map)
-	NavigationServer3D.obstacle_set_vertices(obstacle, points)
-	NavigationServer3D.obstacle_set_height(obstacle, 50.0)
-	NavigationServer3D.obstacle_set_position(obstacle, Vector3(0.0, -10.0, 0.0))
-	NavigationServer3D.obstacle_set_avoidance_enabled(obstacle, true)
-	return obstacle
-
-
 func closest_point(point: Vector3) -> Vector3:
 	return NavigationServer3D.map_get_closest_point(_map, point)
-
-
-func get_avoidance_map() -> RID:
-	return _avoidance_map if avoidance_enabled else RID()
 
 
 func _reset_stages(navmeshes: Array[NavigationMesh]) -> void:
@@ -413,7 +370,7 @@ func _reset_stages(navmeshes: Array[NavigationMesh]) -> void:
 
 
 ## The hovering units' service: the lowest stage on a navigation map of its own, with
-## a walk grid of its own; RVO avoidance stays on the ground map.
+## a walk grid of its own.
 func _make_hover_service(lowest: NavigationMesh, area: Rect2, cell_size: float) -> void:
 	_hover_map = NavigationServer3D.map_create()
 	NavigationServer3D.map_set_cell_size(_hover_map, lowest.cell_size)
@@ -439,9 +396,6 @@ func _make_hover_service(lowest: NavigationMesh, area: Rect2, cell_size: float) 
 	_hover_service._region_rid = region
 	_hover_service._base_navmesh = lowest
 	_hover_service._reset_stages([lowest] as Array[NavigationMesh])
-	_hover_service._avoidance_map = _map
-	_hover_service._owns_obstacles = false
-	_hover_service.avoidance_enabled = avoidance_enabled
 	NavigationServer3D.region_set_navigation_mesh(region, lowest)
 	for id: int in _blocked:
 		_hover_service.block_area_as(id, _blocked[id])
@@ -475,6 +429,37 @@ func _join(corridor: PackedVector3Array, start: Vector3, goal: Vector3) -> Packe
 			path.append(goal)
 			return path
 	return PackedVector3Array()
+
+
+## Moves the shared corners of `path` (all but the last, the unit's own goal) sideways
+## by the unit's place in the group (`offset` from the group's centre, at most
+## LANE_MAX), so the group travels side by side instead of in single file through
+## the same corners (ADR 0022). A corner keeps the largest of the full, half or no
+## shift that is walkable and can be reached in a straight line from the corner
+## before; if even the plain corner cannot, the path is left as it was.
+func _in_lane(path: PackedVector3Array, start: Vector3, offset: Vector3) -> PackedVector3Array:
+	var shift: Vector3 = Vector3(offset.x, 0.0, offset.z).limit_length(LANE_MAX)
+	if path.size() < 2 or shift.length_squared() < 0.25:
+		return path
+	var lane: PackedVector3Array = PackedVector3Array()
+	var from: Vector3 = start
+	for k: int in path.size() - 1:
+		var corner: Vector3 = path[k]
+		var placed: bool = false
+		for share: float in LANE_SHARES:
+			var moved: Vector3 = corner + shift * share
+			if _walk_grid.is_segment_walkable(from, moved):
+				lane.append(moved)
+				from = moved
+				placed = true
+				break
+		if not placed:
+			return path
+	var goal: Vector3 = path[path.size() - 1]
+	if not _walk_grid.is_segment_walkable(from, goal):
+		return path
+	lane.append(goal)
+	return lane
 
 
 static func _centre(points: PackedVector3Array) -> Vector3:

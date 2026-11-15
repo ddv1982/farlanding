@@ -175,7 +175,7 @@ func _signals_text(mission: MissionDef) -> String:
 			known += 1
 	var text: String = "%d unresolved ? signals" % sites.size()
 	if known > 0:
-		text += "  (%d match codex entries)" % known
+		text += "  (%d match log entries)" % known
 	return text
 
 

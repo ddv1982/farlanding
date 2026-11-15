@@ -55,7 +55,8 @@ world's tick).
    2.2 ms).
 3. **Tell the navigation server only what changed.** Units set their RVO position,
    velocity and priority only when they differ from the last value sent: most units
-   stand still most of the time.
+   stand still most of the time. (The RVO agents have since been replaced by
+   Traffic, ADR 0022.)
 4. **Quieter signals.** A weapon re-announces its aim only when the aim point moved
    more than 0.2 m (the visual eases toward it anyway).
 5. **Skip idle systems.** The stealth pass does nothing when no unit hides and no
@@ -91,3 +92,12 @@ cut (~40): 490–710 ms in the middle of play. `NavmeshPathService.prepare_flood
 now does that while the landing loads, so a switch only applies the cuts made since.
 Path searches may visit up to 65 536 polygons (the server's default of 4096 cut long
 detours short), which costs more only for long or unreachable targets, once per order.
+
+## Ground traffic and arrival accuracy (2026-11-15)
+
+Ground avoidance now runs on simulation ticks (ADR 0022). See
+[traffic measurements](adr/0022-traffic.md) for the 26/64/202-body results and the
+arrival definition. In accelerated headless runs the benchmark reports simulation
+seconds; its frame monitor values are not real-time rendering FPS. Arrival also
+waits for idle units to finish returning to their posts and verifies proximity to
+the path endpoint, rather than treating every stopped order as success.

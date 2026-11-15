@@ -16,9 +16,9 @@ extends Node
 ##   the last enemy gain is kept, so the ending can tell an out-surveyed
 ##   defeat (`enemy_gained_within`).
 ## - field_option_used (player faction): the option's effect `field_<id>`.
-## - codex_entry_added: `ui_codex_entry`.
-## Codex open/close and the option button are interface feedback
-## (`Events.ui_feedback(&"codex_open")` -> `ui_codex_open`, by the naming rule).
+## - survey_log_entry_added: `ui_survey_log_entry`.
+## Survey Log open/close and the option button are interface feedback
+## (`Events.ui_feedback(&"survey_log_open")` -> `ui_survey_log_open`, by the naming rule).
 
 ## Resolve phrases shorter than this still duck for this long.
 const MIN_DUCK_SECONDS: float = 1.5
@@ -45,7 +45,7 @@ func _ready() -> void:
 	Events.discovery_made.connect(handle_discovery_made)
 	Events.intel_changed.connect(handle_intel_changed)
 	Events.field_option_used.connect(handle_field_option_used)
-	Events.codex_entry_added.connect(handle_codex_entry_added)
+	Events.survey_log_entry_added.connect(handle_survey_log_entry_added)
 	Events.mission_started.connect(_on_mission_started)
 	refresh_trail()
 
@@ -77,8 +77,8 @@ func handle_field_option_used(option: Resource, faction: int, _at: Vector3 = Vec
 		_play(DiscoveryCues.field_option_events(option))
 
 
-func handle_codex_entry_added(_entry: Resource) -> void:
-	_play([DiscoveryCues.CODEX_ENTRY])
+func handle_survey_log_entry_added(_entry: Resource) -> void:
+	_play([DiscoveryCues.SURVEY_LOG_ENTRY])
 
 
 ## Recomputes the trail layer from the sites in the tree. `just_resolved`

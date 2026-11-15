@@ -64,6 +64,8 @@ var faction: int = 0
 
 var _title: Label
 var _buttons: HBoxContainer
+var _scroll: ScrollContainer
+var _available_width: float = 720.0
 var _status: Label
 var _progress: ProgressBar
 var _hint: Label
@@ -75,28 +77,31 @@ func setup(p_controller: SelectionController, p_world: SimWorld, p_faction: int)
 	controller = p_controller
 	world = p_world
 	faction = p_faction
-	var style := StyleBoxFlat.new()
-	style.bg_color = HudStyle.PANEL_COLOR
-	style.border_color = HudStyle.ACCENT_COLOR
-	style.border_width_top = 2
-	style.set_corner_radius_all(3)
-	style.set_content_margin_all(10)
-	add_theme_stylebox_override(&"panel", style)
+	add_theme_stylebox_override(&"panel", HudStyle.panel_style())
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override(&"separation", 6)
+	column.add_theme_constant_override(&"separation", 4)
 	add_child(column)
 	_title = HudStyle.make_label(11, HudStyle.MUTED_COLOR)
 	column.add_child(_title)
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(_scroll)
 	_buttons = HBoxContainer.new()
 	_buttons.add_theme_constant_override(&"separation", 8)
-	column.add_child(_buttons)
+	_scroll.add_child(_buttons)
 	_status = HudStyle.make_label(12, HudStyle.TEXT_COLOR)
+	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status.max_lines_visible = 2
 	column.add_child(_status)
 	_progress = HudStyle.make_progress_bar()
 	_progress.custom_minimum_size = Vector2(260, 6)
 	column.add_child(_progress)
 	_hint = HudStyle.make_label(12, HudStyle.MUTED_COLOR)
+	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hint.max_lines_visible = 2
+	_hint.mouse_filter = Control.MOUSE_FILTER_PASS
 	column.add_child(_hint)
 	visible = false
 
@@ -109,7 +114,21 @@ func _process(_delta: float) -> void:
 		_mode = mode
 		_rebuild()
 	if visible:
+		fit_width(_available_width)
 		_refresh()
+		_hint.tooltip_text = _hint.text
+
+
+## Keeps every command available between the selection panel and minimap.
+func fit_width(available: float) -> void:
+	_available_width = available
+	if _buttons == null:
+		return
+	var inner: float = maxf(120.0, available - get_theme_stylebox(&"panel").get_minimum_size().x)
+	_scroll.custom_minimum_size.x = inner
+	_progress.custom_minimum_size.x = minf(260.0, inner)
+	_status.custom_minimum_size.x = inner
+	_hint.custom_minimum_size.x = inner
 
 
 ## A key that changes whenever the panel needs different buttons.

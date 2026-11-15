@@ -2,7 +2,7 @@ class_name Mover
 extends RefCounted
 ## Pure ground-movement maths for one unit: follows a list of path corners on the XZ
 ## plane, turning at `turn_speed` and accelerating/braking at `acceleration`, and
-## stops exactly on the last corner. Knows nothing about nodes, terrain or avoidance;
+## stops exactly on the last corner. Knows nothing about nodes, terrain or traffic;
 ## Locomotion wraps it. Height (`position.y`) is left to the caller.
 ##
 ## Each sim tick: `integrate(velocity_to_apply, dt)` then `plan(dt)`.
@@ -27,6 +27,9 @@ var position: Vector3 = Vector3.ZERO
 var yaw: float = 0.0
 ## Current ground speed in metres per second.
 var speed: float = 0.0
+## The velocity it would have without `steer`: straight at the corner. Zero without a
+## path.
+var wish: Vector3 = Vector3.ZERO
 ## Velocity this unit wants for the next tick (XZ only).
 var velocity: Vector3 = Vector3.ZERO
 var path: PackedVector3Array = PackedVector3Array()
@@ -62,6 +65,12 @@ func clear_path() -> void:
 	path_index = 0
 
 
+## Steers at the next corner instead (not from the last one).
+func skip_corner() -> void:
+	if has_path() and not is_on_last_corner():
+		path_index += 1
+
+
 func has_path() -> bool:
 	return path_index < path.size()
 
@@ -81,20 +90,23 @@ func is_on_last_corner() -> bool:
 	return path_index == path.size() - 1
 
 
-## Moves by `applied` (usually `velocity`, or an avoidance-adjusted velocity).
+## Moves by `applied` (usually `velocity`).
 func integrate(applied: Vector3, dt: float) -> void:
 	position.x += applied.x * dt
 	position.z += applied.z * dt
 
 
 ## Updates facing, speed and `velocity` for the next `dt`. Returns true on the tick the
-## last corner is reached.
-func plan(dt: float) -> bool:
+## last corner is reached. `steer` bends the travel direction sideways (it is added to
+## the unit direction to the corner) and `speed_cap` limits the speed: how Traffic
+## makes a unit pass or wait for another.
+func plan(dt: float, steer: Vector3 = Vector3.ZERO, speed_cap: float = INF) -> bool:
 	if not has_path():
 		speed = move_toward(speed, 0.0, acceleration * dt)
 		if speed < MIN_SPEED:
 			speed = 0.0
 		velocity = forward_for(yaw) * speed
+		wish = Vector3.ZERO
 		return false
 	var to_corner: Vector3 = _flat(path[path_index] - position)
 	while not is_on_last_corner() and to_corner.length() < CORNER_RADIUS:
@@ -107,13 +119,17 @@ func plan(dt: float) -> bool:
 		clear_path()
 		speed = 0.0
 		velocity = Vector3.ZERO
+		wish = Vector3.ZERO
 		return true
 	var direction: Vector3 = to_corner / distance
+	var straight: Vector3 = direction
+	if steer != Vector3.ZERO:
+		direction = _flat(direction + steer).normalized()
 	var wanted_yaw: float = yaw_for(direction)
 	yaw = wrapf(rotate_toward(yaw, wanted_yaw, turn_speed * dt), -PI, PI)
 	# Slow down while facing away from the travel direction; turn in place above ~80°.
 	var alignment: float = clampf((cos(angle_difference(yaw, wanted_yaw)) - 0.2) / 0.8, 0.0, 1.0)
-	var wanted_speed: float = max_speed * alignment
+	var wanted_speed: float = minf(max_speed * alignment, speed_cap)
 	if is_on_last_corner():
 		wanted_speed = minf(wanted_speed, sqrt(2.0 * acceleration * distance))
 	speed = move_toward(speed, wanted_speed, acceleration * dt)
@@ -121,6 +137,7 @@ func plan(dt: float) -> bool:
 	if is_on_last_corner():
 		step_speed = minf(speed, distance / dt)
 	velocity = direction * step_speed
+	wish = straight * step_speed
 	return false
 
 

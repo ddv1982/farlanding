@@ -253,6 +253,7 @@ func sim_tick(dt: float) -> void:
 	if profiling:
 		mark = world._section(&"unit_orders", mark)
 	if locomotion != null:
+		locomotion.holds_ground = _holds_ground()
 		locomotion.tick(dt)
 	if profiling:
 		mark = world._section(&"unit_movement", mark)
@@ -262,6 +263,14 @@ func sim_tick(dt: float) -> void:
 		_tick_weapon(dt)
 	if profiling:
 		world._section(&"unit_weapon", mark)
+
+
+## True while the unit must not step aside for a friend: it has orders, a target, or
+## hides.
+func _holds_ground() -> bool:
+	if orders != null and not orders.is_idle():
+		return true
+	return cloak != null or (weapon != null and weapon.target != null)
 
 
 ## Simulation position (leads the drawn node by up to one tick).

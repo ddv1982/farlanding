@@ -3,7 +3,7 @@ extends Node
 ## with the ReferencePlayer in the player's seat (or nobody, `--player=idle`) until it
 ## ends or the time cap, then prints a short report and one `BALANCE {json}` line that
 ## `tools/balance.sh` collects. Deterministic for a seed as far as the sim is (the
-## commanders' dice are seeded; avoidance timing can still differ slightly).
+## commanders' dice are seeded).
 ##
 ##   godot --headless --fixed-fps 60 --path game res://tests/balance/balance_run.tscn \
 ##       -- --mission=conquest --seed=1 --difficulty=normal [--player=idle]

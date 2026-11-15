@@ -13,8 +13,8 @@ intel_reward = 100
 scan_time = 15.0
 radius = 1.5
 leads_to = &""
-codex_title = "Sealed cache"
-codex_text = "A small Antecedent container, sealed for longer than the basin has had weather. Its contents are inscriptions: a great deal of Intel for the Meridian's archive."
+log_title = "Sealed cache"
+log_text = "A small Antecedent container, sealed for longer than the basin has had weather. Its contents are inscriptions: a great deal of Intel for the Meridian's archive."
 payoff = &"none"
 
 color = Color(0.75, 0.6, 1.0, 1)

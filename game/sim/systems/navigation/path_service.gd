@@ -52,6 +52,12 @@ func is_walkable(point: Vector3) -> bool:
 	return not is_blocked(point) and not is_flooded(point)
 
 
+## True if a unit may walk straight from `from` to `to`. Cheap enough for a few calls
+## per unit per tick. The base class has no obstacles to look around.
+func is_segment_walkable(_from: Vector3, _to: Vector3) -> bool:
+	return true
+
+
 ## True if the sea closes `point` to ground units now.
 func is_flooded(point: Vector3) -> bool:
 	return (
@@ -149,9 +155,3 @@ func _on_unblocked(_id: int, _area: Rect2) -> void:
 ## The nearest walkable point to `point`. Can be expensive; not for per-tick use.
 func closest_point(point: Vector3) -> Vector3:
 	return point
-
-
-## The navigation map RVO agents should join, or an invalid RID when this backend has
-## no server-side avoidance.
-func get_avoidance_map() -> RID:
-	return RID()

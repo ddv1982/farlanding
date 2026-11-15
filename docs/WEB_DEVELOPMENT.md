@@ -50,6 +50,7 @@ npm ci
 npx playwright install chromium
 npm test
 WEB_BROAD=1 npm test
+WEB_UI_QUALIFY=1 npm test -- ui_style.spec.cjs
 WEB_AUDIO_QA=1 npm test -- --grep real-mixer
 WEB_PERFORMANCE=1 npm test -- --grep 233-unit
 WEB_BROWSER=firefox npm test

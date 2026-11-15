@@ -1,6 +1,6 @@
 class_name FlightSystem
 extends RefCounted
-## Keeps flying units apart (ADR 0016). Flying units have no navmesh and no RVO agent
+## Keeps flying units apart (ADR 0016). Flying units have no navmesh and stay out of Traffic
 ## (they never block ground units, and ground units never block them), so after the
 ## units moved each sim tick, two flyers closer than their bodies plus GAP are pushed
 ## apart, each by half the overlap times PUSH. Costs nothing without flyers.

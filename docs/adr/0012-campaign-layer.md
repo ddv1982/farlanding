@@ -41,7 +41,7 @@ Phase 8 brings Thalassa's map and tide.
 
 `CampaignState` is a pure `RefCounted` over its `CampaignDef`: banked `intel`, owned
 `techs`, `opened` / `won` / `closed` nodes, per-node `results` (attempts, won, Intel
-banked, seconds), `discoveries` (the campaign codex), `loadout` (slot → option) and
+banked, seconds), `discoveries` (the campaign Survey Log), `loadout` (slot → option) and
 `current_node`. Rules:
 
 - A node is **open** when opened (start node, or led to by a won node), not won or

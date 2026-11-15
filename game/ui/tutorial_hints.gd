@@ -15,7 +15,15 @@ var director: HintDirector = HintDirector.new()
 ## The hint on screen, or null.
 var shown: HintDef = null
 ## True while the mission is paused: no hint comes due and the card's time stands still.
-var suspended: bool = false
+var suspended: bool = false:
+	set(value):
+		suspended = value
+		_refresh_card()
+## An in-mission overlay, such as the Survey Log, covers the tutorial card.
+var obscured: bool = false:
+	set(value):
+		obscured = value
+		_refresh_card()
 
 var _card: PanelContainer
 var _title: Label
@@ -27,8 +35,8 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card = HudStyle.make_panel()
-	var style: StyleBoxFlat = HudStyle.panel_style()
-	style.border_color = HINT_COLOR
+	var style: PlateStyle = HudStyle.panel_style()
+	style.marker = HINT_COLOR
 	_card.add_theme_stylebox_override(&"panel", style)
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_card)
@@ -72,6 +80,7 @@ func setup(catalog: HintCatalog) -> void:
 func begin_mission(mission: MissionDef) -> void:
 	_hide()
 	suspended = false
+	obscured = false
 	director.begin(mission.mission_type if mission != null else &"")
 
 
@@ -82,7 +91,7 @@ func end_mission() -> void:
 
 
 func _process(delta: float) -> void:
-	if not director.active or suspended:
+	if not director.active or suspended or obscured:
 		return
 	director.advance(delta)
 	if shown != null:
@@ -128,7 +137,7 @@ func _show(hint: HintDef) -> void:
 	_shown_for = 0.0
 	_title.text = hint.title
 	_text.text = fill(hint.text)
-	_card.visible = true
+	_refresh_card()
 	Events.ui_feedback.emit(&"hint_show")
 
 
@@ -136,3 +145,8 @@ func _hide() -> void:
 	shown = null
 	if _card != null:
 		_card.visible = false
+
+
+func _refresh_card() -> void:
+	if _card != null:
+		_card.visible = shown != null and not suspended and not obscured
