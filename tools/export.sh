@@ -76,6 +76,23 @@ for preset in "${presets[@]}"; do
 	[ "$diagnostic_status" -eq 0 ] || fail "export of $preset reported errors or warnings ($log)"
 	[ -e "$out" ] || fail "export of $preset produced no $out"
 	if [[ "$preset" == Web* ]]; then
+		# Favicon caches can retain an old image even after the page revalidates.
+		# Version the exported links by content before hashing the release manifest.
+		python3 - "$out" <<'PY'
+import hashlib
+from pathlib import Path
+import sys
+
+page = Path(sys.argv[1])
+html = page.read_text()
+for name in ("index.icon.png", "index.apple-touch-icon.png"):
+    version = hashlib.sha256((page.parent / name).read_bytes()).hexdigest()[:16]
+    original = f'href="{name}"'
+    if html.count(original) != 1:
+        raise ValueError(f"Expected one exported icon link: {name}")
+    html = html.replace(original, f'href="{name}?v={version}"')
+page.write_text(html)
+PY
 		python3 "$ROOT/tools/web_manifest.py" "$(dirname "$out")" --preset "$preset"
 	fi
 done
