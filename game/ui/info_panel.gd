@@ -55,7 +55,8 @@ func _ready() -> void:
 	column.add_child(_kicker)
 	_heading = HudStyle.make_label(26, HudStyle.TEXT_COLOR)
 	column.add_child(_heading)
-	_body = HudStyle.make_label(13, HudStyle.TEXT_COLOR)
+	_body = HudStyle.make_label(16, HudStyle.TEXT_COLOR)
+	_body.add_theme_constant_override(&"line_spacing", 4)
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll = column.add_scroll(_body, HEIGHT)
@@ -311,9 +312,9 @@ static func credits_text() -> String:
 		),
 		'GUT, the Godot Unit Test framework, by Tom "Butch" Wesley and contributors, MIT licence.',
 		"gdtoolkit (gdformat, gdlint), by Pawel Lampe and contributors, MIT licence.",
-		"Chakra Petch, Copyright 2018 The Chakra Petch Project Authors, SIL Open Font Licence 1.1.",
+		"Saira, Copyright 2020 The Saira Project Authors, SIL Open Font Licence 1.1.",
 		"",
-		"CHAKRA PETCH FONT LICENCE",
+		"SAIRA FONT LICENCE",
 		FileAccess.get_file_as_string("res://assets/fonts/OFL.txt").strip_edges(),
 		"",
 		"GODOT ENGINE LICENCE",

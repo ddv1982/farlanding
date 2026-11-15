@@ -32,7 +32,7 @@ if (process.env.WEB_DEPLOYMENT_URL && !process.env.WEB_DEPLOYMENT_PUBLIC_ONLY) {
     const landing = page.waitForEvent('console', {
       predicate: entry => entry.text().includes('kessel_proving: 18 resource nodes and the bases placed'), timeout: 90000,
     });
-    await page.mouse.click(850, 522, { delay: 80 });
+    await page.mouse.click(850, 572, { delay: 80 });
     await landing;
     await page.mouse.click(580, 385, { delay: 80 });
     expect(await page.evaluate(() => window.farlanding.errors)).toEqual([]);

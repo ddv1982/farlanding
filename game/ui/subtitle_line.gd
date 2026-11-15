@@ -11,7 +11,7 @@ const MIN_SECONDS: float = 1.5
 const MAX_SECONDS: float = 8.0
 const MAX_WAITING: int = 3
 ## Pixels from the bottom of the screen to the band's bottom: above the command card.
-const BOTTOM_GAP: float = 236.0
+const BOTTOM_GAP: float = 256.0
 const FONT_SIZES: Dictionary[StringName, int] = {&"normal": 16, &"large": 22}
 ## The widest the text runs before it wraps.
 const MAX_TEXT_WIDTH: float = 680.0
