@@ -60,8 +60,8 @@ func factions() -> Array[int]:
 
 
 ## The faction whose grid is updated on sim tick `tick`.
-func faction_for_tick(tick: int) -> int:
-	return _factions[posmod(tick, _factions.size())]
+func faction_for_tick(tick_number: int) -> int:
+	return _factions[posmod(tick_number, _factions.size())]
 
 
 ## One sim tick: updates one faction (round robin) and, for the player, the view.
@@ -257,9 +257,9 @@ func from_dict(data: Dictionary) -> void:
 	var areas: Dictionary = data.get("area_reveals", {})
 	for key: Variant in areas:
 		var faction: int = int(str(key))
-		var saved: Array = areas[key]
+		var saved_reveals: Array = areas[key]
 		var restored: Array = []
-		for entry: Variant in saved:
+		for entry: Variant in saved_reveals:
 			var text: String = entry
 			var reveal: Vector4 = str_to_var(text)
 			restored.append(reveal)

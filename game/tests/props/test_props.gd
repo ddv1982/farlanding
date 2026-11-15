@@ -185,7 +185,7 @@ func test_row_shadows_match_the_exact_cell_test() -> void:
 			var span: Rect2i = entry
 			for dx: int in span.size.x:
 				seen[cell + span.position + Vector2i(dx, 0)] = true
-		var reach: int = quarters / 4
+		var reach: int = int(quarters / 4.0)
 		for dz: int in range(-reach, reach + 1):
 			var half: int = floori(sqrt(maxf(reach * reach - dz * dz, 0.0)))
 			for dx: int in range(-half, half + 1):

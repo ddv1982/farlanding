@@ -10,6 +10,8 @@ extends Node3D
 
 ## A unit lifted it (`carrier`) or put it down (null). Presentation shows the carried
 ## look; audio may play a pick-up or drop.
+# Carrier.pick_up() and Carrier.drop() emit this signal on the prop.
+@warning_ignore("unused_signal")
 signal carried_changed(carrier: Node3D)
 
 ## 2: carriable props remember being lifted and by whom last.

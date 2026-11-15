@@ -79,3 +79,8 @@ in exports and displayed in Credits.
 landing chevron and cyan planet rim use the HUD palette. Rebuild the committed 512px
 PNG with `game/assets/branding/render_icon.sh` (requires `rsvg-convert`, from librsvg).
 The application icon setting supplies native icons and the Web export's browser icon.
+
+The title keeps its main play actions in a vertical stack, with secondary actions
+in a compact two-column group. Heading size and spacing adapt to shorter windows;
+the supported 1152×648 layout fits at 100% and 130% UI scale without a scrollbar.
+Very short windows retain an emergency scrolling fallback so actions stay reachable.

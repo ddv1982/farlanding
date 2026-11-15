@@ -45,7 +45,7 @@ func _ready() -> void:
 		_main = (load("res://main.tscn") as PackedScene).instantiate() as Main
 		add_child(_main)
 		var mission: MissionDef = load("res://data/missions/%s.tres" % mission_id) as MissionDef
-		_main.start_mission(mission, _main.single_modifiers(Difficulty.NORMAL))
+		_main.start_mission(mission, Main.single_modifiers(Difficulty.NORMAL))
 		await get_tree().process_frame
 		_main.runner.context.sim_clock.paused = true
 		_main._hints.end_mission()

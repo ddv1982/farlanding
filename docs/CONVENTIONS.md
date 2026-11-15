@@ -14,6 +14,9 @@ It must exit 0. CI runs the same script. Engine and GUT warnings/deprecations fa
 ## GDScript
 
 - Follow the official GDScript style guide; `gdformat` decides layout.
+- **Every enabled GDScript warning is an error.** Editor-only warning messages are not
+  reliably printed by headless runtime loading; the project settings and script-check
+  policy make fresh compilation enforce them in CI. Addons remain excluded.
 - **Static types everywhere.** Untyped declarations and unsafe access/calls/casts are errors
   (set in `project.godot`). Give every variable, parameter and return a type. To use a
   `Variant` (e.g. a dictionary value), assign it to a typed local first:
@@ -81,3 +84,7 @@ does not imply that simulation code may call its visual children.
   hand-tuned mix values. `project_integrity.py` checks hashes/inventory without regenerating audio.
   Recipe edits also need the deterministic `audio_src/build.py --check` command documented in
   `docs/AUDIO_PROVENANCE.md`; encoder versions can affect output hashes.
+
+- During bulk script refactors, do not save editor resources while dependencies are
+  temporarily invalid. After fresh compilation is clean, reload stale editor state
+  from disk before live tests, and inspect resource diffs for unintended resaves.

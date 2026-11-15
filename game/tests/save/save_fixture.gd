@@ -18,17 +18,17 @@ func _init(p_parent: Node) -> void:
 ## Lands `mission` (with `modifiers`, restored from `restore` when given) and lets the
 ## navigation map settle for a few physics frames. Time then moves only through `run()`.
 func land(
-	mission: MissionDef, modifiers: LandingModifiers = null, restore: Dictionary = {}
+	mission_def: MissionDef, modifiers: LandingModifiers = null, restore: Dictionary = {}
 ) -> LandingMap:
-	var map: LandingMap = mission.map_scene.instantiate() as LandingMap
-	map.mission = mission
+	var map: LandingMap = mission_def.map_scene.instantiate() as LandingMap
+	map.mission = mission_def
 	map.modifiers = modifiers
 	map.restore_state = restore
 	parent.add_child(map)
 	map.context.sim_clock.process_mode = Node.PROCESS_MODE_DISABLED
 	# The navigation map answers path queries only once it has synchronised with the
 	# navmesh the map cut (a threaded bake): wait for a real path.
-	var units: Array[Unit] = map.world.units_of(mission.player_faction)
+	var units: Array[Unit] = map.world.units_of(mission_def.player_faction)
 	var from: Vector3 = units[0].sim_position() if not units.is_empty() else Vector3.ZERO
 	var navigation: RID = map.get_world_3d().navigation_map
 	for i: int in 600:

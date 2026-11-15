@@ -30,8 +30,8 @@ func _evaluate() -> void:
 func to_dict() -> Dictionary:
 	var data: Dictionary = super()
 	var holders: Dictionary = {}
-	for id: int in _last_holder:
-		holders[str(id)] = _last_holder[id]
+	for entity_id: int in _last_holder:
+		holders[str(entity_id)] = _last_holder[entity_id]
 	data["holders"] = holders
 	return data
 

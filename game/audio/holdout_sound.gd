@@ -112,14 +112,14 @@ func handle_sim_ticked(tick: int) -> StringName:
 	if _arrived:
 		return &""
 	_left = seconds_left(tick)
-	var stage: int = HoldoutCues.stage_for(_left)
+	var next_stage: int = HoldoutCues.stage_for(_left)
 	var cue: StringName = &""
-	if stage > _stage:
-		if stage == 2:
+	if next_stage > _stage:
+		if next_stage == 2:
 			cue = _play(HoldoutCues.MINUTE_CUE)
-		elif stage == 3:
+		elif next_stage == 3:
 			cue = HoldoutCues.ENGINE if _start_engine() else &""
-		_stage = stage
+		_stage = next_stage
 	if _stage >= 3:
 		_engine_db = HoldoutCues.engine_db(_left)
 		_engine.pitch_scale = HoldoutCues.engine_pitch(_left)

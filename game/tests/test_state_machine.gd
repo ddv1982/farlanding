@@ -6,21 +6,21 @@ class LoggingState:
 	extends State
 
 	var label: String
-	var log: Array[String]
+	var entries: Array[String]
 	var next_state: StringName = &""
 
 	func _init(p_label: String, p_log: Array[String]) -> void:
 		label = p_label
-		log = p_log
+		entries = p_log
 
 	func enter(previous: StringName) -> void:
-		log.append("enter %s from '%s'" % [label, previous])
+		entries.append("enter %s from '%s'" % [label, previous])
 
 	func exit(next: StringName) -> void:
-		log.append("exit %s to '%s'" % [label, next])
+		entries.append("exit %s to '%s'" % [label, next])
 
 	func tick(_sim_tick: int) -> StringName:
-		log.append("tick %s" % label)
+		entries.append("tick %s" % label)
 		return next_state
 
 

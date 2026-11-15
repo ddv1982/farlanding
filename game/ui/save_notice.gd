@@ -31,8 +31,8 @@ func _process(delta: float) -> void:
 
 
 ## Shows `text` (in the warning colour when `failed`).
-func show_text(text: String, failed: bool = false) -> void:
-	self.text = text
+func show_text(message: String, failed: bool = false) -> void:
+	self.text = message
 	add_theme_color_override(
 		&"font_color", HudStyle.WARNING_COLOR if failed else HudStyle.TEXT_COLOR
 	)

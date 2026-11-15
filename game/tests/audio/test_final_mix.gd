@@ -294,7 +294,7 @@ func _record(scene: StringName) -> Array[float]:
 		if worst:
 			_mix.battle_frame(6)
 			if i % 30 == 0:
-				_mix.alert(i / 30)
+				_mix.alert(int(i / 30.0))
 			if i % 8 == 0:
 				Audio.play(&"ui_click")
 		if ship:
@@ -395,7 +395,7 @@ func _ship_frame(i: int) -> void:
 	if i % 40 == 5:
 		Events.ui_feedback.emit(&"tech_buy")
 	if i % 30 == 0:
-		Audio.play(SHIP_ALERTS[(i / 30) % SHIP_ALERTS.size()])
+		Audio.play(SHIP_ALERTS[(int(i / 30.0)) % SHIP_ALERTS.size()])
 
 
 func test_explore_sits_quietly() -> void:

@@ -162,7 +162,7 @@ static func lufs(frames: PackedVector2Array, rate: float) -> float:
 			var z: float = _run(hp, s2, y)
 			weighted[i] += z * z
 	var block: int = int(0.4 * rate)
-	var hop: int = block / 4
+	var hop: int = int(block / 4.0)
 	var energies: PackedFloat64Array = []
 	var start: int = 0
 	while start + block <= weighted.size():
@@ -245,14 +245,14 @@ static func block_energies(frames: PackedVector2Array, rate: float) -> PackedFlo
 	var hp: PackedFloat64Array = _biquad_highpass(rate)
 	var block: int = int(0.4 * rate)
 	var out: PackedFloat64Array = []
-	out.resize(frames.size() / block)
+	out.resize(int(frames.size() / float(block)))
 	for channel: int in 2:
 		var s1: PackedFloat64Array = [0.0, 0.0, 0.0, 0.0]
 		var s2: PackedFloat64Array = [0.0, 0.0, 0.0, 0.0]
 		for i: int in out.size() * block:
 			var x: float = frames[i].x if channel == 0 else frames[i].y
 			var z: float = _run(hp, s2, _run(shelf, s1, x))
-			out[i / block] += z * z / block
+			out[int(i / float(block))] += z * z / block
 	return out
 
 
@@ -262,14 +262,14 @@ static func _plain_energies(
 ) -> PackedFloat64Array:
 	var block: int = int(0.4 * rate)
 	var out: PackedFloat64Array = []
-	out.resize(frames.size() / block)
+	out.resize(int(frames.size() / float(block)))
 	for channel: int in 2:
 		var state: PackedFloat64Array = [0.0, 0.0, 0.0, 0.0]
 		for i: int in out.size() * block:
 			var x: float = frames[i].x if channel == 0 else frames[i].y
 			if not filter.is_empty():
 				x = _run(filter, state, x)
-			out[i / block] += x * x / (2.0 * block)
+			out[int(i / float(block))] += x * x / (2.0 * block)
 	return out
 
 

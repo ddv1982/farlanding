@@ -24,13 +24,13 @@ func _init() -> void:
 	add_theme_constant_override(&"separation", 4)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for group: int in range(1, ControlGroups.COUNT + 1):
-		var badge: Button = HudStyle.make_small_button("")
-		badge.name = StringName("Group%d" % group)
-		badge.pressed.connect(_on_badge_pressed.bind(group))
-		badge.gui_input.connect(_on_badge_input.bind(group))
-		badge.visible = false
-		add_child(badge)
-		_badges[group] = badge
+		var group_badge: Button = HudStyle.make_small_button("")
+		group_badge.name = StringName("Group%d" % group)
+		group_badge.pressed.connect(_on_badge_pressed.bind(group))
+		group_badge.gui_input.connect(_on_badge_input.bind(group))
+		group_badge.visible = false
+		add_child(group_badge)
+		_badges[group] = group_badge
 	visible = false
 
 
@@ -53,13 +53,13 @@ func setup(controller: SelectionController) -> void:
 func refresh() -> void:
 	var any: bool = false
 	for group: int in _badges:
-		var badge: Button = _badges[group]
+		var group_badge: Button = _badges[group]
 		var units: int = _groups.count(group) if _groups != null else 0
-		badge.visible = units > 0
+		group_badge.visible = units > 0
 		any = any or units > 0
-		badge.text = "%d · %d" % [group, units]
+		group_badge.text = "%d · %d" % [group, units]
 		var key: String = KeyBindings.label(StringName("control_group_%d" % group))
-		badge.tooltip_text = (
+		group_badge.tooltip_text = (
 			(
 				"Group %d: %d units. Click (or %s) to select it, twice to centre on it.\n"
 				+ "Right-click, Alt+%s or Ctrl+%s: the selection becomes this group.\n"

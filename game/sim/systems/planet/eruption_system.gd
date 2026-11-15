@@ -55,8 +55,8 @@ func _setup() -> void:
 	assert(_eruption != null, "EruptionSystem needs an EruptionRule")
 	_rng.seed = rule.random_seed
 	_now = world.context.sim_clock.get_tick() if world.context != null else 0
-	for vent: ResourceNode in vents():
-		_state_of(vent)
+	for vent_node: ResourceNode in vents():
+		_state_of(vent_node)
 
 
 ## The erupting vents in the world.
@@ -69,18 +69,18 @@ func vents() -> Array[ResourceNode]:
 
 
 ## The vent's pressure, 0..1 (0 for anything that does not erupt).
-func pressure_of(vent: ResourceNode) -> float:
-	if vent == null or not _vents.has(vent.entity_id):
+func pressure_of(vent_node: ResourceNode) -> float:
+	if vent_node == null or not _vents.has(vent_node.entity_id):
 		return 0.0
-	var pressure: float = _vents[vent.entity_id]["pressure"]
+	var pressure: float = _vents[vent_node.entity_id]["pressure"]
 	return pressure
 
 
 ## Seconds until the vent's announced eruption; INF when none is announced.
-func seconds_to_burst(vent: ResourceNode) -> float:
-	if vent == null or not _vents.has(vent.entity_id):
+func seconds_to_burst(vent_node: ResourceNode) -> float:
+	if vent_node == null or not _vents.has(vent_node.entity_id):
 		return INF
-	var state: Dictionary = _vents[vent.entity_id]
+	var state: Dictionary = _vents[vent_node.entity_id]
 	if state["state"] != STATE_WARNING:
 		return INF
 	var burst_at: int = state["burst_at"]
@@ -88,10 +88,10 @@ func seconds_to_burst(vent: ResourceNode) -> float:
 
 
 ## Seconds before the vent may be vented again (0 = ready).
-func vent_cooldown_left(vent: ResourceNode) -> float:
-	if vent == null or not _vents.has(vent.entity_id):
+func vent_cooldown_left(vent_node: ResourceNode) -> float:
+	if vent_node == null or not _vents.has(vent_node.entity_id):
 		return 0.0
-	var ready_at: int = _vents[vent.entity_id]["vent_ready_at"]
+	var ready_at: int = _vents[vent_node.entity_id]["vent_ready_at"]
 	return maxf(float(ready_at - _now) / SimClock.TICK_RATE, 0.0)
 
 
@@ -163,15 +163,15 @@ func schedule_climax(at_tick: int) -> void:
 ## announced; INF when it is not building).
 func dangers() -> Array[Vector4]:
 	var found: Array[Vector4] = []
-	for vent: ResourceNode in vents():
-		var state: Dictionary = _state_of(vent)
+	for vent_node: ResourceNode in vents():
+		var state: Dictionary = _state_of(vent_node)
 		var pressure: float = state["pressure"]
-		var seconds: float = seconds_to_burst(vent)
+		var seconds: float = seconds_to_burst(vent_node)
 		if seconds == INF and pressure < DANGER_PRESSURE:
 			continue
 		if seconds == INF:
-			seconds = _estimate_seconds(vent, state)
-		found.append(Vector4(vent.position.x, vent.position.z, _eruption.radius, seconds))
+			seconds = _estimate_seconds(vent_node, state)
+		found.append(Vector4(vent_node.position.x, vent_node.position.z, _eruption.radius, seconds))
 	return found
 
 
@@ -180,12 +180,12 @@ func dangers() -> Array[Vector4]:
 func next_to_erupt() -> ResourceNode:
 	var best: ResourceNode = null
 	var best_seconds: float = INF
-	for vent: ResourceNode in vents():
-		var seconds: float = seconds_to_burst(vent)
+	for vent_node: ResourceNode in vents():
+		var seconds: float = seconds_to_burst(vent_node)
 		if seconds == INF:
-			seconds = _estimate_seconds(vent, _state_of(vent))
+			seconds = _estimate_seconds(vent_node, _state_of(vent_node))
 		if seconds < best_seconds:
-			best = vent
+			best = vent_node
 			best_seconds = seconds
 	return best
 
@@ -236,62 +236,62 @@ func indicator_alarm() -> bool:
 func _tick(tick_number: int, dt: float) -> void:
 	_now = tick_number
 	_tick_surge()
-	for vent: ResourceNode in vents():
-		var state: Dictionary = _state_of(vent)
+	for vent_node: ResourceNode in vents():
+		var state: Dictionary = _state_of(vent_node)
 		if state["state"] == STATE_WARNING:
 			var burst_at: int = state["burst_at"]
 			if _now >= burst_at:
-				_erupt(vent, state)
+				_erupt(vent_node, state)
 		else:
-			_build(vent, state, dt)
-		_show(vent)
+			_build(vent_node, state, dt)
+		_show(vent_node)
 	_pick_pressing()
 	if tick_number % 10 == 0:
 		_update_forecast()
 
 
-func _build(vent: ResourceNode, state: Dictionary, dt: float) -> void:
+func _build(vent_node: ResourceNode, state: Dictionary, dt: float) -> void:
 	var quiet_until: int = state["quiet_until"]
 	if _now < quiet_until:
 		return
 	var pressure: float = state["pressure"]
-	pressure = minf(pressure + _rate(vent) * dt, 1.0)
+	pressure = minf(pressure + _rate(vent_node) * dt, 1.0)
 	state["pressure"] = pressure
 	var threshold: float = state["threshold"]
 	if pressure >= threshold:
-		_warn(vent, state, ticks(_eruption.warning_seconds))
+		_warn(vent_node, state, ticks(_eruption.warning_seconds))
 
 
 ## Announces that `vent` bursts in `length` ticks.
-func _warn(vent: ResourceNode, state: Dictionary, length: int) -> void:
+func _warn(vent_node: ResourceNode, state: Dictionary, length: int) -> void:
 	state["state"] = STATE_WARNING
 	state["burst_at"] = _now + maxi(length, 1)
 	var seconds: float = float(maxi(length, 1)) / SimClock.TICK_RATE
-	Events.eruption_warning.emit(vent, seconds, _eruption.radius)
-	if _concerns_player(vent) and _now >= _next_alert_tick:
+	Events.eruption_warning.emit(vent_node, seconds, _eruption.radius)
+	if _concerns_player(vent_node) and _now >= _next_alert_tick:
 		_next_alert_tick = _now + ticks(_eruption.alert_seconds)
 		Events.advisor_alert.emit(&"eruption_warning")
 
 
 ## Pressure per second now: fast while a working Tap draws on it.
-func _rate(vent: ResourceNode) -> float:
-	var tap: Building = vent.tap if is_instance_valid(vent.tap) else null
+func _rate(vent_node: ResourceNode) -> float:
+	var tap: Building = vent_node.tap if is_instance_valid(vent_node.tap) else null
 	if tap != null and not tap.is_dead and tap.is_operational():
 		if tap.flux_extractor != null and not tap.flux_extractor.is_stalled():
 			return _eruption.tapped_rate
 	return _eruption.idle_rate
 
 
-func _erupt(vent: ResourceNode, state: Dictionary) -> void:
+func _erupt(vent_node: ResourceNode, state: Dictionary) -> void:
 	state["state"] = STATE_CALM
 	state["surge"] = false
 	state["pressure"] = 0.0
 	state["threshold"] = _draw_threshold()
 	state["quiet_until"] = _now + ticks(_eruption.quiet_seconds)
 	var radius: float = _eruption.radius
-	Events.eruption.emit(vent, radius)
+	Events.eruption.emit(vent_node, radius)
 	var player_hurt: bool = false
-	var at: Vector2 = Vector2(vent.position.x, vent.position.z)
+	var at: Vector2 = Vector2(vent_node.position.x, vent_node.position.z)
 	for building: Building in world.buildings.duplicate():
 		if building.is_dead or not _reaches(building.footprint(), at, radius):
 			continue
@@ -300,7 +300,7 @@ func _erupt(vent: ResourceNode, state: Dictionary) -> void:
 			* _perk(building.faction, building.def.id, FactionPerks.ERUPTION_DAMAGE)
 		)
 		building.health.take(amount, null)
-		if building == vent.tap and building.flux_extractor != null and not building.is_dead:
+		if building == vent_node.tap and building.flux_extractor != null and not building.is_dead:
 			building.flux_extractor.stall(_eruption.knockout_seconds)
 		player_hurt = player_hurt or _hurt_badly(building, building.faction, building.health)
 	for unit: Unit in world.units.duplicate():
@@ -335,8 +335,8 @@ func _tick_surge() -> void:
 	_surge_started = true
 	var step: int = ticks(_eruption.surge_step_seconds)
 	var order: int = 0
-	for vent: ResourceNode in _surge_vents():
-		var state: Dictionary = _state_of(vent)
+	for vent_node: ResourceNode in _surge_vents():
+		var state: Dictionary = _state_of(vent_node)
 		var burst: int = _surge_at + order * step
 		order += 1
 		# Only a surge's own warnings are beyond venting; a later ordinary one is not.
@@ -345,16 +345,16 @@ func _tick_surge() -> void:
 		if state["state"] == STATE_WARNING and current <= burst:
 			continue
 		state["quiet_until"] = 0
-		_warn(vent, state, burst - _now)
+		_warn(vent_node, state, burst - _now)
 
 
 ## The vents a surge sets off, in a fixed order (round the caldera by angle).
 func _surge_vents() -> Array[ResourceNode]:
 	var found: Array[ResourceNode] = []
 	var centre: Vector2 = _eruption.surge_area.get_center()
-	for vent: ResourceNode in vents():
-		if _eruption.surge_area.has_point(Vector2(vent.position.x, vent.position.z)):
-			found.append(vent)
+	for vent_node: ResourceNode in vents():
+		if _eruption.surge_area.has_point(Vector2(vent_node.position.x, vent_node.position.z)):
+			found.append(vent_node)
 	found.sort_custom(
 		func(a: ResourceNode, b: ResourceNode) -> bool:
 			var angle_a: float = (Vector2(a.position.x, a.position.z) - centre).angle()
@@ -364,9 +364,9 @@ func _surge_vents() -> Array[ResourceNode]:
 	return found
 
 
-func _state_of(vent: ResourceNode) -> Dictionary:
-	if not _vents.has(vent.entity_id):
-		_vents[vent.entity_id] = {
+func _state_of(vent_node: ResourceNode) -> Dictionary:
+	if not _vents.has(vent_node.entity_id):
+		_vents[vent_node.entity_id] = {
 			"pressure": _rng.randf_range(0.0, _eruption.start_pressure_max),
 			"threshold": _draw_threshold(),
 			"state": STATE_CALM,
@@ -375,7 +375,7 @@ func _state_of(vent: ResourceNode) -> Dictionary:
 			"vent_ready_at": 0,
 			"surge": false,
 		}
-	return _vents[vent.entity_id]
+	return _vents[vent_node.entity_id]
 
 
 func _draw_threshold() -> float:
@@ -383,8 +383,8 @@ func _draw_threshold() -> float:
 
 
 ## Seconds until `vent` reaches its threshold at its current rate (INF if not building).
-func _estimate_seconds(vent: ResourceNode, state: Dictionary) -> float:
-	var rate: float = _rate(vent)
+func _estimate_seconds(vent_node: ResourceNode, state: Dictionary) -> float:
+	var rate: float = _rate(vent_node)
 	if rate <= 0.0:
 		return INF
 	var pressure: float = state["pressure"]
@@ -395,9 +395,9 @@ func _estimate_seconds(vent: ResourceNode, state: Dictionary) -> float:
 
 
 ## Hands the vent's pressure and countdown to the node (gauges, AI, UI).
-func _show(vent: ResourceNode) -> void:
-	var burst: float = seconds_to_burst(vent)
-	vent.set_pressure(pressure_of(vent), burst if burst < INF else -1.0)
+func _show(vent_node: ResourceNode) -> void:
+	var burst: float = seconds_to_burst(vent_node)
+	vent_node.set_pressure(pressure_of(vent_node), burst if burst < INF else -1.0)
 
 
 ## The indicator's vent: the one bursting soonest, else the fullest the player knows of.
@@ -405,37 +405,37 @@ func _pick_pressing() -> void:
 	pressing = null
 	var soonest: float = INF
 	var fullest: float = -1.0
-	for vent: ResourceNode in vents():
-		var burst: float = seconds_to_burst(vent)
+	for vent_node: ResourceNode in vents():
+		var burst: float = seconds_to_burst(vent_node)
 		if burst < soonest:
 			soonest = burst
-			pressing = vent
-		elif soonest == INF and _known_to_player(vent) and pressure_of(vent) > fullest:
-			fullest = pressure_of(vent)
-			pressing = vent
+			pressing = vent_node
+		elif soonest == INF and _known_to_player(vent_node) and pressure_of(vent_node) > fullest:
+			fullest = pressure_of(vent_node)
+			pressing = vent_node
 
 
 func _update_forecast() -> void:
 	var next: ResourceNode = next_to_erupt() if _has_forecast(world.player_faction) else null
-	for vent: ResourceNode in vents():
-		vent.set_next_to_erupt(vent == next)
+	for vent_node: ResourceNode in vents():
+		vent_node.set_next_to_erupt(vent_node == next)
 
 
 func _has_forecast(faction: int) -> bool:
 	return _forecast_until.get(faction, -1) > _now
 
 
-func _known_to_player(vent: ResourceNode) -> bool:
+func _known_to_player(vent_node: ResourceNode) -> bool:
 	if world.vision == null:
 		return true
-	return world.vision.grid.is_explored(world.player_faction, vent.position)
+	return world.vision.grid.is_explored(world.player_faction, vent_node.position)
 
 
 ## The player hears about a vent they have seen or have something near.
-func _concerns_player(vent: ResourceNode) -> bool:
-	if _known_to_player(vent):
+func _concerns_player(vent_node: ResourceNode) -> bool:
+	if _known_to_player(vent_node):
 		return true
-	var at: Vector2 = Vector2(vent.position.x, vent.position.z)
+	var at: Vector2 = Vector2(vent_node.position.x, vent_node.position.z)
 	for unit: Unit in world.units_of(world.player_faction):
 		var there: Vector3 = unit.sim_position()
 		if Vector2(there.x, there.z).distance_to(at) <= _eruption.alert_distance:
@@ -520,10 +520,10 @@ func from_dict(data: Dictionary) -> void:
 		var until: int = forecasts[key]
 		_forecast_until[int(str(key))] = until
 	# A vent mid-warning is announced again, so its ring and sound come back.
-	for vent: ResourceNode in vents():
-		var seconds: float = seconds_to_burst(vent)
+	for vent_node: ResourceNode in vents():
+		var seconds: float = seconds_to_burst(vent_node)
 		if seconds < INF:
-			Events.eruption_warning.emit(vent, seconds, _eruption.radius)
-		_show(vent)
+			Events.eruption_warning.emit(vent_node, seconds, _eruption.radius)
+		_show(vent_node)
 	_pick_pressing()
 	_update_forecast()

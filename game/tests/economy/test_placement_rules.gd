@@ -76,13 +76,15 @@ func test_outside_the_bounds_is_refused() -> void:
 func test_a_tap_needs_a_free_vent_and_snaps_onto_it() -> void:
 	assert_eq(_rules.check(_tap, Vector3.ZERO), PlacementRules.NEEDS_VENT)
 	var vent: ResourceNode = _node(_vent_def, Vector3(10, 0, 10))
-	var snapped: Vector3 = _rules.snap(_tap, Vector3(12, 0, 8))
-	assert_eq(snapped, vent.position, "snaps to the vent within 6 m")
-	assert_eq(_rules.check(_tap, snapped), PlacementRules.OK, "the vent itself is not in the way")
+	var snapped_position: Vector3 = _rules.snap(_tap, Vector3(12, 0, 8))
+	assert_eq(snapped_position, vent.position, "snaps to the vent within 6 m")
+	assert_eq(
+		_rules.check(_tap, snapped_position), PlacementRules.OK, "the vent itself is not in the way"
+	)
 	var taken: Building = Building.new()
 	autofree(taken)
 	vent.tap = taken
-	assert_eq(_rules.check(_tap, snapped), PlacementRules.VENT_TAKEN)
+	assert_eq(_rules.check(_tap, snapped_position), PlacementRules.VENT_TAKEN)
 	assert_ne(_rules.snap(_tap, Vector3(12, 0, 8)), vent.position, "no snap to a tapped vent")
 
 

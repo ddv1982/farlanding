@@ -12,7 +12,7 @@ func _ready() -> void:
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--web-mission="):
 			var mission: MissionDef = load("res://data/missions/" + arg.get_slice("=", 1) + ".tres")
-			_main.start_mission(mission, _main.single_modifiers(Difficulty.NORMAL))
+			_main.start_mission(mission, Main.single_modifiers(Difficulty.NORMAL))
 
 	if OS.get_cmdline_user_args().has("--web-encounter"):
 		var map: LandingMap = _main.map as LandingMap

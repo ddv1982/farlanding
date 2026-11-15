@@ -264,7 +264,7 @@ class InvestigateState:
 			if b.arrived_at(b.investigate_point) or now - _started > LEG_TIMEOUT:
 				_arrived_at = now
 			return &""
-		var looked: int = (now - _arrived_at) / 20
+		var looked: int = int((now - _arrived_at) / 20.0)
 		if looked > _turns:
 			_turns = looked
 			var around: Vector3 = Vector3.FORWARD.rotated(Vector3.UP, _turns * PI * 0.66)

@@ -178,8 +178,8 @@ func _build_accessibility(column: VBoxContainer) -> void:
 	)
 	_row(column, "Team colours", _palette)
 	var scales: Array[String] = []
-	for scale: float in Settings.UI_SCALES:
-		scales.append("%d%%" % roundi(scale * 100.0))
+	for map_scale: float in Settings.UI_SCALES:
+		scales.append("%d%%" % roundi(map_scale * 100.0))
 	_ui_scale = _options(scales)
 	_ui_scale.item_selected.connect(
 		func(index: int) -> void: _set_option(&"ui_scale", Settings.UI_SCALES[index])

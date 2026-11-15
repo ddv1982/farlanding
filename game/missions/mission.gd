@@ -270,19 +270,19 @@ func enemy_factions() -> Array[int]:
 
 ## Creates and starts the objective `objective_def` describes.
 func add_objective_def(objective_def: ObjectiveDef) -> Objective:
-	var objective: Objective = ObjectiveFactory.create(objective_def)
-	if objective != null:
-		add_objective(objective)
-	return objective
+	var new_objective: Objective = ObjectiveFactory.create(objective_def)
+	if new_objective != null:
+		add_objective(new_objective)
+	return new_objective
 
 
 ## Starts `objective` and announces it (unless hidden).
-func add_objective(objective: Objective) -> void:
-	objectives.append(objective)
-	objective.start(self)
-	if objective.is_known:
-		Events.objective_added.emit(objective)
-	objective.evaluate()
+func add_objective(new_objective: Objective) -> void:
+	objectives.append(new_objective)
+	new_objective.start(self)
+	if new_objective.is_known:
+		Events.objective_added.emit(new_objective)
+	new_objective.evaluate()
 
 
 ## The objective with `objective_id`, or null.

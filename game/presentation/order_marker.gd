@@ -13,10 +13,12 @@ const ATTACK_SCALE := 1.6
 var _age: float = 0.0
 
 
-static func spawn(parent: Node, at: Vector3, color: Color, scale: float = 1.0) -> OrderMarker:
+static func spawn(
+	parent: Node, at: Vector3, color: Color, marker_scale: float = 1.0
+) -> OrderMarker:
 	var marker := OrderMarker.new()
 	var quad := PlaneMesh.new()
-	quad.size = Vector2.ONE * SIZE * scale
+	quad.size = Vector2.ONE * SIZE * marker_scale
 	var material := ShaderMaterial.new()
 	material.shader = SHADER
 	marker.mesh = quad
@@ -25,7 +27,7 @@ static func spawn(parent: Node, at: Vector3, color: Color, scale: float = 1.0) -
 	parent.add_child(marker)
 	marker.global_position = at + Vector3.UP * 0.1
 	ShaderParameters.set_value(marker, &"marker_color", color)
-	ShaderParameters.set_value(marker, &"attack", scale > 1.0)
+	ShaderParameters.set_value(marker, &"attack", marker_scale > 1.0)
 	return marker
 
 

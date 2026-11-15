@@ -134,9 +134,9 @@ static func check(data: Dictionary) -> String:
 	if not _campaign_containers(plan_data, false):
 		return "The landing plan of this save cannot be read."
 	if kind_text == String(KIND_CAMPAIGN):
-		var campaign_path: String = data.get("campaign_def", "")
-		if not _resource_is(campaign_path, CampaignDef):
-			return "The campaign of this save is missing (%s)." % campaign_path
+		var saved_campaign_path: String = data.get("campaign_def", "")
+		if not _resource_is(saved_campaign_path, CampaignDef):
+			return "The campaign of this save is missing (%s)." % saved_campaign_path
 		var campaign_data: Dictionary = data.get("campaign", {})
 		if not _campaign_containers(campaign_data, true):
 			return "The campaign state of this save cannot be read."

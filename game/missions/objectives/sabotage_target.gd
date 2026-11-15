@@ -41,7 +41,9 @@ func from_dict(data: Dictionary) -> void:
 	targets.clear()
 	var ids: Array = data.get("targets", [])
 	for entry: Variant in ids:
-		var id: int = entry
-		var found: Building = mission.world.entity(id) as Building if mission != null else null
+		var entity_id: int = entry
+		var found: Building = (
+			mission.world.entity(entity_id) as Building if mission != null else null
+		)
 		if found != null:
 			targets.append(found)

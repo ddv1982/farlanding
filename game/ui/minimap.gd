@@ -72,12 +72,12 @@ func setup(
 	_terrain.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var shader: Shader = Shader.new()
 	shader.code = FOG_SHADER
-	var material: ShaderMaterial = ShaderMaterial.new()
-	material.shader = shader
-	material.set_shader_parameter(
+	var fog_material: ShaderMaterial = ShaderMaterial.new()
+	fog_material.shader = shader
+	fog_material.set_shader_parameter(
 		&"area", Vector4(area.position.x, area.position.y, area.size.x, area.size.y)
 	)
-	_terrain.material = material
+	_terrain.material = fog_material
 	add_child(_terrain)
 	_overlay = Control.new()
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -148,10 +148,10 @@ func to_world(local: Vector2) -> Vector3:
 
 ## Map position (in the terrain picture) of a world point.
 func to_map(point: Vector3) -> Vector2:
-	var size: Vector2 = _terrain.size
+	var terrain_size: Vector2 = _terrain.size
 	return Vector2(
-		(point.x - area.position.x) / area.size.x * size.x,
-		(point.z - area.position.y) / area.size.y * size.y
+		(point.x - area.position.x) / area.size.x * terrain_size.x,
+		(point.z - area.position.y) / area.size.y * terrain_size.y
 	)
 
 
@@ -163,18 +163,20 @@ func _look_at(local: Vector2) -> void:
 func _draw_overlay() -> void:
 	if world == null:
 		return
-	var scale: float = _terrain.size.x / area.size.x
+	var map_scale: float = _terrain.size.x / area.size.x
 	for node: ResourceNode in world.resource_nodes:
 		if node.visible and node.def != null:
 			var color: Color = VENT_COLOR if node.resource() == &"flux" else NODE_COLOR
-			_overlay.draw_circle(to_map(node.position), maxf(node.def.radius * scale, 1.5), color)
-	_draw_sites(scale)
+			_overlay.draw_circle(
+				to_map(node.position), maxf(node.def.radius * map_scale, 1.5), color
+			)
+	_draw_sites(map_scale)
 	for building: Building in world.buildings:
 		if not building.visible or building.is_dead:
 			continue
 		var rect: Rect2 = building.footprint()
 		var corner: Vector2 = to_map(Vector3(rect.position.x, 0.0, rect.position.y))
-		var box: Rect2 = Rect2(corner, (rect.size * scale).max(Vector2(3.0, 3.0)))
+		var box: Rect2 = Rect2(corner, (rect.size * map_scale).max(Vector2(3.0, 3.0)))
 		var color: Color = _color_for(building.faction)
 		if building.faction != faction and not building.is_visible_to_player:
 			color = Color(color.darkened(REMEMBERED_DARKEN), REMEMBERED_ALPHA)
@@ -184,16 +186,16 @@ func _draw_overlay() -> void:
 		if not unit.visible or unit.is_dead:
 			continue
 		var at: Vector2 = to_map(unit.global_position)
-		var half: float = maxf(unit.def.radius * scale, 1.5) if unit.def != null else 1.5
+		var half: float = maxf(unit.def.radius * map_scale, 1.5) if unit.def != null else 1.5
 		_overlay.draw_rect(
 			Rect2(at - Vector2(half, half), Vector2(half, half) * 2.0), _color_for(unit.faction)
 		)
-	_draw_objectives(scale)
+	_draw_objectives(map_scale)
 	_draw_view()
 
 
 ## Active objective areas: a pulsing ring in the objective's colour.
-func _draw_objectives(scale: float) -> void:
+func _draw_objectives(map_scale: float) -> void:
 	var pulse: float = 0.75 + 0.25 * sin(Time.get_ticks_msec() / 250.0)
 	for objective: Objective in _objectives:
 		var color: Color = (
@@ -203,7 +205,7 @@ func _draw_objectives(scale: float) -> void:
 		)
 		color.a = pulse
 		var at: Vector2 = to_map(objective.area_center)
-		var radius: float = maxf(objective.area_radius * scale, 4.0)
+		var radius: float = maxf(objective.area_radius * map_scale, 4.0)
 		_overlay.draw_arc(at, radius, 0.0, TAU, 24, Color(0, 0, 0, 0.6), 3.0)
 		_overlay.draw_arc(at, radius, 0.0, TAU, 24, color, 1.5)
 
@@ -233,10 +235,10 @@ func recorded_sites() -> Array[DiscoverySite]:
 	return result
 
 
-func _draw_sites(scale: float) -> void:
+func _draw_sites(map_scale: float) -> void:
 	for site: DiscoverySite in recorded_sites():
 		_overlay.draw_circle(
-			to_map(site.position), maxf(site.def.radius * scale, 2.5), site.def.color
+			to_map(site.position), maxf(site.def.radius * map_scale, 2.5), site.def.color
 		)
 
 
