@@ -51,10 +51,10 @@ func query(center: Vector3, radius: float) -> Array[Node3D]:
 	var high: Vector2i = cell_of(center + Vector3(radius, 0.0, radius))
 	for z: int in range(low.y, high.y + 1):
 		for x: int in range(low.x, high.x + 1):
-			var bucket: Variant = _cells.get(Vector2i(x, z))
-			if bucket == null:
+			var cell_entries: Variant = _cells.get(Vector2i(x, z))
+			if cell_entries == null:
 				continue
-			var entries: Array = bucket
+			var entries: Array = cell_entries
 			for entry: Variant in entries:
 				# The grid is as old as its last rebuild: something in it may have
 				# died and been freed since.

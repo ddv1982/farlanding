@@ -96,10 +96,10 @@ static func level_db(seconds_left: float) -> float:
 ## arrival fade) and visibility. AudioMix.SILENT_DB when silent.
 static func layer_db(layer: StringName, seconds_left: float, presence: float, seen: bool) -> float:
 	var p: float = progress(seconds_left)
-	var weight: float = cos(p * PI * 0.5) if layer == BUILD_LOW else sin(p * PI * 0.5)
-	if weight <= 0.0001 or presence <= 0.0:
+	var layer_weight: float = cos(p * PI * 0.5) if layer == BUILD_LOW else sin(p * PI * 0.5)
+	if layer_weight <= 0.0001 or presence <= 0.0:
 		return AudioMix.SILENT_DB
-	var db: float = AudioMix.linear_to_db_safe(weight) + level_db(seconds_left)
+	var db: float = AudioMix.linear_to_db_safe(layer_weight) + level_db(seconds_left)
 	db += AudioMix.linear_to_db_safe(presence) + (0.0 if seen else UNSEEN_DB)
 	return maxf(db, AudioMix.SILENT_DB)
 

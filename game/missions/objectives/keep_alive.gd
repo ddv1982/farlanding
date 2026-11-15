@@ -44,8 +44,8 @@ func from_dict(data: Dictionary) -> void:
 	guarded.clear()
 	var ids: Array = data.get("guarded", [])
 	for entry: Variant in ids:
-		var id: int = entry
-		var found: Node3D = mission.world.entity(id) if mission != null else null
+		var entity_id: int = entry
+		var found: Node3D = mission.world.entity(entity_id) if mission != null else null
 		if found != null:
 			guarded.append(found)
 	var count: int = data.get("guarded_count", guarded.size())

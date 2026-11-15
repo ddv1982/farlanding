@@ -23,19 +23,19 @@ var _ref: WeakRef = null
 
 
 ## Records a fresh look at `entity` on sim tick `now`.
-func update(entity: Node3D, now: int) -> void:
-	key = entity.get_instance_id()
-	_ref = weakref(entity)
-	position = AttackCommand.position_of(entity)
-	strength = AiKnowledge.strength_of(entity)
-	armed = Combat.is_armed(entity)
+func update(target_entity: Node3D, now: int) -> void:
+	key = target_entity.get_instance_id()
+	_ref = weakref(target_entity)
+	position = AttackCommand.position_of(target_entity)
+	strength = AiKnowledge.strength_of(target_entity)
+	armed = Combat.is_armed(target_entity)
 	last_seen_tick = now
-	var unit: Unit = entity as Unit
+	var unit: Unit = target_entity as Unit
 	if unit != null and unit.def != null:
 		def_id = unit.def.id
 		heavy = unit.def.armour() == DamageTable.ARMOUR_HEAVY
 		airborne = unit.def.flies
-	var building: Building = entity as Building
+	var building: Building = target_entity as Building
 	if building != null:
 		is_building = true
 		footprint = building.footprint()

@@ -134,12 +134,14 @@ func from_dict(data: Dictionary) -> void:
 ## The enemy to fire on: armed units first, then armed buildings, then anything, the
 ## nearest to the group's centre within each class. With `members`, enemies none of
 ## them can hit (flyers, for guns that do not hit air) come last.
-static func pick_focus(enemies: Array[Node3D], from: Vector3, members: Array[Unit] = []) -> Node3D:
+static func pick_focus(
+	enemies: Array[Node3D], from: Vector3, group_members: Array[Unit] = []
+) -> Node3D:
 	var best: Node3D = null
 	var best_score: float = INF
 	for enemy: Node3D in enemies:
 		var rank: float = 0.0
-		if not members.is_empty() and AiGroup.able_to_hit(members, enemy).is_empty():
+		if not group_members.is_empty() and AiGroup.able_to_hit(group_members, enemy).is_empty():
 			rank = 3000.0
 		elif not Combat.is_armed(enemy):
 			rank = 2000.0
@@ -158,8 +160,8 @@ class GroupState:
 
 	var _group: WeakRef
 
-	func _init(group: WeakRef) -> void:
-		_group = group
+	func _init(group_ref: WeakRef) -> void:
+		_group = group_ref
 
 	func group() -> AttackGroup:
 		var value: Variant = _group.get_ref()

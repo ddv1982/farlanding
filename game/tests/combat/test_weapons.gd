@@ -14,7 +14,7 @@ func after_each() -> void:
 
 
 func test_fires_once_per_cooldown_within_range() -> void:
-	var shooter: Unit = _f.spawn(_f.soldier, 0, Vector3.ZERO)
+	_f.spawn(_f.soldier, 0, Vector3.ZERO)
 	var target: Unit = _f.spawn(_f.tank, 1, Vector3(0, 0, -8))
 	target.weapon = null  # it only takes the fire
 	watch_signals(Events)

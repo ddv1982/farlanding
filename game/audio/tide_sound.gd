@@ -70,8 +70,8 @@ func handle_tide_turning(_seconds: float, rising: bool) -> StringName:
 	return started
 
 
-func handle_tide_changed(level: float) -> void:
-	cues.report(level)
+func handle_tide_changed(tide_level: float) -> void:
+	cues.report(tide_level)
 
 
 func handle_mission_started() -> void:

@@ -208,9 +208,9 @@ func factions_of(side: StringName) -> Array[int]:
 static func ids_of(entities: Array) -> Array[int]:
 	var ids: Array[int] = []
 	for entity: Variant in entities:
-		var id: int = Order.entity_id_of(entity)
-		if id >= 0:
-			ids.append(id)
+		var entity_id: int = Order.entity_id_of(entity)
+		if entity_id >= 0:
+			ids.append(entity_id)
 	return ids
 
 

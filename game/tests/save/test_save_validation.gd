@@ -57,8 +57,8 @@ func test_existing_resources_must_have_the_consumed_definition_class() -> void:
 
 func test_positions_must_parse_to_the_vector_the_restore_reader_consumes() -> void:
 	for position: Variant in [42, "42", "Vector2(1, 2)", "Vector3(inf, 0, 0)", "Vector3(broken"]:
-		var data: Dictionary = _save()
-		data.landing.world.units = [
+		var invalid_data: Dictionary = _save()
+		invalid_data.landing.world.units = [
 			{
 				"version": Unit.SAVE_VERSION,
 				"def": UNIT,
@@ -69,7 +69,7 @@ func test_positions_must_parse_to_the_vector_the_restore_reader_consumes() -> vo
 				}
 			}
 		]
-		assert_ne(SaveGame.check(data), "", str(position))
+		assert_ne(SaveGame.check(invalid_data), "", str(position))
 	var data: Dictionary = _save()
 	data.landing.world.units = [
 		{
@@ -100,11 +100,11 @@ func test_campaign_plan_arrays_and_result_records_are_checked_before_parsing() -
 
 func test_consumed_component_versions_are_refused_without_changing_the_format() -> void:
 	for version: Variant in [0, Health.SAVE_VERSION + 1, "1"]:
-		var data: Dictionary = _save()
-		data.landing.world.units = [
+		var invalid_data: Dictionary = _save()
+		invalid_data.landing.world.units = [
 			{"version": Unit.SAVE_VERSION, "def": UNIT, "health": {"version": version}}
 		]
-		assert_ne(SaveGame.check(data), "", str(version))
+		assert_ne(SaveGame.check(invalid_data), "", str(version))
 	var data: Dictionary = _save()
 	data.landing.world.economy = {
 		"version": Economy.SAVE_VERSION,

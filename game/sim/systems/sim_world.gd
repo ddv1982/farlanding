@@ -599,21 +599,21 @@ func sell_building(building: Building, issuer: int) -> bool:
 
 ## Health ran out: announce the death, take the entity out of play at once (its
 ## navmesh cut-out is freed now) and free it after the frame.
-func _on_entity_killed(_attacker: Node3D, entity: Node3D) -> void:
-	if not is_instance_valid(entity) or entity.is_queued_for_deletion():
+func _on_entity_killed(_attacker: Node3D, target_entity: Node3D) -> void:
+	if not is_instance_valid(target_entity) or target_entity.is_queued_for_deletion():
 		return
-	var unit: Unit = entity as Unit
+	var unit: Unit = target_entity as Unit
 	if unit != null and unit.orders != null:
 		unit.orders.stop()
-	var building: Building = entity as Building
+	var building: Building = target_entity as Building
 	if building != null:
 		_unblock(building.entity_id)
 		if building.vent != null and is_instance_valid(building.vent):
 			building.vent.tap = null
-	Events.entity_died.emit(entity)
+	Events.entity_died.emit(target_entity)
 	if building != null:
 		economy.update_power(buildings)
-	entity.queue_free()
+	target_entity.queue_free()
 
 
 ## A prop was blown apart: it stops blocking, is announced and leaves.
@@ -884,8 +884,8 @@ static func _load_def(data: Dictionary) -> EntityDef:
 
 static func _saved_position(data: Dictionary) -> Vector3:
 	var text: String = data.get("position", "Vector3(0, 0, 0)")
-	var position: Vector3 = str_to_var(text)
-	return position
+	var saved_position: Vector3 = str_to_var(text)
+	return saved_position
 
 
 static func _flat_distance(a: Vector3, b: Vector3) -> float:

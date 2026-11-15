@@ -36,7 +36,7 @@ var play_at: Callable = func(_id: StringName, _at: Vector3, _db: float) -> bool:
 ## Offers an Advisor alert kind: `func(kind: StringName) -> void`.
 var offer_alert: Callable = func(_kind: StringName) -> void: pass
 ## Shows a campaign screen, or &"" for a landing: `func(screen: StringName) -> void`.
-var show_screen: Callable = func(_screen: StringName) -> void: pass
+var show_screen: Callable = func(_requested_screen: StringName) -> void: pass
 ## The launch was confirmed: `func() -> void`.
 var launch: Callable = func() -> void: pass
 

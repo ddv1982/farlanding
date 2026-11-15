@@ -347,7 +347,9 @@ func test_a_carried_artefact_hums() -> void:
 	add_child_autofree(carried)
 	loops.focus = Vector3.ZERO
 	loops.rescan()
-	var hums: Array = loops.chosen().filter(func(pair: Array) -> bool: return pair[0] == carried)
+	var hums: Array = loops.chosen().filter(
+		func(candidate: Array) -> bool: return candidate[0] == carried
+	)
 	assert_eq(hums.size(), 1, "the artefact carries one loop")
 	var pair: Array = hums[0]
 	var hum: StringName = pair[1]

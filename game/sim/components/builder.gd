@@ -116,9 +116,9 @@ func from_dict(data: Dictionary) -> void:
 
 func _approach() -> void:
 	# Retries alternate sides: 0, +3, -3, +6, -6 ... metres.
-	var step: int = ceili(_attempts * 0.5)
+	var retry_step: int = ceili(_attempts * 0.5)
 	var side: float = 1.0 if _attempts % 2 == 1 else -1.0
-	unit.locomotion.move_to(work_spot(side * step * RETRY_SLIDE))
+	unit.locomotion.move_to(work_spot(side * retry_step * RETRY_SLIDE))
 
 
 ## Distance from the footprint edge within which the unit can build.

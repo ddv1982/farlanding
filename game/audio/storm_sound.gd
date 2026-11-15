@@ -82,8 +82,8 @@ func handle_storm_incoming(_seconds: float) -> StringName:
 	return _play(StormCues.FRONT_RUMBLE)
 
 
-func handle_storm_changed(intensity: float) -> void:
-	cues.report(intensity)
+func handle_storm_changed(storm_intensity: float) -> void:
+	cues.report(storm_intensity)
 
 
 func handle_mission_started() -> void:

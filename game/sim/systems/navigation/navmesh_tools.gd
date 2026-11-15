@@ -58,7 +58,7 @@ static func clip_source(source: NavigationMeshSourceGeometryData3D, height: floa
 		var kept: Array[Vector3] = _clip_polygon(corners, height)
 		if kept.size() < 3:
 			continue
-		var first: int = out_vertices.size() / 3
+		var first: int = int(out_vertices.size() / 3.0)
 		for point: Vector3 in kept:
 			out_vertices.append_array(PackedFloat32Array([point.x, point.y, point.z]))
 		for k: int in range(1, kept.size() - 1):
@@ -128,15 +128,15 @@ static func clip_navmesh(
 			polygons.append(kept)
 	var result: NavigationMesh = navmesh.duplicate() as NavigationMesh
 	result.clear_polygons()
-	var remap: Dictionary[int, int] = {}
+	var vertex_remap: Dictionary[int, int] = {}
 	var used: PackedVector3Array = PackedVector3Array()
 	for polygon: PackedInt32Array in polygons:
 		var mapped: PackedInt32Array = PackedInt32Array()
 		for index: int in polygon:
-			if not remap.has(index):
-				remap[index] = used.size()
+			if not vertex_remap.has(index):
+				vertex_remap[index] = used.size()
 				used.append(vertices[index])
-			mapped.append(remap[index])
+			mapped.append(vertex_remap[index])
 		result.add_polygon(mapped)
 	result.set_vertices(used)
 	return result
@@ -219,7 +219,7 @@ static func keep_island(navmesh: NavigationMesh, keep_point: Vector3) -> Navigat
 			best_root = _find(parent, polygon[0])
 	var result: NavigationMesh = navmesh.duplicate() as NavigationMesh
 	result.clear_polygons()
-	var remap: Dictionary[int, int] = {}
+	var vertex_remap: Dictionary[int, int] = {}
 	var kept_vertices: PackedVector3Array = PackedVector3Array()
 	for p: int in polygon_count:
 		var polygon: PackedInt32Array = navmesh.get_polygon(p)
@@ -227,10 +227,10 @@ static func keep_island(navmesh: NavigationMesh, keep_point: Vector3) -> Navigat
 			continue
 		var new_polygon: PackedInt32Array = PackedInt32Array()
 		for index: int in polygon:
-			if not remap.has(index):
-				remap[index] = kept_vertices.size()
+			if not vertex_remap.has(index):
+				vertex_remap[index] = kept_vertices.size()
 				kept_vertices.append(vertices[index])
-			new_polygon.append(remap[index])
+			new_polygon.append(vertex_remap[index])
 		result.add_polygon(new_polygon)
 	result.set_vertices(kept_vertices)
 	return result

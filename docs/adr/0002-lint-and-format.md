@@ -42,3 +42,17 @@ overrides in this checkout. Verified through the running 4.7.2 editor: inference
 level 2 and directory rules are `{ "res://addons": 0 }`, matching the intended policy.
 The script/resource load check and actual project settings remain the executable authority. Engine and GUT diagnostic classification is now shared
 by local checks and exports; GUT warnings and deprecated APIs also fail checks.
+
+## Editor warnings must reach CI (2026-11-15 follow-up)
+
+A live-editor check exposed shadowing warnings despite clean headless runtime logs.
+Fresh startup with all currently enabled warning categories promoted from Warn (1)
+to Error (2) reproduced them. Runtime log-prefix scanning alone cannot enforce these
+editor diagnostics. All enabled categories now use Error, while disabled categories
+and the engine's addon exclusion stay as configured. `check_scripts.gd` refuses any
+category left at Warn, or a globally disabled warning system, so later engine
+upgrades cannot silently weaken this policy.
+
+Fix local shadowing names, unused locals and static-call syntax; express intentional
+integer truncation explicitly. Keep interface signal annotations narrowly scoped
+and justified by their external emitters. Do not hide warnings with file-wide ignores.

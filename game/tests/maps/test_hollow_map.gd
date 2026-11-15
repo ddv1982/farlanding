@@ -166,8 +166,8 @@ func test_the_deck_holds_more_alloy_than_other_worlds() -> void:
 	var standard: ResourceNodeDef = load("res://data/resources/kessel_alloy_deposit.tres")
 	var rich: ResourceNodeDef = load("res://data/resources/kessel_alloy_deposit_rich.tres")
 	assert_eq(map_def.deposit.resource, &"alloy")
-	assert_gte(map_def.deposit.amount, standard.amount * 5 / 3, "deeper deposits")
-	assert_gte(map_def.rich_deposit.amount, rich.amount * 3 / 2, "deeper rich deposits")
+	assert_gte(map_def.deposit.amount, int(standard.amount * 5 / 3.0), "deeper deposits")
+	assert_gte(map_def.rich_deposit.amount, int(rich.amount * 3 / 2.0), "deeper rich deposits")
 
 
 func test_every_vent_takes_a_flux_extractor() -> void:

@@ -29,9 +29,9 @@ func after_each() -> void:
 	_director.stop()
 
 
-func _layer(name: String) -> int:
+func _layer(layer_name: String) -> int:
 	var score: MusicScore = load(SCORE)
-	return Array(score.clips[0].layer_names).find(name)
+	return Array(score.clips[0].layer_names).find(layer_name)
 
 
 func test_every_state_exists_and_covers_every_layer() -> void:
@@ -118,8 +118,8 @@ func test_one_variant_per_group_and_it_rotates_per_loop() -> void:
 	assert_eq(picked.size(), 3, "all three melodies come round")
 	var drums: PackedFloat32Array = _director.layer_targets_db(&"combat")
 	var drum_count: int = 0
-	for name: String in ["drums", "drums_b"]:
-		if drums[_layer(name)] > AudioMix.SILENT_DB:
+	for layer_name: String in ["drums", "drums_b"]:
+		if drums[_layer(layer_name)] > AudioMix.SILENT_DB:
 			drum_count += 1
 	assert_eq(drum_count, 1, "one drum pattern at a time")
 

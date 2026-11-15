@@ -70,7 +70,8 @@ func test_alt_number_stores_even_when_option_types_another_character() -> void:
 	var b: Unit = _soldier(3)
 	_controller.set_selection([a, b])
 	# macOS: Option+1 types "¡" (U+00A1); the key in that place still counts.
-	_press(_key(1, [&"alt"], 0xA1 as Key))
+	var option_character: int = 0xA1
+	_press(_key(1, [&"alt"], option_character as Key))
 	assert_eq(_controller.control_groups().count(1), 2, "Alt+1 stored the selection")
 	_controller.set_selection([])
 	_press(_key(1))
@@ -82,8 +83,11 @@ func test_alt_matches_a_group_bound_by_label() -> void:
 	var by_label := InputEventKey.new()
 	by_label.keycode = KEY_4
 	InputMap.action_add_event(&"control_group_4", by_label)
-	assert_eq(KeyBindings.group_of(_key(4, [&"alt"], 0xA2 as Key)), 4)
-	assert_eq(KeyBindings.group_of(_key(4, [], 0xA2 as Key)), 0, "without Alt: no match")
+	var option_character: int = 0xA2
+	assert_eq(KeyBindings.group_of(_key(4, [&"alt"], option_character as Key)), 4)
+	assert_eq(
+		KeyBindings.group_of(_key(4, [], option_character as Key)), 0, "without Alt: no match"
+	)
 
 
 func test_meta_number_stores() -> void:

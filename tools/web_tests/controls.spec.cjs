@@ -27,8 +27,8 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 1920, height: 108
       await page.setViewportSize(viewport);
       await boot(page);
       await expect.poll(async () => {
-        const settings = (await state(page)).buttons.find(item => item.text === 'SETTINGS');
-        return settings ? Math.abs(settings.pixel[0] - viewport.width / 2) : 999;
+        const primary = (await state(page)).buttons.find(item => item.text === 'NEW CAMPAIGN');
+        return primary ? Math.abs(primary.pixel[0] - viewport.width / 2) : 999;
       }).toBeLessThan(30);
       await button(page, 'SETTINGS');
       await button(page, 'ACCESSIBILITY');

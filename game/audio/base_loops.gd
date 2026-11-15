@@ -274,14 +274,14 @@ func _apply_choice() -> void:
 			_assign(_chosen_owners[k], _chosen_ids[k])
 
 
-func _slot_of(owner: Node3D, loop_id: StringName) -> int:
+func _slot_of(loop_owner: Node3D, loop_id: StringName) -> int:
 	for i: int in _players.size():
-		if is_instance_valid(_owners[i]) and _owners[i] == owner and _loop_ids[i] == loop_id:
+		if is_instance_valid(_owners[i]) and _owners[i] == loop_owner and _loop_ids[i] == loop_id:
 			return i
 	return -1
 
 
-func _assign(owner: Node3D, loop_id: StringName) -> void:
+func _assign(loop_owner: Node3D, loop_id: StringName) -> void:
 	var event: SoundEvent = resolve_event.call(loop_id)
 	if event == null or event.streams.is_empty():
 		return
@@ -298,10 +298,10 @@ func _assign(owner: Node3D, loop_id: StringName) -> void:
 	player.bus = event.bus
 	player.max_distance = event.max_distance
 	player.volume_db = AudioMix.SILENT_DB
-	player.global_position = owner.global_position
+	player.global_position = loop_owner.global_position
 	# Random start point so identical loops never phase-lock.
 	player.play(_rng.randf() * maxf(stream.get_length() - 0.05, 0.0))
-	_owners[slot] = owner
+	_owners[slot] = loop_owner
 	_loop_ids[slot] = loop_id
 	_wanted[slot] = true
 	_levels[slot] = 0.0
@@ -313,7 +313,7 @@ func _update_player(i: int, delta: float) -> void:
 	if not alive:
 		_owners[i] = null
 		_wanted[i] = false
-	var owner: Node3D = _owners[i]
+	var loop_owner: Node3D = _owners[i]
 	_levels[i] = move_toward(_levels[i], 1.0 if _wanted[i] else 0.0, delta / FADE_SECONDS)
 	if _levels[i] <= 0.0:
 		if player.playing:
@@ -329,10 +329,10 @@ func _update_player(i: int, delta: float) -> void:
 		_low_power
 		and (is_hum(_loop_ids[i]) or _loop_ids[i] == PRODUCE)
 		and alive
-		and AudioEventRouter.faction_of(owner) == player_faction
+		and AudioEventRouter.faction_of(loop_owner) == player_faction
 	)
 	if alive:
-		player.global_position = owner.global_position
+		player.global_position = loop_owner.global_position
 	player.volume_db = (
 		base_db + (LOW_POWER_DB if dims else 0.0) + AudioMix.linear_to_db_safe(_levels[i])
 	)

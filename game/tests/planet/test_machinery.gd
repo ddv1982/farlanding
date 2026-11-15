@@ -340,13 +340,13 @@ func test_the_engines_state_saves_and_loads() -> void:
 	var claimant: int = machine_data["claimant"]
 	var progress: float = machine_data["progress"]
 	var shutdown_left: float = machine_data["shutdown_left"]
-	var owner: int = saved["faction"]
+	var loop_owner: int = saved["faction"]
 	assert_eq(state, "shut_down")
 	assert_eq(claimant, 1)
 	assert_gt(progress, 0.0)
 	assert_almost_eq(shutdown_left, 1.6, 0.15)
 	var system_data: Dictionary = machinery.to_dict()
-	var copy: Building = _f.world.spawn_building(_engine_def, owner, Vector3(40, 0, 40), false)
+	var copy: Building = _f.world.spawn_building(_engine_def, loop_owner, Vector3(40, 0, 40), false)
 	copy.from_dict(saved)
 	assert_true(copy.machine.is_shut_down())
 	assert_eq(copy.machine.claimant, 1)

@@ -102,7 +102,7 @@ func army_strength(faction: int) -> float:
 ## The run's numbers as one dictionary (printed as JSON by the runner).
 func summary() -> Dictionary:
 	var result: MissionResult = mission.result
-	var mean_float: int = alloy_floated / maxi(samples.size(), 1)
+	var mean_float: int = int(alloy_floated / float(maxi(samples.size(), 1)))
 	return {
 		"won": result != null and result.won,
 		"over": result != null,

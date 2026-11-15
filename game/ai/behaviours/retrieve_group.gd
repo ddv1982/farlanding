@@ -78,8 +78,8 @@ class GroupState:
 
 	var _group: WeakRef
 
-	func _init(group: WeakRef) -> void:
-		_group = group
+	func _init(group_ref: WeakRef) -> void:
+		_group = group_ref
 
 	func group() -> RetrieveGroup:
 		var value: Variant = _group.get_ref()

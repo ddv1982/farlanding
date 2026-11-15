@@ -6,14 +6,17 @@
 ## ShutdownGuard stops all descendant players before they leave the tree.
 extends Node
 
+## Resolve the autoload's playback dependency directly, including during editor indexing.
+const PlaybackPool: GDScript = preload("res://audio/one_shot_playback.gd")
+
 const EVENTS_DIR: String = "res://data/sounds"
 const DEFAULT_SCORE: String = "res://data/sounds/music/kessel_reach.tres"
 const SHIP_SCORE: String = "res://data/sounds/music/meridian.tres"
 ## Leaving the ship, the planet's score comes in at the briefing bed's level
 ## and waits there for the briefing (or the mission) to set it.
 const LANDING_DIP_DB: float = MissionSoundRouter.BRIEFING_DUCK_DB
-const FLAT_VOICES: int = OneShotPlayback.FLAT_VOICES
-const POSITIONAL_VOICES: int = OneShotPlayback.POSITIONAL_VOICES
+const FLAT_VOICES: int = PlaybackPool.FLAT_VOICES
+const POSITIONAL_VOICES: int = PlaybackPool.POSITIONAL_VOICES
 ## Zoom changes smaller than this do not touch the bus volumes.
 const ZOOM_EPSILON: float = 0.01
 ## The music layer that surfaces as discovery sites are resolved.
@@ -36,7 +39,7 @@ const RIVAL_INTEL_TYPE: StringName = &"rival_intel"
 const STING_DIP_DB: float = -6.0
 
 var _events: Dictionary[StringName, SoundEvent] = {}
-var _one_shots: OneShotPlayback
+var _one_shots: PlaybackPool
 var _listener: AudioListener3D
 var _listener_active: bool = false
 var _zoom: float = 0.5
@@ -83,7 +86,7 @@ var _shade: float = 0.0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_register_events(EVENTS_DIR)
-	_one_shots = OneShotPlayback.new()
+	_one_shots = PlaybackPool.new()
 	_one_shots.name = &"OneShots"
 	add_child(_one_shots)
 	_listener = AudioListener3D.new()

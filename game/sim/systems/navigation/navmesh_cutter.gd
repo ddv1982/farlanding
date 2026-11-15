@@ -101,11 +101,11 @@ func cut(rect: Rect2) -> void:
 ## Edges in `area` that the navigation server would refuse: more than two polygons
 ## on one rasterised edge (an edge with both ends in one cell is skipped, as the
 ## server does).
-func conflicting_edges(area: Rect2) -> int:
+func conflicting_edges(check_area: Rect2) -> int:
 	var users: Dictionary[String, int] = {}
 	var conflicts: int = 0
 	for p: int in polygons.size():
-		if not _boxes[p].intersects(area, true):
+		if not _boxes[p].intersects(check_area, true):
 			continue
 		var polygon: PackedInt32Array = polygons[p]
 		var count: int = polygon.size()
@@ -160,20 +160,20 @@ func area() -> float:
 func to_navmesh(template: NavigationMesh) -> NavigationMesh:
 	var result: NavigationMesh = template.duplicate() as NavigationMesh
 	result.clear_polygons()
-	var remap: PackedInt32Array = PackedInt32Array()
-	remap.resize(vertices.size())
-	remap.fill(-1)
+	var vertex_remap: PackedInt32Array = PackedInt32Array()
+	vertex_remap.resize(vertices.size())
+	vertex_remap.fill(-1)
 	var used: PackedVector3Array = PackedVector3Array()
 	for polygon: PackedInt32Array in polygons:
 		for index: int in polygon:
-			if remap[index] == -1:
-				remap[index] = used.size()
+			if vertex_remap[index] == -1:
+				vertex_remap[index] = used.size()
 				used.append(vertices[index])
 	result.set_vertices(used)
 	for polygon: PackedInt32Array in polygons:
 		var mapped: PackedInt32Array = PackedInt32Array()
 		for index: int in polygon:
-			mapped.append(remap[index])
+			mapped.append(vertex_remap[index])
 		result.add_polygon(mapped)
 	return result
 
@@ -200,7 +200,9 @@ func _add_piece(result: Array[PackedInt32Array], piece: PackedInt32Array) -> voi
 
 
 ## Sutherland-Hodgman clip of a convex polygon by one axis-aligned half-plane.
-func _clip(polygon: PackedInt32Array, axis: int, value: float, sign: float) -> PackedInt32Array:
+func _clip(
+	polygon: PackedInt32Array, axis: int, value: float, clip_sign: float
+) -> PackedInt32Array:
 	var count: int = polygon.size()
 	var out: PackedInt32Array = PackedInt32Array()
 	if count < 3:
@@ -208,7 +210,7 @@ func _clip(polygon: PackedInt32Array, axis: int, value: float, sign: float) -> P
 	var distances: PackedFloat32Array = PackedFloat32Array()
 	distances.resize(count)
 	for i: int in count:
-		var distance: float = sign * (vertices[polygon[i]][axis] - value)
+		var distance: float = clip_sign * (vertices[polygon[i]][axis] - value)
 		distances[i] = 0.0 if absf(distance) <= SNAP else distance
 	for i: int in count:
 		var j: int = (i + 1) % count

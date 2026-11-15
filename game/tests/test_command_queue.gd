@@ -5,14 +5,14 @@ extends GutTest
 class RecordingCommand:
 	extends Command
 
-	var log: Array[StringName]
+	var entries: Array[StringName]
 
 	func _init(p_kind: StringName, p_entities: Array[Node3D], p_log: Array[StringName]) -> void:
 		super(p_kind, 1, p_entities)
-		log = p_log
+		entries = p_log
 
 	func execute() -> void:
-		log.append(kind)
+		entries.append(kind)
 
 
 var _queue: CommandQueue

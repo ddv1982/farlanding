@@ -226,11 +226,11 @@ func _find_mission(id: String, modifiers: Array[LandingModifiers]) -> MissionDef
 
 static func _minute(value: Variant) -> int:
 	var seconds: int = value
-	return seconds / 60
+	return int(seconds / 60.0)
 
 
 static func _clock(value: Variant) -> String:
 	var seconds: int = value
 	if seconds < 0:
 		return "never"
-	return "%d:%02d" % [seconds / 60, seconds % 60]
+	return "%d:%02d" % [int(seconds / 60.0), seconds % 60]

@@ -177,7 +177,7 @@ func _set_the_scene(map: LandingMap) -> Dictionary:
 			reactor = building
 	assert_not_null(reactor, "the Reactor site is placed")
 	var first: Unit = rangers[0] as Unit
-	var ready: Callable = func() -> bool:
+	var is_ready: Callable = func() -> bool:
 		return (
 			first.orders.attack_target() == target
 			and fabricator.builder.site == reactor
@@ -186,7 +186,7 @@ func _set_the_scene(map: LandingMap) -> Dictionary:
 			and site.scan_progress > 0.3
 			and (storm == null or storm.state != DustStormSystem.STATE_CLEAR)
 		)
-	var under_way: bool = await _f.run_until(map, ready, 900)
+	var under_way: bool = await _f.run_until(map, is_ready, 900)
 	if not under_way:
 		print(
 			(

@@ -141,14 +141,14 @@ func _tick(tick_number: int, _dt: float) -> void:
 func _check_climax() -> void:
 	if _climax_tick < 0 or is_final:
 		return
-	var start: int = _climax_tick - ticks(_storm.build_seconds)
-	if _now < start - ticks(_storm.warning_seconds):
+	var start_tick: int = _climax_tick - ticks(_storm.build_seconds)
+	if _now < start_tick - ticks(_storm.warning_seconds):
 		return
 	is_final = true
-	_next_start = start
+	_next_start = start_tick
 	match state:
 		STATE_CLEAR, STATE_WARNING:
-			_announce(start)
+			_announce(start_tick)
 		STATE_FADING, STATE_BUILDING:
 			# A storm already blowing turns into the one that stays: it builds from
 			# where it is and is at full strength exactly at the deadline.
@@ -159,10 +159,10 @@ func _check_climax() -> void:
 			_warn(_climax_tick)
 
 
-func _announce(start: int) -> void:
+func _announce(start_tick: int) -> void:
 	state = STATE_WARNING
-	_next_start = start
-	_warn(start)
+	_next_start = start_tick
+	_warn(start_tick)
 
 
 ## Tells everyone a storm is `at - now` away (the climax in its own, sterner words).
@@ -199,12 +199,12 @@ func _draw_next() -> void:
 		_storm.interval_seconds + _variation(_storm.interval_variation),
 		_storm.warning_seconds + 1.0
 	)
-	var start: int = _now + ticks(wait)
-	_next_start = start if _fits_before_climax(start) else NEVER
+	var start_tick: int = _now + ticks(wait)
+	_next_start = start_tick if _fits_before_climax(start_tick) else NEVER
 
 
 ## True if a regular storm starting at `start` is over before the climax is announced.
-func _fits_before_climax(start: int) -> bool:
+func _fits_before_climax(start_tick: int) -> bool:
 	if _climax_tick < 0:
 		return true
 	var longest: float = (
@@ -217,7 +217,7 @@ func _fits_before_climax(start: int) -> bool:
 	var climax_warning: int = (
 		_climax_tick - ticks(_storm.build_seconds) - ticks(_storm.warning_seconds)
 	)
-	return start + ticks(longest) < climax_warning
+	return start_tick + ticks(longest) < climax_warning
 
 
 func _variation(spread: float) -> float:

@@ -10,7 +10,7 @@ const CHECKED_EXTENSIONS: PackedStringArray = ["gd", "tscn", "tres"]
 func _initialize() -> void:
 	var paths: PackedStringArray = []
 	_collect("res://", paths)
-	var failures: int = 0
+	var failures: int = _check_warning_policy()
 	for path: String in paths:
 		var resource: Resource = load(path)
 		var script: GDScript = resource as GDScript
@@ -30,3 +30,23 @@ func _collect(dir_path: String, paths: PackedStringArray) -> void:
 			paths.append(dir_path.path_join(file))
 	for sub: String in DirAccess.get_directories_at(dir_path):
 		_collect(dir_path.path_join(sub), paths)
+
+
+## Runtime loading does not print every editor warning. Keep enabled categories at
+## Error so fresh compilation makes CI observe the same diagnostics as the editor.
+func _check_warning_policy() -> int:
+	var enabled: bool = ProjectSettings.get_setting("debug/gdscript/warnings/enable", true)
+	if not enabled:
+		push_error("GDScript warnings must stay enabled")
+		return 1
+	var weak: PackedStringArray = []
+	for property: Dictionary in ProjectSettings.get_property_list():
+		var key: String = property.name
+		if not key.begins_with("debug/gdscript/warnings/"):
+			continue
+		var severity: Variant = ProjectSettings.get_setting(key)
+		if severity is int and severity == 1:
+			weak.append(key.get_file())
+	if not weak.is_empty():
+		push_error("Enabled GDScript warnings must be errors: %s" % ", ".join(weak))
+	return weak.size()
