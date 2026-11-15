@@ -368,7 +368,7 @@ func finish(won: bool) -> void:
 	)
 	result.intel_held = world.economy.stockpile(player_faction).intel
 	if world.discovery != null:
-		for found: DiscoveryDef in world.discovery.codex(player_faction):
+		for found: DiscoveryDef in world.discovery.survey_log(player_faction):
 			result.discoveries.append(found.id)
 	for found: Objective in objectives:
 		if found.is_known:

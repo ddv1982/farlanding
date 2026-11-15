@@ -1,8 +1,9 @@
 class_name InfoPanel
 extends Control
-## A page of reading over whatever is behind it: "How to play" (from the title and
-## the pause menu; the keys and mouse buttons named are the player's own, for the
-## mouse scheme in use) and the credits (from the title and after the ending). Back
+## A page of reading over whatever is behind it: "How to play" and "Controls" (every
+## mouse button and key the game uses, in one list), both from the title and the
+## pause menu (the keys and mouse buttons named are the player's own, for the
+## mouse scheme in use), and the credits (from the title and after the ending). Back
 ## (or Esc) closes it and emits `closed`.
 
 signal closed
@@ -15,6 +16,7 @@ const HEIGHT: float = 520.0
 ## Space kept free above and below the panel, px.
 const SCREEN_MARGIN: float = 16.0
 const PAGE_HOW_TO_PLAY: StringName = &"how_to_play"
+const PAGE_CONTROLS: StringName = &"controls"
 const PAGE_CREDITS: StringName = &"credits"
 const GAME_NAME: String = "Farlanding"
 
@@ -80,6 +82,12 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Opens "How to play" for the mouse scheme in use.
 func open_how_to_play() -> void:
 	_open(PAGE_HOW_TO_PLAY, "How to play", how_to_play_text(Settings.control_scheme))
+	Events.ui_feedback.emit(&"click")
+
+
+## Opens "Controls" for the mouse scheme in use.
+func open_controls() -> void:
+	_open(PAGE_CONTROLS, "Controls", controls_text(Settings.control_scheme))
 	Events.ui_feedback.emit(&"click")
 
 
@@ -168,12 +176,16 @@ static func how_to_play_text(scheme: StringName) -> String:
 		"KEYS",
 		(
 			(
-				"Ctrl + a group key (%s-%s) stores a control group, the key recalls it (twice to"
+				"Select units and press Alt (Option on a Mac) or Ctrl + a group key (%s-%s)"
 				% [KeyBindings.label(&"control_group_1"), KeyBindings.label(&"control_group_9")]
 			)
-			+ " centre on it)."
+			+ " to make them a control group; Shift + the key adds the selection to it (or"
+			+ " starts the group), which works in every browser. The key alone selects the"
+			+ " group again (twice centres on it), and so does a click on its badge above the"
+			+ " selection panel; right-clicking the badge makes the selection that group."
+			+ " Browsers keep Ctrl + a number (and on Linux Alt + a number) for their tabs."
 			+ (
-				" %s codex  ·  %s all controls  ·  %s quicksave  ·  %s quickload  ·  Esc pause."
+				" %s Survey Log  ·  %s all controls  ·  %s quicksave  ·  %s quickload  ·  Esc pause."
 				% [
 					KeyBindings.label(&"codex"),
 					KeyBindings.label(&"controls_help"),
@@ -184,7 +196,7 @@ static func how_to_play_text(scheme: StringName) -> String:
 		),
 		(
 			"Every key can be changed under Settings > Keys; the mouse scheme under"
-			+ " Settings > General."
+			+ " Settings > General. Controls (title and pause menu) lists them all."
 		),
 		"",
 		"FIELD NOTES",
@@ -192,6 +204,85 @@ static func how_to_play_text(scheme: StringName) -> String:
 			"Notes appear the first time you meet something new. Settings > General >"
 			+ " Reset hints shows them all again."
 		),
+	]
+	return "\n".join(lines)
+
+
+## Every control the game has for `scheme` (Settings.SCHEMES): the mouse first, then
+## the keys as bound now (KeyBindings), grouped like Settings > Keys.
+static func controls_text(scheme: StringName) -> String:
+	var classic: bool = scheme == Settings.SCHEME_CLASSIC
+	var command: String = "Left click" if classic else "Right click"
+	var first: String = KeyBindings.label(&"control_group_1")
+	var last: String = KeyBindings.label(&"control_group_9")
+	var groups: String = "%s-%s" % [first, last]
+	var lines: PackedStringArray = [
+		"MOUSE  (%s scheme; change it under Settings > General)" % scheme,
+		"Left click  ·  select a unit or building",
+		"Left drag  ·  box-select units (Shift adds to the selection)",
+		"Double click  ·  select every unit of that type on screen",
+		"Shift + click  ·  add or remove a unit",
+		"%s ground  ·  move the selected units there" % command,
+		"%s enemy in sight  ·  attack it" % command,
+		"%s deposit  ·  harvest (Haulers)" % command,
+		"%s ? signal  ·  scan (Surveyors)" % command,
+		"%s own building site  ·  help build (Fabricators)" % command,
+		"%s ground with a building selected  ·  set its rally point" % command,
+		(
+			"Right click  ·  deselect; cancel placing or aiming"
+			if classic
+			else "Left click empty ground  ·  deselect;  right click: cancel placing or aiming"
+		),
+		"Shift + order  ·  queue it after the current one;  Shift + place: place several",
+		"Middle drag  ·  pan the camera  ·  Wheel: zoom",
+		(
+			"Minimap: left click or drag looks there"
+			+ ("" if classic else ";  right click moves the selected units there")
+		),
+		"",
+		"CAMERA",
+		(
+			"%s %s %s %s  or  %s %s %s %s  ·  pan (the screen edge pans too)"
+			% [
+				KeyBindings.label(&"camera_pan_forward_alt"),
+				KeyBindings.label(&"camera_pan_left_alt"),
+				KeyBindings.label(&"camera_pan_back_alt"),
+				KeyBindings.label(&"camera_pan_right_alt"),
+				KeyBindings.label(&"camera_pan_forward"),
+				KeyBindings.label(&"camera_pan_left"),
+				KeyBindings.label(&"camera_pan_back"),
+				KeyBindings.label(&"camera_pan_right"),
+			]
+		),
+		(
+			"%s / %s  ·  turn left / right"
+			% [
+				KeyBindings.label(&"camera_rotate_left"),
+				KeyBindings.label(&"camera_rotate_right"),
+			]
+		),
+		"",
+		"ORDERS",
+		"%s  ·  stop" % KeyBindings.label(&"order_stop"),
+		"Esc  ·  cancel placing a building or aiming a field option",
+		"",
+		"CONTROL GROUPS",
+		"Alt + %s  (Option on a Mac)  ·  make the selection group 1-9" % groups,
+		"Ctrl + %s  (Cmd on a Mac)  ·  the same (not in a browser: it switches tabs)" % groups,
+		"Shift + %s  ·  add the selection to that group, or start it (works everywhere)" % groups,
+		"%s  ·  select the group  ·  press twice to centre the camera on it" % groups,
+		'Group badges (bottom left, "1 · 5" = group 1, five units)  ·  click to select',
+		"Right click a group badge  ·  make the selection that group",
+		"",
+		"GAME",
+		"Esc or %s  ·  pause menu" % KeyBindings.label(&"pause_menu"),
+		"%s  ·  Survey Log" % KeyBindings.label(&"codex"),
+		"%s  ·  controls panel in the mission" % KeyBindings.label(&"controls_help"),
+		"%s  ·  quicksave" % KeyBindings.label(&"quicksave"),
+		"%s  ·  quickload" % KeyBindings.label(&"quickload"),
+		"%s  ·  debug overlay" % KeyBindings.label(&"debug_overlay"),
+		"",
+		"Every key can be changed under Settings > Keys, per mouse scheme.",
 	]
 	return "\n".join(lines)
 
@@ -217,10 +308,10 @@ static func credits_text() -> String:
 		),
 		'GUT, the Godot Unit Test framework, by Tom "Butch" Wesley and contributors, MIT licence.',
 		"gdtoolkit (gdformat, gdlint), by Pawel Lampe and contributors, MIT licence.",
-		(
-			"The interface text uses the font built into Godot Engine (Open Sans), SIL"
-			+ " Open Font Licence 1.1, among the engine's third-party notices."
-		),
+		"Chakra Petch, Copyright 2018 The Chakra Petch Project Authors, SIL Open Font Licence 1.1.",
+		"",
+		"CHAKRA PETCH FONT LICENCE",
+		FileAccess.get_file_as_string("res://assets/fonts/OFL.txt").strip_edges(),
 		"",
 		"GODOT ENGINE LICENCE",
 		Engine.get_license_text().strip_edges(),

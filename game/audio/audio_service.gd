@@ -10,7 +10,7 @@
 ## AudioEventRouter (Events -> sounds, Advisor alert queue), MovementLoops,
 ## BaseLoops (construction, production, mining, building hum), the
 ## MusicDirector, the SignalPulses (discovery-site pulses and scan loops) and
-## the DiscoverySoundRouter (resolve phrases, Intel, field options, codex).
+## the DiscoverySoundRouter (resolve phrases, Intel, field options, Survey Log).
 ## While a discovery resolves, a BusDucker briefly lowers music, ambience and
 ## effects. Phase 5 adds the StealthSoundRouter (alert stingers, spotted,
 ## cloaks, the stealth music mood), SuspicionTones (the watchers' rising tone)

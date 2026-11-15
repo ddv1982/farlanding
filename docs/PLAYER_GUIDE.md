@@ -7,7 +7,7 @@ Detailed controls and mission rules follow, including planet-specific mechanics.
 shows the route of landings: hover one for its orbital scan (planet, rule, mission
 type, unresolved `?` signals), click an open one and press LAUNCH. A won landing banks
 the Intel you still hold when it ends (a lost one banks nothing, but its finds stay in
-the codex) and opens the landings it leads to; the route branches, and taking one side
+the Survey Log) and opens the landings it leads to; the route branches, and taking one side
 closes the other. On the Meridian (MERIDIAN on the star map) spend banked Intel on the
 tech web: clear the Survey Lab, Lancer, Sentry and Arc, upgrade Haulers, scanners and
 optics; some techs need an Antecedent find from an earlier landing. Pick a loadout
@@ -40,11 +40,19 @@ Field notes explain each new thing the first time you meet it.
 | Left click (classic scheme) | select, and command by context: move, attack, harvest, scan, build, carry, rally |
 | Right click (classic scheme) | deselect, cancel placement or aiming |
 | Shift | add to selection, queue orders |
-| Ctrl+1–9 / 1–9 | store / recall a control group |
+| Alt+1–9 (Option on a Mac) or Ctrl/Cmd+1–9 | make the selection a control group (browsers keep Ctrl/Cmd+number, and on Linux Alt+number, for their tabs) |
+| Shift+1–9 | add the selection to that group, or start it: works in every browser |
+| 1–9 | select the group again · twice: centre the camera on it |
 | WASD, arrows, screen edge, middle drag | pan · wheel: zoom · Q/E: turn |
-| C | codex · F1: all controls · F3: debug overlay |
+| C | Survey Log · F1: all controls · F3: debug overlay |
 | F5 / F9 (native), K / L (Web) | quicksave / quickload |
-| Esc or P | pause menu: resume, save, load, settings, how to play, restart, quit |
+| Esc or P | pause menu: resume, save, load, settings, how to play, controls, restart, quit |
+
+Each control group shows as a badge above the selection panel (bottom left): "1 · 5" is
+group 1 with five units. Click a badge to select the group (twice to centre on it),
+right-click it to make the current selection that group; it
+lights up when the group is stored or added to and goes away when its last unit is lost.
+**Controls** (title screen and pause menu) lists every mouse button and key in one page.
 
 These are the default keys: every one can be rebound per mouse scheme under
 Settings > KEYS (a key already in use is named, and pressing it again swaps the two).
@@ -62,3 +70,7 @@ resolution scale, "Reset hints"), ACCESSIBILITY (team colour palettes for red-gr
 and blue-yellow colour blindness, subtitles for the Advisor and their size, interface
 size 100/115/130%, fewer flashes, sticky Shift, game speed of single missions) and
 KEYS. **How to play** and **Credits** are on the title screen.
+
+On narrow windows or larger interface scale, the command strip scrolls sideways
+to keep the minimap and selection information clear. Drag its scrollbar or use
+horizontal scrolling to reach later build and production options.

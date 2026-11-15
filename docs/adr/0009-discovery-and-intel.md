@@ -6,7 +6,7 @@
 
 PLAN §1 and §2.4 make Intel the third resource, earned only by looking: Surveyors scan
 discovery sites, each discovery type pays out something felt in play, every discovery
-writes a codex entry, and Intel is spent at the Survey Lab on field options. Custodians
+writes a Survey Log entry, and Intel is spent at the Survey Lab on field options. Custodians
 (§2.1) guard Antecedent sites. All of it must follow §3.3: data-driven definitions, one
 command path, sim talks outward only through `Events`, saveable state, and an enemy
 commander that gains nothing from what the player finds.
@@ -17,7 +17,7 @@ commander that gains nothing from what the player finds.
 
 | Resource | File | Holds |
 |---|---|---|
-| `DiscoveryDef` | `core/defs/discovery_def.gd`, `data/discoveries/*.tres` | type (`geological`, `biological`, `antecedent`, `enemy`), Intel reward, scan time, radius, `leads_to` (chain), codex title/text, one payoff kind with its numbers, glow colour |
+| `DiscoveryDef` | `core/defs/discovery_def.gd`, `data/discoveries/*.tres` | type (`geological`, `biological`, `antecedent`, `enemy`), Intel reward, scan time, radius, `leads_to` (chain), log title/text (`log_title`, `log_text`), one payoff kind with its numbers, glow colour |
 | `FieldOptionDef` | `core/defs/field_option_def.gd`, `data/field_options/*.tres` | effect (`reveal`, `supply_drop`, `strike`), Intel cost, cooldown, `requires_unlock`, effect numbers |
 | `UnitDef` additions | `scan_rate`, `scan_range`; `starts_dormant`, `wake_radius`, `guard_radius` | Surveyor scanning; Custodian dormancy |
 | `BuildingDef.field_options` | `data/buildings/concord_survey_lab.tres` | Options a building offers |
@@ -41,8 +41,8 @@ kind is a few lines in `Discovery._apply_payoff()`.
   anything that ends the order (new order, stop, death, being pushed aside); with no
   scanner left the progress is lost. Several scanners add up.
 - `Discovery` (`sim/systems/discovery/discovery.gd`, service `discovery`) is a SimWorld
-  child ticked after units: it resolves sites (Intel, codex, `discovery_made`,
-  `codex_entry_added`, payoff, chain), runs heal fields and the player's view of sites.
+  child ticked after units: it resolves sites (Intel, Survey Log, `discovery_made`,
+  `survey_log_entry_added`, payoff, chain), runs heal fields and the player's view of sites.
   `FieldOptions` (same folder) keeps unlocks and cooldowns per faction and applies
   effects; `FieldOptionCommand` (receiver: an operational lab offering the option) is the
   only way to use one. `field_option_used` fires on use, the Advisor's
@@ -78,8 +78,9 @@ commands and when a click selects or deselects). The cursor is drawn in code
 ## Consequences
 
 - Discoveries are cheap to add; payoff kinds are deliberately few and need code.
-- A scan in progress is not saved (it starts over); sites, the codex, unlocks, cooldowns
-  and heal fields are. Reveals that follow an entity end on load.
+- A scan in progress is not saved (it starts over); sites, the Survey Log (saved under
+  the key `codex`), unlocks, cooldowns and heal fields are. Reveals that follow an
+  entity end on load.
 - The Custodian faction joins the vision round robin, so with three factions each grid
   updates about 3.3 times a second instead of 5. Acceptable at this scale; revisit if the
   fog feels sluggish.

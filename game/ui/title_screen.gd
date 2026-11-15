@@ -1,7 +1,7 @@
 class_name TitleScreen
 extends MenuScreen
 ## The first screen: Continue (when an autosave exists), New campaign, Single missions
-## (the mission select), How to play, Settings, Credits and Quit. New campaign first
+## (the mission select), How to play, Controls, Settings, Credits and Quit. New campaign first
 ## asks for the difficulty (remembered in the settings for next time); START emits
 ## `new_campaign_pressed`. On a short window the menu buttons scroll under the name.
 
@@ -11,6 +11,7 @@ signal missions_pressed
 signal settings_pressed
 signal quit_pressed
 signal how_to_play_pressed
+signal controls_pressed
 signal credits_pressed
 
 ## Space kept free above and below the column, px.
@@ -47,6 +48,7 @@ func _build() -> void:
 	_menu.add_child(start)
 	_add_button(_menu, "SINGLE MISSIONS", missions_pressed)
 	_add_button(_menu, "HOW TO PLAY", how_to_play_pressed)
+	_add_button(_menu, "CONTROLS", controls_pressed)
 	_add_button(_menu, "SETTINGS", settings_pressed)
 	_add_button(_menu, "CREDITS", credits_pressed)
 	if not OS.has_feature("web"):

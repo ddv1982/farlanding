@@ -82,6 +82,22 @@ func _process(delta: float) -> void:
 	var map: LandingMap = _main.map as LandingMap
 	if map != null:
 		var camera: Camera3D = map.camera.camera
+		var commands: CommandPanel = map.hud.get("_command_panel")
+		var scroller: ScrollContainer = commands.get("_scroll")
+		var scroll_bar: HScrollBar = scroller.get_h_scroll_bar()
+		var scroll_rect: Rect2 = scroll_bar.get_global_rect()
+		data["command_scroll"] = {
+			"rect":
+			[
+				scroll_rect.position.x * _css_scale(),
+				scroll_rect.position.y * _css_scale(),
+				scroll_rect.size.x * _css_scale(),
+				scroll_rect.size.y * _css_scale()
+			],
+			"value": scroll_bar.value,
+			"maximum": scroll_bar.max_value,
+			"page": scroll_bar.page,
+		}
 		data["placing"] = map.selection_controller.placement.is_active()
 		data["placement_reason"] = map.selection_controller.placement.reason
 		data["tick"] = map.context.sim_clock.get_tick()

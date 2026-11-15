@@ -34,7 +34,7 @@ func _ready() -> void:
 	_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
 	style.bg_color = BAND
-	style.set_corner_radius_all(3)
+	style.set_corner_radius_all(0)
 	style.content_margin_left = 14
 	style.content_margin_right = 14
 	style.content_margin_top = 6

@@ -103,8 +103,8 @@ func discovery(
 	def.scan_time = 2.0
 	def.radius = 2.0
 	def.blocks_movement = false
-	def.codex_title = "Entry %s" % id
-	def.codex_text = "Text of %s." % id
+	def.log_title = "Entry %s" % id
+	def.log_text = "Text of %s." % id
 	return def
 
 

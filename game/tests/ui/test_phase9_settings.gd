@@ -85,12 +85,13 @@ func test_damaged_values_fall_back() -> void:
 
 func test_two_actions_on_one_key_in_a_file_are_undone() -> void:
 	var config: ConfigFile = ConfigFile.new()
+	# "codex" is the saved action id of the Survey Log key.
 	config.set_value("keys_classic", "codex", "k%d" % KEY_F5)
 	config.save(OLD_FILE)
 	Settings.load_from(OLD_FILE)
-	var codex: String = Settings.bindings.binding(Settings.SCHEME_CLASSIC, &"codex")
+	var log_key: String = Settings.bindings.binding(Settings.SCHEME_CLASSIC, &"codex")
 	var quicksave: String = Settings.bindings.binding(Settings.SCHEME_CLASSIC, &"quicksave")
-	assert_false(KeyBindings.same_key(codex, quicksave))
+	assert_false(KeyBindings.same_key(log_key, quicksave))
 
 
 func test_rebinding_reports_conflicts_swaps_and_resets() -> void:

@@ -161,10 +161,10 @@ func test_field_options_play_their_effect() -> void:
 	assert_eq(_played.size(), 0, "enemy options are not announced")
 
 
-func test_codex_entry_and_codex_interface_sounds() -> void:
-	Events.codex_entry_added.emit(Resource.new())
-	assert_eq(_played, [DiscoveryCues.CODEX_ENTRY] as Array[StringName])
-	for kind: StringName in [&"codex_open", &"codex_close", &"option_button"]:
+func test_survey_log_entry_and_interface_sounds() -> void:
+	Events.survey_log_entry_added.emit(Resource.new())
+	assert_eq(_played, [DiscoveryCues.SURVEY_LOG_ENTRY] as Array[StringName])
+	for kind: StringName in [&"survey_log_open", &"survey_log_close", &"option_button"]:
 		var ids: Array[StringName] = AudioCueSelector.feedback_event(kind)
 		assert_true(ResourceLoader.exists(_path_of(ids[0])), "ui_feedback %s" % kind)
 

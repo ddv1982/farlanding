@@ -3,8 +3,9 @@ extends Node
 ## Movement component (ground units; flying units too, ADR 0016: they get a
 ## straight-line PathService and keep `flight_altitude` above the terrain).
 ## Wraps a Mover, asks the PathService for a path once per
-## destination, follows the terrain through a HeightField, and (when the path backend
-## offers a navigation map) joins server-side RVO avoidance. Runs on sim ticks; the
+## destination, follows the terrain through a HeightField, and (when the world has a
+## Traffic, ADR 0022) passes other ground units: it bends and brakes around them, and
+## steps aside for a friend while it stands with nothing to do. Runs on sim ticks; the
 ## parent Node3D is moved every frame by `interpolate()`.
 
 ## Ground speed changed (metres per second). Presentation drives wheels/legs from it.
@@ -13,7 +14,8 @@ signal motion_changed(speed: float)
 signal arrived
 
 ## 2: the wanted destination and the wait for the tide (ADR 0014).
-const SAVE_VERSION: int = 2
+## 3: a step aside in progress and the post to walk back to (ADR 0022).
+const SAVE_VERSION: int = 3
 ## A path ending further than this from where the unit was sent falls short.
 const TIDE_SHORT: float = 3.0
 ## No progress toward the current corner for this long counts as stuck.
@@ -22,9 +24,20 @@ const STUCK_SECONDS: float = 1.5
 const STUCK_PROGRESS: float = 0.3
 ## Stuck re-paths allowed per destination before the unit gives up and stops.
 const MAX_REPATHS: int = 2
-## RVO priorities: idle units hold their ground, moving units steer around them.
-const PRIORITY_IDLE: float = 1.0
-const PRIORITY_MOVING: float = 0.5
+## A nearby corner can be skipped once the next leg is directly walkable.
+const SKIP_DISTANCE: float = 12.0
+## Traffic queues accumulate stuck time slowly, including near their final slot.
+const WAITING_SHARE: float = 0.2
+## A step aside is dropped when it takes longer than this.
+const GIVE_WAY_SECONDS: float = 2.5
+## After stepping aside, a unit walks back once nothing has driven by for this long.
+const RETURN_SECONDS: float = 2.0
+## ... unless it ended up this close to where it stood anyway.
+const RETURN_DISTANCE: float = 0.6
+## Share of the way the sideways pull moves toward Traffic's newest value per tick.
+const STEER_EASE: float = 0.5
+## After traffic steered a unit onto closed ground, it follows its path alone this long.
+const PLAIN_SECONDS: float = 0.5
 
 var mover: Mover = Mover.new()
 ## Body radius in metres (from the UnitDef).
@@ -32,15 +45,28 @@ var radius: float = 0.5
 
 ## The path backend this unit moves with (also used by commands for formations).
 var paths: PathService = PathService.new()
+## True while the unit must stay where it stands (it works, fires or hides there): it
+## does not step aside for friends. The Unit sets it every tick.
+var holds_ground: bool = false
 
 var _heights: HeightField = null
 var _destination: Vector3 = Vector3.ZERO
 var _travelling: bool = false
 var _previous_position: Vector3 = Vector3.ZERO
 var _previous_yaw: float = 0.0
-var _agent: RID = RID()
-var _safe_velocity: Vector3 = Vector3.ZERO
-var _has_safe_velocity: bool = false
+var _traffic: Traffic = null
+var _body: TrafficBody = null
+## True while the path being followed is a step aside (or the walk back), not an order.
+var _giving_way: bool = false
+var _give_way_seconds: float = 0.0
+## Where the unit stood before it stepped aside; INF = it has not.
+var _post: Vector3 = Vector3.INF
+var _quiet_seconds: float = 0.0
+## The sideways pull in use: Traffic's, eased.
+var _steer: Vector3 = Vector3.ZERO
+## True when the velocity being applied was bent by traffic.
+var _steered: bool = false
+var _plain_seconds: float = 0.0
 var _stuck_seconds: float = 0.0
 var _best_corner_distance: float = INF
 var _stuck_corner: int = -1
@@ -48,9 +74,6 @@ var _reported_speed: float = 0.0
 var _repaths: int = 0
 var _facing: bool = false
 var _face_point: Vector3 = Vector3.ZERO
-var _agent_priority: float = -1.0
-var _agent_position: Vector3 = Vector3.INF
-var _agent_velocity: Vector3 = Vector3.INF
 var _base_speed: float = INF
 var _speed_limit: float = INF
 var _speed_scale: float = 1.0
@@ -65,13 +88,16 @@ var _altitude: float = 0.0
 
 
 ## Configures the component from a definition and places it. Call once after the
-## unit entered the tree.
+## unit entered the tree. With `traffic`, the unit (of `faction`) passes the other
+## units in it; flying units stay out.
 func setup(
 	def: UnitDef,
 	start: Vector3,
 	start_yaw: float,
 	p_paths: PathService,
 	heights: HeightField,
+	traffic: Traffic = null,
+	faction: int = 0,
 ) -> void:
 	_base_speed = def.move_speed
 	mover.max_speed = _top_speed()
@@ -85,14 +111,21 @@ func setup(
 	mover.yaw = start_yaw
 	_previous_position = mover.position
 	_previous_yaw = mover.yaw
-	_create_agent(def)
+	if traffic != null and not def.flies:
+		_traffic = traffic
+		_body = TrafficBody.new()
+		_body.radius = def.radius
+		_body.acceleration = def.acceleration
+		_body.faction = faction
+		_traffic.add(_body)
+		_update_body()
 	interpolate(1.0)
 
 
 func _exit_tree() -> void:
-	if _agent.is_valid():
-		NavigationServer3D.free_rid(_agent)
-		_agent = RID()
+	if _body != null:
+		_traffic.remove(_body)
+		_body = null
 
 
 ## Requests a path to `target` and starts following it. Returns false (and stays put)
@@ -100,6 +133,7 @@ func _exit_tree() -> void:
 func move_to(target: Vector3) -> bool:
 	_repaths = 0
 	_facing = false
+	_end_give_way()
 	_wanted = target
 	return _request_path(target)
 
@@ -109,6 +143,7 @@ func move_to(target: Vector3) -> bool:
 func follow_path(path: PackedVector3Array, wanted: Vector3 = Vector3.INF) -> bool:
 	_repaths = 0
 	_facing = false
+	_end_give_way()
 	_wanted = wanted
 	if wanted == Vector3.INF:
 		_wanted = path[path.size() - 1] if not path.is_empty() else mover.position
@@ -179,13 +214,12 @@ func _top_speed() -> float:
 
 func _apply_top_speed() -> void:
 	mover.max_speed = _top_speed()
-	if _agent.is_valid():
-		NavigationServer3D.agent_set_max_speed(_agent, mover.max_speed)
 
 
 ## Brakes to a halt and forgets the destination.
 func stop() -> void:
 	mover.clear_path()
+	_end_give_way()
 	_travelling = false
 	_facing = false
 	_tide_wait = false
@@ -216,23 +250,38 @@ func tick(dt: float) -> void:
 	_previous_position = mover.position
 	_previous_yaw = mover.yaw
 	var start: Vector3 = mover.position
-	if _has_safe_velocity and mover.has_path():
-		mover.integrate(_safe_velocity, dt)
-		# Avoidance must not push a unit off the walkable area: fall back to the plan.
-		if not paths.is_walkable(mover.position):
+	mover.integrate(mover.velocity, dt)
+	if _body != null:
+		_shift(_body.push)
+		# Traffic must not take a unit off the walkable area: stay, and follow the
+		# path alone for a moment.
+		if _steered and not paths.is_walkable(mover.position):
 			mover.position = start
-			mover.integrate(mover.velocity, dt)
-	else:
-		mover.integrate(mover.velocity, dt)
-	var reached: bool = mover.plan(dt)
+			_plain_seconds = PLAIN_SECONDS
+		_tick_give_way(dt)
+	var steer: Vector3 = Vector3.ZERO
+	var speed_cap: float = INF
+	_plain_seconds = maxf(_plain_seconds - dt, 0.0)
+	if _body != null and _plain_seconds <= 0.0:
+		steer = _body.steer
+		speed_cap = _body.speed_cap
+	_skip_visible_corners()
+	# Eased in and out, so the unit swings around instead of jerking sideways.
+	_steer = _steer.lerp(steer, STEER_EASE)
+	if _steer.length_squared() < 0.0004:
+		_steer = Vector3.ZERO
+	_steered = _steer != Vector3.ZERO
+	var reached: bool = mover.plan(dt, _steer, speed_cap)
 	if _facing and not mover.has_path():
 		_turn_toward_face_point(dt)
 	mover.position = _on_ground(mover.position)
-	if reached:
+	if reached and _giving_way:
+		_giving_way = false
+	elif reached:
 		_finish()
 	elif _travelling:
 		_check_stuck(dt)
-	_update_agent()
+	_update_body()
 	if not is_equal_approx(mover.speed, _reported_speed):
 		_reported_speed = mover.speed
 		motion_changed.emit(mover.speed)
@@ -255,6 +304,8 @@ func to_dict() -> Dictionary:
 		"travelling": _travelling,
 		"wanted": var_to_str(_wanted),
 		"tide_wait": _tide_wait,
+		"giving_way": _giving_way,
+		"post": var_to_str(_post),
 	}
 
 
@@ -266,11 +317,15 @@ func from_dict(data: Dictionary) -> void:
 	var destination_text: String = data.get("destination", "Vector3(0, 0, 0)")
 	_destination = str_to_var(destination_text)
 	_travelling = data.get("travelling", false)
+	_giving_way = data.get("giving_way", false)
+	var post_text: String = data.get("post", "")
+	_post = str_to_var(post_text) if post_text != "" else Vector3.INF
 	var wanted_text: String = data.get("wanted", "")
 	_wanted = str_to_var(wanted_text) if wanted_text != "" else _destination
 	_tide_wait = data.get("tide_wait", false)
 	_previous_position = mover.position
 	_previous_yaw = mover.yaw
+	_update_body()
 
 
 func _request_path(target: Vector3) -> bool:
@@ -329,14 +384,16 @@ func _check_stuck(dt: float) -> void:
 		_best_corner_distance = distance
 		_stuck_seconds = 0.0
 		return
-	_stuck_seconds += dt
-	if _stuck_seconds < STUCK_SECONDS:
-		return
 	var final_distance: float = (
 		Vector2(_destination.x - mover.position.x, _destination.z - mover.position.z).length()
 	)
-	if final_distance < radius * 4.0 + 1.0:
-		# Close enough and blocked (usually by a unit already standing there).
+	var waiting: bool = _body != null and _body.speed_cap < mover.max_speed
+	_stuck_seconds += dt * (WAITING_SHARE if waiting else 1.0)
+	if _stuck_seconds < STUCK_SECONDS:
+		return
+	if final_distance <= maxf(radius, 0.5):
+		# The body covers its destination. Further away, retry the route rather
+		# than silently accepting a place several vehicle lengths short.
 		_finish()
 		return
 	_repaths += 1
@@ -368,46 +425,81 @@ func _on_ground(point: Vector3) -> Vector3:
 	return point
 
 
-func _create_agent(def: UnitDef) -> void:
-	var map: RID = paths.get_avoidance_map()
-	if not map.is_valid():
+## Do not funnel a whole group through an exact point after the obstacle is clear.
+## The walk grid validates each shortcut, so corners across walls stay in the path.
+func _skip_visible_corners() -> void:
+	if _body == null or not _travelling:
 		return
-	_agent = NavigationServer3D.agent_create()
-	NavigationServer3D.agent_set_use_3d_avoidance(_agent, false)
-	NavigationServer3D.agent_set_radius(_agent, def.radius + 0.25)
-	NavigationServer3D.agent_set_max_speed(_agent, mover.max_speed)
-	NavigationServer3D.agent_set_neighbor_distance(_agent, maxf(8.0, def.radius * 6.0))
-	NavigationServer3D.agent_set_max_neighbors(_agent, 8)
-	NavigationServer3D.agent_set_time_horizon_agents(_agent, 0.8)
-	NavigationServer3D.agent_set_avoidance_priority(_agent, PRIORITY_IDLE)
-	NavigationServer3D.agent_set_position(_agent, mover.position)
-	_agent_priority = PRIORITY_IDLE
-	_agent_position = mover.position
-	_agent_velocity = Vector3.ZERO
-	NavigationServer3D.agent_set_avoidance_callback(_agent, _on_safe_velocity)
-	NavigationServer3D.agent_set_avoidance_enabled(_agent, true)
-	NavigationServer3D.agent_set_map(_agent, map)
+	while (
+		mover.has_path()
+		and not mover.is_on_last_corner()
+		and mover.distance_to_corner() < SKIP_DISTANCE
+		and paths.is_segment_walkable(mover.position, mover.path[mover.path_index + 1])
+	):
+		mover.skip_corner()
 
 
-func _update_agent() -> void:
-	if not _agent.is_valid():
+## Moves by `offset` when that stays on walkable ground (Traffic's push).
+func _shift(offset: Vector3) -> void:
+	if offset == Vector3.ZERO:
 		return
-	# Only tell the server what changed: most units stand still most of the time.
-	if mover.position != _agent_position:
-		_agent_position = mover.position
-		NavigationServer3D.agent_set_position(_agent, mover.position)
-	var moving: bool = mover.has_path()
-	var priority: float = PRIORITY_MOVING if moving else PRIORITY_IDLE
-	if priority != _agent_priority:
-		_agent_priority = priority
-		NavigationServer3D.agent_set_avoidance_priority(_agent, priority)
-	if mover.velocity != _agent_velocity:
-		_agent_velocity = mover.velocity
-		NavigationServer3D.agent_set_velocity(_agent, mover.velocity)
-	if not moving:
-		_has_safe_velocity = false
+	var shifted: Vector3 = mover.position + offset
+	if paths.is_walkable(shifted):
+		mover.position = shifted
 
 
-func _on_safe_velocity(safe_velocity: Vector3) -> void:
-	_safe_velocity = safe_velocity
-	_has_safe_velocity = true
+## While standing with nothing to do: step aside when Traffic asks, and walk back to
+## the post once nothing has driven by for a while.
+func _tick_give_way(dt: float) -> void:
+	if _travelling:
+		return
+	if _giving_way:
+		_give_way_seconds += dt
+		if _give_way_seconds > GIVE_WAY_SECONDS:
+			mover.clear_path()
+			_giving_way = false
+		return
+	if holds_ground:
+		_post = Vector3.INF
+		return
+	if _body.give_way_to != Vector3.INF:
+		if _post == Vector3.INF:
+			_post = mover.position
+		_quiet_seconds = 0.0
+		_start_give_way(_body.give_way_to)
+		return
+	if _post == Vector3.INF:
+		return
+	_quiet_seconds = 0.0 if _body.crowded else _quiet_seconds + dt
+	if _quiet_seconds < RETURN_SECONDS:
+		return
+	var post: Vector3 = _post
+	_post = Vector3.INF
+	if _flat_distance(post, mover.position) > RETURN_DISTANCE:
+		_start_give_way(post)
+
+
+func _start_give_way(target: Vector3) -> void:
+	if not paths.is_walkable(target) or not paths.is_segment_walkable(mover.position, target):
+		return
+	mover.set_path(PackedVector3Array([target]))
+	_giving_way = true
+	_give_way_seconds = 0.0
+
+
+## An order replaces a step aside: the unit no longer has a post to walk back to.
+func _end_give_way() -> void:
+	_giving_way = false
+	_post = Vector3.INF
+
+
+func _update_body() -> void:
+	if _body == null:
+		return
+	_body.position = mover.position
+	_body.velocity = mover.velocity
+	_body.wish = mover.wish
+	_body.max_speed = mover.max_speed
+	_body.moving = mover.has_path()
+	_body.asks_way = _travelling
+	_body.gives_way = not _travelling and not _giving_way and not holds_ground

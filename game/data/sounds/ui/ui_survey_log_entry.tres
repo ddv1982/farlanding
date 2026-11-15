@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("1_script")
-id = &"ui_codex_entry"
+id = &"ui_survey_log_entry"
 streams = Array[AudioStream]([ExtResource("2_stream")])
 bus = &"UI"
 priority = 90

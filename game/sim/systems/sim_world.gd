@@ -40,6 +40,8 @@ var dry_crossings: PackedVector3Array = PackedVector3Array()
 var air_paths: PathService = PathService.new()
 ## Keeps flying units apart (idle without any).
 var flight: FlightSystem = FlightSystem.new()
+## How ground units pass each other (ADR 0022); null = they do not (benchmarks).
+var traffic: Traffic = Traffic.new()
 ## Tree crowns, (centre x, centre z, radius x, radius z) each (the map's
 ## `canopy_zones`); a CanopyRule hides what stands under them.
 var canopy_zones: PackedVector4Array = PackedVector4Array()
@@ -126,7 +128,7 @@ func spawn_unit(def: UnitDef, faction: int, at: Vector3, yaw: float = 0.0) -> Un
 		var unit_paths: PathService = paths.for_hover() if def.hovers else paths
 		if def.flies:
 			unit_paths = air_paths
-		unit.locomotion.setup(def, at, yaw, unit_paths, heights)
+		unit.locomotion.setup(def, at, yaw, unit_paths, heights, traffic, faction)
 		unit.locomotion.set_speed_scale(conditions.speed_factor(def.rides_above_ground()))
 	units.append(unit)
 	unit.tree_exiting.connect(_on_unit_exiting.bind(unit))
@@ -404,6 +406,9 @@ func _on_ticked(tick: int) -> void:
 	if stealth != null:
 		stealth.tick(tick, dt, units)
 	mark = _section(&"stealth", mark)
+	if traffic != null:
+		traffic.solve(dt)
+	mark = _section(&"traffic", mark)
 	for unit: Unit in units:
 		unit.sim_tick(dt)
 	flight.tick(units, dt)

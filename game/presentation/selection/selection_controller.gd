@@ -15,9 +15,11 @@ extends Node
 ## In both: left drag box-selects units (Shift adds), Shift+click toggles a unit,
 ## double-click selects every visible unit of that type, Shift queues orders. While
 ## placing a building (BuildPlacement) or aiming a field option, left click confirms
-## and right click or Esc cancels. The stop key stops. Ctrl + a group key (1..9 by
-## default; the keys are the player's, KeyBindings) stores a control group, the key
-## recalls it, a quick second press centres the camera on it. With sticky Shift
+## and right click or Esc cancels. The stop key stops. Ctrl/Cmd or Alt/Option + a
+## group key (1..9 by default; the keys are the player's, KeyBindings) stores a
+## control group (browsers keep Ctrl/Cmd + a number for their tabs, Alt reaches the
+## game), Shift + the key adds the selection to it, the key recalls it, a quick
+## second press centres the camera on it. With sticky Shift
 ## (Settings.sticky_shift) a press of Shift holds it until the next. Team colours
 ## follow the chosen palette (TeamColors), also when it changes. The cursor shows what
 ## a command click would do (CursorIcons). Enemies out of sight cannot be clicked:
@@ -502,11 +504,12 @@ func _handle_key(key: InputEventKey) -> void:
 		return
 	var group: int = KeyBindings.group_of(key)
 	if group > 0:
-		if key.ctrl_pressed or key.meta_pressed:
-			_groups.assign(group, selection)
-			Events.ui_feedback.emit(&"group_assign")
+		if key.ctrl_pressed or key.meta_pressed or key.alt_pressed:
+			store_group(group)
+		elif shift_held(key):
+			add_selection_to_group(group)
 		else:
-			_recall_group(group)
+			recall_group(group)
 		get_viewport().set_input_as_handled()
 		return
 	if selection.is_empty():
@@ -516,7 +519,23 @@ func _handle_key(key: InputEventKey) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _recall_group(group: int) -> void:
+## Stores the selection in control group `group` (1..9), replacing what it held.
+func store_group(group: int) -> void:
+	_groups.assign(group, selection)
+	Events.ui_feedback.emit(&"group_assign")
+
+
+## Adds the selection to control group `group` (1..9), keeping what it held.
+func add_selection_to_group(group: int) -> void:
+	if selection.is_empty():
+		return
+	_groups.add(group, selection)
+	Events.ui_feedback.emit(&"group_assign")
+
+
+## Selects control group `group` (1..9); a second recall of it within
+## DOUBLE_TAP_SECONDS centres the camera on it (the key and the HUD's GroupBar).
+func recall_group(group: int) -> void:
 	var units: Array[Unit] = _groups.recall(group)
 	var now: float = Time.get_ticks_msec() / 1000.0
 	var double_tap: bool = group == _last_group_key and now - _last_group_time < DOUBLE_TAP_SECONDS
@@ -526,7 +545,7 @@ func _recall_group(group: int) -> void:
 		return
 	Events.ui_feedback.emit(&"group_recall")
 	set_selection(units)
-	if double_tap:
+	if double_tap and camera != null:
 		var centre: Vector3 = Vector3.ZERO
 		for unit: Unit in units:
 			centre += unit.global_position

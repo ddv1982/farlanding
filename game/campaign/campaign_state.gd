@@ -31,7 +31,7 @@ var won: Array[StringName] = []
 var closed: Array[StringName] = []
 ## Per node id: { attempts, won, intel_banked, seconds }.
 var results: Dictionary[StringName, Dictionary] = {}
-## Discovery ids made on any landing (the campaign's codex), in order.
+## Discovery ids made on any landing (the campaign's Survey Log), in order.
 var discoveries: Array[StringName] = []
 ## Loadout: slot id -> option id.
 var loadout: Dictionary[StringName, StringName] = {}

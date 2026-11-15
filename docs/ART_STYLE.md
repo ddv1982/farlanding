@@ -61,3 +61,12 @@ slope, height and world-space noise, so any heightfield is shaded for free.
 - A `-col` suffix on an object name makes Godot generate a static collider.
 - Materials are swapped on import by name (`fl_palette`, `fl_terrain`) in
   `game/presentation/import/model_post_import.gd`.
+
+## Interface
+
+Concord field equipment uses steel-blue chamfered plates, subtle outlines and
+cyan instrument lamps. Orange marks warnings. `HudStyle`, `PlateStyle` and
+`HudTheme` provide the shared controls; `UiTheme` applies the stock-control theme
+before screens are built. Chakra Petch supplies body, button and heading weights.
+Its SIL Open Font Licence is bundled under `game/assets/fonts/OFL.txt`, included
+in exports and displayed in Credits.

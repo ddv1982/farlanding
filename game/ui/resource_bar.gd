@@ -18,11 +18,7 @@ var _low_power: Label
 ## Builds the bar and shows the faction's current stockpile from `economy` (if any).
 func setup(p_faction: int, economy: Economy) -> void:
 	faction = p_faction
-	var style := StyleBoxFlat.new()
-	style.bg_color = HudStyle.PANEL_COLOR
-	style.border_color = HudStyle.ACCENT_COLOR
-	style.border_width_bottom = 2
-	style.set_corner_radius_all(3)
+	var style: PlateStyle = HudStyle.panel_style()
 	style.content_margin_left = 16
 	style.content_margin_right = 16
 	style.content_margin_top = 6

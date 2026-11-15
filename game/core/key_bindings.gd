@@ -40,7 +40,8 @@ const ACTIONS: Array[Array] = [
 	[&"pause_menu", "Pause menu (Esc also works)", GAME, "k80"],
 	[&"quicksave", "Quicksave", GAME, "k4194336"],
 	[&"quickload", "Quickload", GAME, "k4194340"],
-	[&"codex", "Codex", GAME, "k67"],
+	# The Survey Log. "codex" is the saved action id (settings.cfg key overrides): keep it.
+	[&"codex", "Survey Log", GAME, "k67"],
 	[&"controls_help", "Controls panel", GAME, "k4194332"],
 	[&"debug_overlay", "Debug overlay", GAME, "k4194334"],
 ]
@@ -238,12 +239,30 @@ static func has_action(action: StringName) -> bool:
 
 
 ## The control group (1..9) whose key `event` is, or 0. Modifiers do not matter
-## (Ctrl + the key stores the group).
+## (Ctrl/Cmd or Alt/Option + the key stores the group, Shift + the key adds to it).
+## Option on macOS types another character ("1" becomes "¡"), so a group bound by
+## label also matches by the key's place when Alt is held.
 static func group_of(event: InputEvent) -> int:
 	for group: int in range(1, GROUP_COUNT + 1):
 		var action: StringName = StringName("control_group_%d" % group)
 		if InputMap.has_action(action) and event.is_action(action):
 			return group
+	var key: InputEventKey = event as InputEventKey
+	if key == null or not key.alt_pressed or key.physical_keycode == KEY_NONE:
+		return 0
+	var placed: Key = _keycode("p%d" % key.physical_keycode)
+	for group: int in range(1, GROUP_COUNT + 1):
+		var action: StringName = StringName("control_group_%d" % group)
+		if not InputMap.has_action(action):
+			continue
+		for bound: InputEvent in InputMap.action_get_events(action):
+			var bound_key: InputEventKey = bound as InputEventKey
+			if bound_key == null:
+				continue
+			if bound_key.keycode != KEY_NONE and bound_key.keycode == placed:
+				return group
+			if bound_key.physical_keycode == key.physical_keycode:
+				return group
 	return 0
 
 

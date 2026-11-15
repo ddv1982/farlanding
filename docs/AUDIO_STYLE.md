@@ -101,7 +101,7 @@ loudness targets and the naming, and says how to add a sound.
   | `discovery_resolve_biological` | breathy reeds gliding D A B G#, the G# turning up to A in a trill, chirps around it: alive |
   | `discovery_resolve_antecedent` | the whole motif on bells, chime and reed over a Lydian swell, then its answer A C# rising to the high D (−20, 6.2 s) |
   | `discovery_resolve_enemy` | the motif bent: D A Bb on ring-modulated Combine saws, the last note sagging G# → G with a growl |
-  | `ui_codex_open` / `_close` / `_entry` | two marimba notes up / down; the motif's last step B → G# on glass with a paper flick |
+  | `ui_survey_log_open` / `_close` / `_entry` (files `ui_codex_*.mp3`) | two marimba notes up / down; the motif's last step B → G# on glass with a paper flick |
   | `ui_intel_tick`, `ui_option_button` | a tiny glass tick on A6; a click with a glass G# above it (spending Intel) |
   | `field_orbital_scan`, `field_supply_drop`, `field_antecedent_power` | a sonar sweep from orbit with data rain; a falling pod, a landing thump and a D–A chime; reversed bells swelling into a strike on D and G# |
   | `advisor_discovery`, `advisor_field_option_ready` | Meridian dyads D+A → A+D (the ship heard it too); G#+D twice, lifting into A+D |
@@ -1116,9 +1116,9 @@ first, −9 dB after it, 0 dB when all are found), via `MusicDirector.set_layer_
 keep it at 0 (explore), −3 (calm), −8 (tension), −4 (aftermath), −6 (victory), silent in
 combat and defeat. `intel_changed` for the player plays `ui_intel_tick` when Intel rises (the
 first report is the baseline); `field_option_used` plays `field_<id>` (ids containing
-`antecedent`/`scan`/`supply`/`drop` fall back to the three effects); `codex_entry_added` plays
-`ui_codex_entry`. Codex open/close and the option button are `Events.ui_feedback(&"codex_open")`,
-`&"codex_close"`, `&"option_button"`. Advisor kinds `discovery` (priority 70, throttle 4 s) and
+`antecedent`/`scan`/`supply`/`drop` fall back to the three effects); `survey_log_entry_added` plays
+`ui_survey_log_entry`. Survey Log open/close and the option button are `Events.ui_feedback(&"survey_log_open")`,
+`&"survey_log_close"`, `&"option_button"`. Advisor kinds `discovery` (priority 70, throttle 4 s) and
 `field_option_ready` (45, 20 s) are raised by gameplay as ordinary `advisor_alert`s.
 
 Base loops (`BaseLoops`) sit on the player's entities, at most six, nearest first, hums ranked

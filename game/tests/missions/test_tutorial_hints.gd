@@ -150,6 +150,17 @@ func test_a_paused_mission_holds_its_hints() -> void:
 	hints.suspended = true
 	hints._process(TutorialHints.AUTO_HIDE_SECONDS + 1.0)
 	assert_not_null(hints.shown, "the card does not time out under the pause menu")
+	assert_false(hints._card.visible, "the hint does not overlap the pause menu")
+	hints.obscured = true
+	hints.suspended = false
+	assert_false(hints._card.visible, "resuming does not uncover a hint over the Survey Log")
+	hints._process(TutorialHints.AUTO_HIDE_SECONDS + 1.0)
+	assert_not_null(hints.shown, "reading the log preserves the hint")
+	hints.suspended = true
+	hints.obscured = false
+	assert_false(hints._card.visible, "closing the log still respects the pause menu")
+	hints.suspended = false
+	assert_true(hints._card.visible, "the same hint returns when the overlays close")
 	hints.end_mission()
 
 

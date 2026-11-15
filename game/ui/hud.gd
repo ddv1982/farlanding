@@ -2,7 +2,8 @@ class_name Hud
 extends CanvasLayer
 ## In-mission HUD: the resource bar (top), the command panel (bottom centre: build
 ## menu, production, field options, hints), a selection panel with one chip per
-## type, the minimap (bottom right) with the controls panel (F1) above it, the codex
+## type (bottom left), the control groups bar above it and the command panel, the
+## minimap (bottom right) with the controls panel (F1) above it, the Survey Log
 ## (button or C) and the menu button (top right; the pause menu holds the settings,
 ## including the mouse scheme), the planet indicator under them (Kessel: the dust
 ## storm and its countdown), the mission's objectives (top left, with the enemy alert
@@ -13,6 +14,8 @@ extends CanvasLayer
 
 ## The MENU button was pressed (Main opens the pause menu).
 signal menu_requested
+## The Survey Log opened or closed, including through its Close button.
+signal survey_log_toggled(is_open: bool)
 
 ## Controls panel text per mouse scheme (Settings.control_scheme); {key_<action>}
 ## is the key bound to that action now (KeyBindings), filled in by `controls_text()`.
@@ -24,10 +27,11 @@ const HINT_CLASSIC: String = (
 	+ "         building selected: ground sets the rally point\n"
 	+ "RIGHT    deselect  ·  while placing or aiming: cancel (or Esc)\n"
 	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  {key_order_stop} stop\n"
-	+ "GROUPS   Ctrl+{groups} store  ·  {groups} recall, twice to centre\n"
+	+ "GROUPS   Alt/Ctrl+{groups} store  ·  Shift+{groups} add or start\n"
+	+ "         {groups} recall, twice to centre  ·  badge: click recall, right click store\n"
 	+ "CAMERA   {pan} or the edge or MMB pan  ·  wheel zoom  ·  {turn} turn\n"
 	+ "MAP      left: look there (drag)\n"
-	+ "CODEX    {key_codex} or the button top right  ·  COMBAT  armed units fire by themselves\n"
+	+ "LOG      {key_codex} or the button top right  ·  COMBAT  armed units fire by themselves\n"
 	+ "SAVE     {key_quicksave} quicksave  ·  {key_quickload} quickload\n"
 	+ "MENU     Esc or {key_pause_menu}: pause, settings, keys, restart, quit"
 )
@@ -40,10 +44,11 @@ const HINT_MODERN: String = (
 	+ "         building selected: rally point  ·  unit button: cancel one\n"
 	+ "         while placing or aiming: cancel (or Esc)\n"
 	+ "SHIFT    add to selection  ·  queue orders  ·  place several  ·  {key_order_stop} stop\n"
-	+ "GROUPS   Ctrl+{groups} store  ·  {groups} recall, twice to centre\n"
+	+ "GROUPS   Alt/Ctrl+{groups} store  ·  Shift+{groups} add or start\n"
+	+ "         {groups} recall, twice to centre  ·  badge: click recall, right click store\n"
 	+ "CAMERA   {pan} or the edge or MMB pan  ·  wheel zoom  ·  {turn} turn\n"
 	+ "MAP      left: look there (drag)  ·  right: move selected units there\n"
-	+ "CODEX    {key_codex} or the button top right  ·  COMBAT  armed units fire by themselves\n"
+	+ "LOG      {key_codex} or the button top right  ·  COMBAT  armed units fire by themselves\n"
 	+ "SAVE     {key_quicksave} quicksave  ·  {key_quickload} quickload\n"
 	+ "MENU     Esc or {key_pause_menu}: pause, settings, keys, restart, quit"
 )
@@ -61,6 +66,7 @@ const MARGIN := HudStyle.MARGIN
 @export var map_area: Rect2 = Rect2(-120.0, -120.0, 240.0, 240.0)
 
 var _selection_panel: PanelContainer
+var _group_bar: GroupBar
 var _selection_title: Label
 var _chips: HBoxContainer
 var _hint_panel: PanelContainer
@@ -74,8 +80,8 @@ var _corner: VBoxContainer
 var _minimap: Minimap
 var _objectives: ObjectivesPanel
 var _hint: Label
-var _codex: CodexPanel
-var _codex_button: Button
+var _survey_log: SurveyLogPanel
+var _log_button: Button
 var _menu_button: Button
 var _planet: PlanetIndicator
 var _shift_note: Label
@@ -88,11 +94,14 @@ func _ready() -> void:
 	_build_hint()
 	_build_debug()
 	_build_top_right()
-	_codex = CodexPanel.new()
-	add_child(_codex)
-	_codex.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
-	_codex.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_codex.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_survey_log = SurveyLogPanel.new()
+	add_child(_survey_log)
+	_survey_log.visibility_changed.connect(
+		func() -> void: survey_log_toggled.emit(_survey_log.visible)
+	)
+	_survey_log.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE)
+	_survey_log.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_survey_log.grow_vertical = Control.GROW_DIRECTION_BOTH
 	Settings.changed.connect(_on_settings_changed)
 	_on_settings_changed()
 	_objectives = ObjectivesPanel.new()
@@ -118,11 +127,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_hint_panel.visible = not _hint_panel.visible
 		_hint_toggle.visible = not _hint_panel.visible
 		get_viewport().set_input_as_handled()
+	# "codex" is the saved action id of the Survey Log key.
 	elif key.is_action_pressed(&"codex", false, true):
-		toggle_codex()
+		toggle_survey_log()
 		get_viewport().set_input_as_handled()
-	elif key.keycode == KEY_ESCAPE and _codex.visible:
-		_codex.close_panel()
+	elif key.keycode == KEY_ESCAPE and _survey_log.visible:
+		_survey_log.close_panel()
 		get_viewport().set_input_as_handled()
 
 
@@ -132,20 +142,25 @@ func set_map_colors(low: Color, high: Color) -> void:
 		_minimap.set_ground_colors(low, high)
 
 
+## The control groups bar (left, above the selection and command panels).
+func group_bar() -> GroupBar:
+	return _group_bar
+
+
 ## Shows the alert meter of the enemy `faction` under the objectives.
 func show_alert_meter(faction: int) -> void:
 	_objectives.show_alert_meter(faction)
 
 
-## Opens the codex with the player's entries, or closes it.
-func toggle_codex() -> void:
-	if _codex.visible:
-		_codex.close_panel()
+## Opens the Survey Log with the player's entries, or closes it.
+func toggle_survey_log() -> void:
+	if _survey_log.visible:
+		_survey_log.close_panel()
 		return
 	var entries: Array[DiscoveryDef] = []
 	if world != null and world.discovery != null:
-		entries = world.discovery.codex(player_faction)
-	_codex.open_panel(entries)
+		entries = world.discovery.survey_log(player_faction)
+	_survey_log.open_panel(entries)
 
 
 ## Switches between the classic and modern mouse schemes (saved in the settings).
@@ -194,6 +209,8 @@ static func controls_text(scheme: StringName) -> String:
 
 
 func _process(_delta: float) -> void:
+	_place_commands()
+	_place_group_bar()
 	if _shift_note != null and selection_controller != null:
 		_shift_note.visible = Settings.sticky_shift and selection_controller.shift_held(_no_shift)
 	if not _debug_panel.visible:
@@ -214,6 +231,39 @@ func _process(_delta: float) -> void:
 		if world.planet != null:
 			lines.append("Storm %.2f" % world.conditions.storm_intensity)
 	_debug.text = "\n".join(lines)
+
+
+## Reserve the gap between the corner panels; narrow windows scroll commands.
+func _place_commands() -> void:
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	if _selection_panel != null and _selection_panel.visible:
+		_selection_panel.reset_size()
+		_selection_panel.position = Vector2(MARGIN, view.y - MARGIN - _selection_panel.size.y)
+	# Configure the hidden panel too, before a selection makes new commands
+	# visible. Their first layout must use the final reserved space.
+	if _command_panel == null:
+		return
+	var left: float = MARGIN
+	if _selection_panel.visible:
+		left = _selection_panel.get_global_rect().end.x + MARGIN
+	var right: float = _corner.get_global_rect().position.x - MARGIN
+	_command_panel.fit_width(right - left)
+	_command_panel.reset_size()
+	_command_panel.position = Vector2(
+		(left + right - _command_panel.size.x) * 0.5, view.y - MARGIN - _command_panel.size.y
+	)
+
+
+## Keep group badges above the lower panels, without covering their controls.
+func _place_group_bar() -> void:
+	if _group_bar == null or not _group_bar.visible:
+		return
+	var top: float = get_viewport().get_visible_rect().size.y - MARGIN
+	for panel: Control in [_selection_panel, _command_panel]:
+		if panel != null and panel.visible:
+			top = minf(top, panel.get_global_rect().position.y)
+	_group_bar.reset_size()
+	_group_bar.position = Vector2(MARGIN, top - 6.0 - _group_bar.size.y)
 
 
 ## Summary text for a selection, e.g. "3 selected: 2 Ranger, 1 Bulwark".
@@ -297,6 +347,9 @@ func _build_selection_panel() -> void:
 	_chips = HBoxContainer.new()
 	_chips.add_theme_constant_override(&"separation", 14)
 	column.add_child(_chips)
+	_group_bar = GroupBar.new()
+	add_child(_group_bar)
+	_group_bar.setup(selection_controller)
 
 
 ## Bottom-right column: the controls panel (F1) or its toggle, above the minimap.
@@ -321,7 +374,7 @@ func _build_hint() -> void:
 	_corner.add_child(_shift_note)
 
 
-## Top right: the codex and menu buttons, the planet indicator below them.
+## Top right: the Survey Log and menu buttons, the planet indicator below them.
 func _build_top_right() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override(&"separation", 6)
@@ -334,10 +387,10 @@ func _build_top_right() -> void:
 	row.add_theme_constant_override(&"separation", 6)
 	row.alignment = BoxContainer.ALIGNMENT_END
 	column.add_child(row)
-	_codex_button = HudStyle.make_small_button("CODEX  (C)")
-	_codex_button.tooltip_text = "What the expedition has found on this landing."
-	_codex_button.pressed.connect(toggle_codex)
-	row.add_child(_codex_button)
+	_log_button = HudStyle.make_small_button("LOG  (C)")
+	_log_button.tooltip_text = "What the expedition has found on this landing."
+	_log_button.pressed.connect(toggle_survey_log)
+	row.add_child(_log_button)
 	_menu_button = HudStyle.make_small_button("MENU  (Esc)")
 	_menu_button.tooltip_text = "Pause: resume, settings (mouse, audio, display), restart, quit."
 	_menu_button.pressed.connect(request_menu)
@@ -351,7 +404,7 @@ func _build_top_right() -> void:
 func _on_settings_changed() -> void:
 	_hint.text = controls_text(Settings.control_scheme)
 	_hint_toggle.text = "%s  CONTROLS" % KeyBindings.label(&"controls_help")
-	_codex_button.text = "CODEX  (%s)" % KeyBindings.label(&"codex")
+	_log_button.text = "LOG  (%s)" % KeyBindings.label(&"codex")
 
 
 func _build_debug() -> void:

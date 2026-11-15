@@ -1,7 +1,7 @@
 class_name DiscoveryDef
 extends Resource
 ## Data definition of one discovery: what a site on the map turns out to be once a
-## Surveyor has scanned it, what it pays out and what it writes into the codex
+## Surveyor has scanned it, what it pays out and what it writes into the Survey Log
 ## (PLAN 2.4). One `.tres` per discovery; the site entity is a DiscoverySite.
 
 ## The four discovery types.
@@ -11,7 +11,7 @@ const ANTECEDENT: StringName = &"antecedent"
 const ENEMY: StringName = &"enemy"
 
 ## Payoffs.
-## Nothing beyond Intel and the codex entry.
+## Nothing beyond Intel and the log entry.
 const PAYOFF_NONE: StringName = &"none"
 ## A resource node (`payoff_node`) appears at the site, offset by `payoff_offset`.
 const PAYOFF_DEPOSIT: StringName = &"deposit"
@@ -47,9 +47,9 @@ const PAYOFF_FORECAST: StringName = &"forecast"
 ## Id of the discovery whose site this one charts when it is resolved (a chain);
 ## that site stays hidden and cannot be scanned until then.
 @export var leads_to: StringName = &""
-@export_group("Codex")
-@export var codex_title: String = ""
-@export_multiline var codex_text: String = ""
+@export_group("Survey Log")
+@export var log_title: String = ""
+@export_multiline var log_text: String = ""
 @export_group("Payoff")
 ## One of the PAYOFF_* kinds.
 @export var payoff: StringName = PAYOFF_NONE

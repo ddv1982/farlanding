@@ -4,7 +4,7 @@ extends RefCounted
 ## sim applies (locked entity types, stat scales), extra starting units and
 ## resources, field options unlocked or charged in advance, and discovery sites the
 ## orbital scan already charted from an earlier landing. The campaign builds it from
-## its tech web, loadout and codex; a mission without one plays its MissionDef as is.
+## its tech web, loadout and Survey Log; a mission without one plays its MissionDef as is.
 
 ## Locks and stat scales for the player's faction.
 var perks: FactionPerks = FactionPerks.new()

@@ -74,6 +74,7 @@ staged checks pass.
 | Read | For |
 | --- | --- |
 | [Plan](docs/PLAN.md) | Game design, architecture and phased development |
+| [Field-kit verification](docs/FIELD_KIT_RESULTS.md) | UI, Survey Log, numbered groups and movement checks |
 | [Conventions](docs/CONVENTIONS.md) | Code structure and contribution checks |
 | [Art style](docs/ART_STYLE.md) | Visual identity and Blender asset generation |
 | [Audio style](docs/AUDIO_STYLE.md) | Sound identity and the synthesis pipeline |
