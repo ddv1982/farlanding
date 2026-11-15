@@ -54,6 +54,7 @@ const STREAM: PackedVector3Array = [
 	Vector3(-92, 0, -66), Vector3(-52, 0, -58), Vector3(30, 0, 38), Vector3(92, 0, 66)
 ]
 
+var _canopy_fixture: EconomyFixture
 var _f: SaveFixture
 var _maps: Array[LandingMap] = []
 
@@ -64,6 +65,9 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	if _canopy_fixture != null:
+		_canopy_fixture.dispose()
+		_canopy_fixture = null
 	for map: LandingMap in _maps:
 		_f.dispose(map)
 
@@ -142,11 +146,11 @@ func test_flyers_ignore_the_navmesh() -> void:
 
 
 func _canopy_for(map_def: MapDef) -> CanopySystem:
-	var fixture: EconomyFixture = EconomyFixture.new(self)
-	fixture.world.canopy_zones = map_def.canopy_zones
+	_canopy_fixture = EconomyFixture.new(self)
+	_canopy_fixture.world.canopy_zones = map_def.canopy_zones
 	var rule: CanopyRule = CanopyRule.new()
 	rule.system = CanopySystem
-	var canopy: CanopySystem = PlanetRuleSystem.start(fixture.world, rule) as CanopySystem
+	var canopy: CanopySystem = PlanetRuleSystem.start(_canopy_fixture.world, rule) as CanopySystem
 	return canopy
 
 

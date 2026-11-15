@@ -481,6 +481,8 @@ func _has_goal() -> bool:
 
 
 func _on_entity_died(entity: Node3D) -> void:
+	if is_instance_valid(entity) and entity is Building and (entity as Building).is_sold:
+		return
 	if result != null or not is_instance_valid(entity):
 		return
 	var faction: int = Combat.faction_of(entity)

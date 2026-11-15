@@ -76,6 +76,7 @@ class WebToolsTest(unittest.TestCase):
             root = Path(temporary)
             (root / 'tools').mkdir()
             shutil.copy(ROOT / 'tools/export.sh', root / 'tools/export.sh')
+            shutil.copy(ROOT / 'tools/godot_diagnostics.py', root / 'tools/godot_diagnostics.py')
             shutil.copy(ROOT / 'tools/prepare_import.py', root / 'tools/prepare_import.py')
             importer = root / 'game/presentation/import/model_post_import.gd'
             importer.parent.mkdir(parents=True)

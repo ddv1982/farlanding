@@ -13,7 +13,7 @@ const TYPE_NAMES: Dictionary[StringName, String] = {
 	DiscoveryDef.ENEMY: "ENEMY",
 }
 const EMPTY_TEXT: String = (
-	"No entries yet.\n\n" + "Select a Surveyor and click a ? on the map to scan it."
+	"No entries yet.\n\n" + "Explore with a Surveyor, then scan an unusual site you encounter."
 )
 
 var _entries: Array[DiscoveryDef] = []

@@ -181,3 +181,60 @@ func test_a_builder_standing_on_its_own_site_steps_out_and_still_builds() -> voi
 	var site: Building = _place(_f.reactor, Vector3.ZERO, [builder])
 	assert_ne(_ticks_to_finish(site), -1, "the site gets built")
 	assert_false(_inside(site, builder), "from outside the footprint")
+
+
+func test_blocking_props_refuse_construction_without_spending_in_both_rotations() -> void:
+	var wall_def: PropDef = PropDef.new()
+	wall_def.size = Vector3(2, 3, 8)
+	_f.reactor.cost_flux = 7
+	for turns: int in [0, 1]:
+		var wall: Prop = _f.world.spawn_prop(wall_def, Vector3.ZERO, turns)
+		var blocked: Vector3 = Vector3(0, 0, 6) if turns == 0 else Vector3(6, 0, 0)
+		var nearby: Vector3 = Vector3(6, 0, 0) if turns == 0 else Vector3(0, 0, 6)
+		assert_true(_f.world.paths.is_terrain_walkable(Vector3.ZERO), "terrain ignores cuts")
+		assert_false(_f.world.paths.is_walkable(Vector3.ZERO), "the prop cuts movement")
+		var builders: Array[Node3D] = _builders(1)
+		var alloy: int = _f.pile().alloy
+		var flux: int = _f.pile().flux
+		var count: int = _f.world.buildings.size()
+		var command: PlaceBuildingCommand = PlaceBuildingCommand.new(
+			0, builders, _f.reactor, blocked
+		)
+		_f.push(command)
+		_f.tick()
+		assert_eq(command.refused, PlacementRules.UNWALKABLE)
+		assert_null(command.placed)
+		assert_eq(_f.world.buildings.size(), count)
+		assert_eq(_f.pile().alloy, alloy)
+		assert_eq(_f.pile().flux, flux)
+		var site: Building = _place(_f.reactor, nearby, builders)
+		assert_not_null(site, "a nearby site clear of the turned wall is valid")
+		assert_eq(_f.pile().alloy, alloy - _f.reactor.cost_alloy)
+		assert_eq(_f.pile().flux, flux - _f.reactor.cost_flux)
+		if site != null:
+			site.free()
+		wall.free()
+
+
+func test_nonblocking_props_allow_construction() -> void:
+	var decoration: PropDef = PropDef.new()
+	decoration.blocks_movement = false
+	_f.world.spawn_prop(decoration, Vector3.ZERO)
+	assert_not_null(_place(_f.reactor, Vector3.ZERO, _builders(1)))
+
+
+func test_real_kessel_map_props_refuse_construction() -> void:
+	var fixture: SaveFixture = SaveFixture.new(self)
+	var map: LandingMap = await fixture.land(SaveFixture.mission(&"conquest"))
+	var placement: PlacementRules = map.world.placement_rules()
+	# A small footprint isolates each boulder's obstacle from neighbouring buildings.
+	var foundation: BuildingDef = BuildingDef.new()
+	foundation.footprint = Rect2(-0.1, -0.1, 0.2, 0.2)
+	var checked: int = 0
+	for prop: Prop in map.world.props:
+		if prop.def.blocks_movement:
+			assert_true(placement.obstacles.has(prop.footprint()))
+			assert_eq(placement.check(foundation, prop.position), PlacementRules.UNWALKABLE)
+			checked += 1
+	assert_eq(checked, 8, "the real map's eight boulders")
+	fixture.dispose(map)

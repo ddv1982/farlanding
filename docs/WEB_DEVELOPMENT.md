@@ -99,3 +99,10 @@ a push-to-`main` workflow while its tested artifact is retained, or rerun that e
 to create a fresh artifact. Manual **Run workflow** runs remain test-only.
 Existing ready deployments can still be promoted or rolled back without
 downloading the source artifact again.
+
+## Browser launcher
+
+The Play gesture follows Godot's [Web audio autoplay guidance](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_web.html#audio).
+Launch options overrides only graphics: the default keeps saved settings, or High on a
+fresh profile. Full settings stay inside the game. The custom shell lives in
+`game/platform/web_shell.html`; the exported `index.icon.png` comes from the application icon.

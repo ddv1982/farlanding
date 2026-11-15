@@ -29,7 +29,9 @@ diffable and rebuildable.
 | `art/pipeline/build_all.py` | Rebuilds every model and the palette |
 | `art/pipeline/build_icons.py` | Renders a HUD icon per model into `game/assets/icons/` |
 
-Rebuild everything: `blender -b -P art/pipeline/build_all.py`.
+Rebuild models and palette: `blender -b -P art/pipeline/build_all.py`.
+Terrain recipes under `art/terrain/` and HUD icon rendering through
+`art/pipeline/build_icons.py` are separate steps; rebuilding models does not rebuild them.
 
 ### Texturing: one palette for the whole game
 
@@ -70,3 +72,10 @@ cyan instrument lamps. Orange marks warnings. `HudStyle`, `PlateStyle` and
 before screens are built. Chakra Petch supplies body, button and heading weights.
 Its SIL Open Font Licence is bundled under `game/assets/fonts/OFL.txt`, included
 in exports and displayed in Credits.
+
+## Application icon
+
+`game/assets/branding/farlanding_icon.svg` is the editable favicon source. Its amber
+landing chevron and cyan planet rim use the HUD palette. Rebuild the committed 512px
+PNG with `game/assets/branding/render_icon.sh` (requires `rsvg-convert`, from librsvg).
+The application icon setting supplies native icons and the Web export's browser icon.

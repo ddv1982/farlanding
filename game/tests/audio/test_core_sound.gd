@@ -139,7 +139,7 @@ func _victory_sting_playing() -> bool:
 		var event: SoundEvent = Audio.get_event(id)
 		if event != null:
 			streams.append_array(event.streams)
-	for child: Node in Audio.get_children():
+	for child: Node in Audio.get_node(^"OneShots").get_children():
 		var player: AudioStreamPlayer = child as AudioStreamPlayer
 		if player != null and player.playing and streams.has(player.stream):
 			return true

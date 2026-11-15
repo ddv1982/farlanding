@@ -2,7 +2,7 @@ class_name StarMap
 extends MenuScreen
 ## Aboard the Meridian: the star map (PLAN 1). The route of landings with their
 ## states; hovering a node shows its orbital scan (planet, its rule, mission type,
-## the `?` signals the scan charted), clicking an open node picks it and LAUNCH goes
+## surface survey context), clicking an open node picks it and LAUNCH goes
 ## to its briefing. MERIDIAN opens the tech web and loadout.
 
 ## LAUNCH on the picked node.
@@ -173,10 +173,7 @@ func _signals_text(mission: MissionDef) -> String:
 	for site: DiscoveryDef in sites:
 		if session.state.discoveries.has(site.id):
 			known += 1
-	var text: String = "%d unresolved ? signals" % sites.size()
-	if known > 0:
-		text += "  (%d match log entries)" % known
-	return text
+	return "%d discoveries recorded" % known if known > 0 else "Surface survey required"
 
 
 static func _rule_text(planet: PlanetDef) -> String:

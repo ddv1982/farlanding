@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 class_name SimWorld
 extends Node3D
 ## Owns the entities of one mission — units, buildings, resource nodes and discovery
@@ -303,6 +304,9 @@ func placement_rules() -> PlacementRules:
 	placement.bounds = build_bounds
 	for building: Building in buildings:
 		placement.footprints.append(building.footprint())
+	for prop: Prop in props:
+		if prop.def != null and prop.def.blocks_movement and not prop.is_dead:
+			placement.obstacles.append(prop.footprint())
 	placement.nodes = resource_nodes.duplicate()
 	for site: DiscoverySite in discovery.sites:
 		if site.def.blocks_movement:
@@ -569,6 +573,30 @@ func _on_ground(point: Vector3) -> Vector3:
 	return point
 
 
+## Removes an owned placeable building through the normal unregistration path.
+## All authoritative state, including the refund, is committed before events: a
+## synchronous listener may save. The shared removal event clears selection and
+## loops; casualty consumers distinguish a sale via Building.is_sold.
+func sell_building(building: Building, issuer: int) -> bool:
+	if not SellBuildingCommand.can_sell(building, issuer) or building.world != self:
+		return false
+	var refund: Vector2i = SellBuildingCommand.refund_for(building)
+	building.is_sold = true
+	if building.producer != null:
+		while building.producer.is_busy():
+			building.producer.cancel_last()
+	_on_building_exiting(building)
+	# The exit callback may run again after listeners have already reclaimed a vent.
+	building.vent = null
+	var pile: Stockpile = economy.stockpile(issuer)
+	pile.add(refund.x, refund.y)
+	economy.update_power(buildings)
+	Events.resources_changed.emit(issuer, pile.alloy, pile.flux)
+	Events.entity_died.emit(building)
+	building.queue_free()
+	return true
+
+
 ## Health ran out: announce the death, take the entity out of play at once (its
 ## navmesh cut-out is freed now) and free it after the frame.
 func _on_entity_killed(_attacker: Node3D, entity: Node3D) -> void:
@@ -681,9 +709,25 @@ func to_dict() -> Dictionary:
 func from_dict(data: Dictionary) -> void:
 	var version: int = data.get("version", 0)
 	assert(version >= 1 and version <= SAVE_VERSION, "Unsupported SimWorld save version")
+	_restore_economy(data)
+	_restore_resource_nodes(data)
+	_restore_sites(data)
+	_restore_buildings(data)
+	_restore_discovery(data)
+	_restore_units(data)
+	var saved_next: int = _restore_systems(data)
+	_restore_props(data)
+	_restore_references(saved_next)
+	discovery.refresh_visibility()
+
+
+func _restore_economy(data: Dictionary) -> void:
 	var economy_data: Dictionary = data.get("economy", {})
 	if not economy_data.is_empty():
 		economy.from_dict(economy_data)
+
+
+func _restore_resource_nodes(data: Dictionary) -> void:
 	var saved_nodes: Array = data.get("resource_nodes", [])
 	for entry: Variant in saved_nodes:
 		var node_data: Dictionary = entry
@@ -692,6 +736,9 @@ func from_dict(data: Dictionary) -> void:
 			var node: ResourceNode = spawn_resource_node(node_def, _saved_position(node_data))
 			_restore_id(node, node.entity_id, node_data)
 			node.from_dict(node_data)
+
+
+func _restore_sites(data: Dictionary) -> void:
 	var saved_sites: Array = data.get("sites", [])
 	for entry: Variant in saved_sites:
 		var site_data: Dictionary = entry
@@ -703,6 +750,9 @@ func from_dict(data: Dictionary) -> void:
 			var site: DiscoverySite = spawn_site(site_def, _saved_position(site_data))
 			_restore_id(site, site.entity_id, site_data)
 			site.from_dict(site_data)
+
+
+func _restore_buildings(data: Dictionary) -> void:
 	var saved_buildings: Array = data.get("buildings", [])
 	for entry: Variant in saved_buildings:
 		var building_data: Dictionary = entry
@@ -714,10 +764,16 @@ func from_dict(data: Dictionary) -> void:
 			)
 			_restore_id(building, building.entity_id, building_data)
 			building.from_dict(building_data)
+
+
+func _restore_discovery(data: Dictionary) -> void:
 	# After the buildings: field options look their definitions up on the Survey Lab.
 	var discovery_data: Dictionary = data.get("discovery", {})
 	if not discovery_data.is_empty():
 		discovery.from_dict(discovery_data)
+
+
+func _restore_units(data: Dictionary) -> void:
 	var saved_units: Array = data.get("units", [])
 	for entry: Variant in saved_units:
 		var unit_data: Dictionary = entry
@@ -727,6 +783,9 @@ func from_dict(data: Dictionary) -> void:
 			var unit: Unit = spawn_unit(unit_def, faction, Vector3.ZERO)
 			_restore_id(unit, unit.entity_id, unit_data)
 			unit.from_dict(unit_data)
+
+
+func _restore_systems(data: Dictionary) -> int:
 	var saved_next: int = data.get("next_id", _next_id)
 	_next_id = maxi(_next_id, saved_next)
 	var vision_data: Dictionary = data.get("vision", {})
@@ -744,9 +803,16 @@ func from_dict(data: Dictionary) -> void:
 		_apply_conditions(true)
 		# The sea closes the same ground it did, before orders ask for paths.
 		flood.sync()
+	return saved_next
+
+
+func _restore_props(data: Dictionary) -> void:
 	var props_data: Dictionary = data.get("props", {})
 	if not props_data.is_empty():
 		_props_from_dict(props_data)
+
+
+func _restore_references(saved_next: int) -> void:
 	# Restoring handed out (and then replaced) fresh ids: continue from the saved count.
 	var highest: int = saved_next - 1
 	for id: int in _entities:

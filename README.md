@@ -6,7 +6,7 @@ Farlanding is a single-player 3D real-time strategy game about a survey expediti
 beyond familiar space. Build bases, command a growing force, and uncover a trail
 of discoveries that changes what your expedition can do. Made with Godot and Blender.
 
-**[Play in your browser](https://farlanding.vercel.app)** ·
+**[Play in your browser](https://farlanding.app)** ·
 [Player guide](docs/PLAYER_GUIDE.md) · [Development plan](docs/PLAN.md)
 
 ![The Meridian in orbit above the expedition's first world](docs/media/browser-orbit.png)

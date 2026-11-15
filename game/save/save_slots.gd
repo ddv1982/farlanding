@@ -21,6 +21,8 @@ const MANUAL: Array[StringName] = [&"manual_1", &"manual_2", &"manual_3"]
 static var default_dir: String = DIR
 ## Why the last `read()` or `write()` failed ("" after a success).
 static var last_error: String = ""
+## Tie-breaks writes within a second without changing legacy saved_at dates.
+static var _last_write_order: int = 0
 
 
 ## Every slot, in the order the slot list shows them.
@@ -62,7 +64,13 @@ static func write(slot: StringName, game: SaveGame) -> String:
 	var made: Error = DirAccess.make_dir_recursive_absolute(default_dir)
 	if made != OK and not DirAccess.dir_exists_absolute(default_dir):
 		return _fail("Cannot create the save folder (%s)." % error_string(made))
-	var payload: String = var_to_str(game.to_dict())
+	var data: Dictionary = game.to_dict()
+	_last_write_order = maxi(
+		int(Time.get_unix_time_from_system() * 1_000_000), _last_write_order + 1
+	)
+	# Optional slot metadata; older readers ignore it and older files default to 0.
+	data["write_order"] = _last_write_order
+	var payload: String = var_to_str(data)
 	var text: String = (
 		"%s %d\n%s\n%s" % [MAGIC, SaveGame.FORMAT_VERSION, payload.sha256_text(), payload]
 	)
@@ -142,13 +150,21 @@ static func parse(text: String) -> Dictionary:
 static func newest() -> Array:
 	var best: Array = []
 	var best_time: int = -1
+	var best_order: int = -1
 	for slot: StringName in slots():
 		if not exists(slot):
 			continue
-		var game: SaveGame = read(slot)
-		if game != null and game.saved_at > best_time:
+		var data: Dictionary = read_data(slot)
+		var game: SaveGame = SaveGame.from_dict(data) if not data.is_empty() else null
+		var order_value: Variant = data.get("write_order", 0)
+		var order: int = order_value if order_value is int else 0
+		if (
+			game != null
+			and (game.saved_at > best_time or (game.saved_at == best_time and order > best_order))
+		):
 			best = [slot, game]
 			best_time = game.saved_at
+			best_order = order
 	last_error = ""
 	return best
 

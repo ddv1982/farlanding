@@ -28,7 +28,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	_main.queue_free()
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	for slot: StringName in SaveSlots.slots():
 		SaveSlots.remove(slot)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVES))
@@ -49,7 +49,7 @@ func _escape() -> void:
 func test_pause_stops_the_sim_and_resume_lets_it_run() -> void:
 	var catalog: MissionCatalog = _main.catalog
 	_main.start_mission(catalog.missions[2])
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_not_null(_main.runner)
 	_escape()
 	assert_true(_main.paused, "Esc pauses")
@@ -72,11 +72,11 @@ func test_pause_stops_the_sim_and_resume_lets_it_run() -> void:
 func test_restart_and_quit() -> void:
 	var catalog: MissionCatalog = _main.catalog
 	_main.start_mission(catalog.missions[2])
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	var first: Node = _main.map
 	_main.open_pause()
 	_main._on_restart()
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	assert_ne(_main.map, first, "a fresh landing")
 	assert_false(_main.paused)
 	_main.open_pause()
@@ -96,7 +96,7 @@ func test_settings_from_the_mission_select() -> void:
 func test_the_hud_menu_button_opens_the_pause_menu() -> void:
 	var catalog: MissionCatalog = _main.catalog
 	_main.start_mission(catalog.missions[0])
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	var hud: Hud = _main.map.get(&"hud")
 	hud.request_menu()
 	assert_true(_main.paused)
@@ -105,7 +105,7 @@ func test_the_hud_menu_button_opens_the_pause_menu() -> void:
 
 func test_pause_cannot_reopen_a_completed_mission_under_the_debrief() -> void:
 	_main.start_mission(_main.catalog.missions[2])
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	_main.runner.finish(false)
 	await wait_seconds(Main.DEBRIEF_DELAY + 0.1)
 	assert_true(_main._debrief.visible)

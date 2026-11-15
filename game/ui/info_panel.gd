@@ -225,7 +225,7 @@ static func controls_text(scheme: StringName) -> String:
 		"%s ground  ·  move the selected units there" % command,
 		"%s enemy in sight  ·  attack it" % command,
 		"%s deposit  ·  harvest (Haulers)" % command,
-		"%s ? signal  ·  scan (Surveyors)" % command,
+		"%s discovered site  ·  scan (Surveyors)" % command,
 		"%s own building site  ·  help build (Fabricators)" % command,
 		"%s ground with a building selected  ·  set its rally point" % command,
 		(

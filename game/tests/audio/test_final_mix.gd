@@ -131,8 +131,8 @@ func before_each() -> void:
 	Audio.ambience()._use_set(AmbienceSet.new())
 	await wait_process_frames(1)
 	seed(1729)
-	Audio._rng.seed = 1729
-	Audio._last_variation.clear()
+	(Audio.get_node(^"OneShots") as OneShotPlayback)._rng.seed = 1729
+	(Audio.get_node(^"OneShots") as OneShotPlayback)._last_variation.clear()
 	Audio.ambience()._rng.seed = 1729
 	Audio.music()._rng.seed = 1729
 	Audio.play_score(load(KESSEL_SCORE) as MusicScore)

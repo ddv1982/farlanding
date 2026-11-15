@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Farlanding app icon / favicon. Original artwork, editable by hand.
+     A descent chevron (amber, the game's power colour) lands on the cyan-lit
+     horizon of an unfamiliar world, on a navy chamfered HUD plate.
+     Palette from game/ui/hud_style.gd: PANEL #0B1219, BUTTON #13202B,
+     LINE #405970, ACCENT #66DEF2, POWER #FFD159, TEXT #E6F0F5.
+     Rebuild the PNG with render_icon.sh in this folder. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Farlanding</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0B1219"/>
+      <stop offset="1" stop-color="#16283A"/>
+    </linearGradient>
+    <radialGradient id="world" cx="0.5" cy="0.08" r="0.75">
+      <stop offset="0" stop-color="#1F4A5C"/>
+      <stop offset="0.55" stop-color="#132C3A"/>
+      <stop offset="1" stop-color="#0B1820"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#66DEF2" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#66DEF2" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Chamfered plate, like the in-game PlateStyle panels. -->
+    <path id="plate" d="M88 16 H424 L496 88 V424 L424 496 H88 L16 424 V88 Z"/>
+    <clipPath id="plateClip"><use href="#plate"/></clipPath>
+  </defs>
+
+  <use href="#plate" fill="url(#sky)"/>
+
+  <g clip-path="url(#plateClip)">
+    <!-- Stars -->
+    <g fill="#E6F0F5">
+      <circle cx="104" cy="104" r="7"/>
+      <circle cx="412" cy="92" r="5" opacity="0.8"/>
+      <circle cx="430" cy="236" r="6" opacity="0.7"/>
+      <circle cx="78" cy="262" r="4" opacity="0.6"/>
+    </g>
+    <!-- Planet with cyan rim light -->
+    <circle cx="256" cy="676" r="356" fill="url(#world)"/>
+    <circle cx="256" cy="676" r="356" fill="none" stroke="#66DEF2" stroke-width="30"/>
+    <!-- Surface contour lines -->
+    <path d="M40 430 Q256 360 472 430" fill="none" stroke="#66DEF2" stroke-width="10" stroke-opacity="0.2"/>
+    <path d="M40 486 Q256 430 472 486" fill="none" stroke="#66DEF2" stroke-width="10" stroke-opacity="0.1"/>
+    <!-- Touchdown glow on the horizon -->
+    <ellipse cx="256" cy="322" rx="120" ry="40" fill="url(#glow)"/>
+  </g>
+
+  <!-- Descent chevron: the lander coming down to the horizon -->
+  <path d="M128 104 L256 210 L384 104 L384 196 L256 302 L128 196 Z"
+        fill="#FFD159" stroke="#0B1219" stroke-width="16" stroke-linejoin="round" paint-order="stroke"/>
+  <!-- Small upper chevron as a descent trail -->
+  <path d="M208 40 L256 76 L304 40 L304 66 L256 102 L208 66 Z" fill="#FFD159" opacity="0.4"/>
+
+  <!-- Plate outline -->
+  <use href="#plate" fill="none" stroke="#405970" stroke-width="12"/>
+</svg>

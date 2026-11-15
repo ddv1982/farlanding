@@ -50,7 +50,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	_main.queue_free()
-	await wait_frames(2)
+	await wait_physics_frames(2)
 	for slot: StringName in SaveSlots.slots():
 		SaveSlots.remove(slot)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVES))
@@ -98,7 +98,7 @@ func _land(node_id: StringName) -> void:
 	_main.launch(node_id)
 	assert_true(_main._briefing.visible, "briefed")
 	_main._briefing._on_start()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_not_null(_main.runner, "landed")
 
 

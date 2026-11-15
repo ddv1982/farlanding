@@ -25,6 +25,9 @@ const VENT_TOLERANCE: float = 0.5
 
 ## Footprints of every building standing or under construction (world X/Z).
 var footprints: Array[Rect2] = []
+## Public movement-blocking map props, independent of faction-known buildings.
+## Exact footprints: building spacing does not apply to terrain obstacles.
+var obstacles: Array[Rect2] = []
 var nodes: Array[ResourceNode] = []
 ## Area buildings may be placed in (world X/Z).
 var bounds: Rect2 = Rect2(-1.0e6, -1.0e6, 2.0e6, 2.0e6)
@@ -87,6 +90,9 @@ func check(def: BuildingDef, at: Vector3) -> StringName:
 	for other: Rect2 in footprints:
 		if spaced.intersects(other):
 			return BLOCKED
+	for obstacle: Rect2 in obstacles:
+		if area.intersects(obstacle):
+			return UNWALKABLE
 	var vent_reason: StringName = _check_nodes(def, at, area)
 	if vent_reason != OK:
 		return vent_reason

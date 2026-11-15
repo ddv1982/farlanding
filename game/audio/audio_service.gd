@@ -1,52 +1,9 @@
-## Autoload `Audio`: the only way sound gets played. Gameplay never calls this for
-## its own events — `audio/` listens to `Events` and decides what is heard. The
-## public surface below is a contract other systems rely on.
-##
-## Inside: every SoundEvent under `res://data/sounds/` is registered by id at
-## startup. Flat (interface, replies, Advisor) and positional sounds each have a
-## pool of players behind a VoiceBudget (priority stealing, per-event caps and
-## cooldowns). An AudioListener3D sits above the camera's ground focus point;
-## zoom moves it up and reshapes bus levels (AudioMix). Child nodes: the
-## AudioEventRouter (Events -> sounds, Advisor alert queue), MovementLoops,
-## BaseLoops (construction, production, mining, building hum), the
-## MusicDirector, the SignalPulses (discovery-site pulses and scan loops) and
-## the DiscoverySoundRouter (resolve phrases, Intel, field options, Survey Log).
-## While a discovery resolves, a BusDucker briefly lowers music, ambience and
-## effects. Phase 5 adds the StealthSoundRouter (alert stingers, spotted,
-## cloaks, the stealth music mood), SuspicionTones (the watchers' rising tone)
-## and the MissionSoundRouter (objectives, briefing and debrief beds, launch,
-## storm). The combat and stealth moods both ask for music states; a
-## MusicArbiter decides which one plays. Phase 6 adds the StormSound (the dust
-## storm's beds, gusts, debris, the world muffle and its release), the
-## AmbienceDirector (layered, wandering planet beds and positional details),
-## the score's urgency layer while the base is under attack, transition hits
-## on the beat (ScoreTransitions) and the pause and menu mix overlays.
-## Phase 7 adds the CampaignSoundRouter: aboard the Meridian between landings
-## (any campaign screen) the ship score plays in that screen's state, the
-## AmbienceDirector plays the ship, and the ship mix applies; a landing hands
-## back to the planet's score (`switch_score`: one player, never two scores).
-## Phase 8a adds the planets as data (PlanetAudio: score and ambience set per
-## planet id, `play_planet`; found by itself from the running mission when a
-## mission starts), the TideSound (Thalassa's tide: water beds, rush and pull,
-## the turning warnings, the score's tide layer) and score-specific transition
-## hits and ending stings (`<hit>_<score id>` before the generic one).
-## Phase 8b adds Emberfall: the EruptionSound (child "Eruption": vent
-## build-ups, blasts, the score's pressure layer) and the HoldoutSound (child
-## "Holdout": the survival timer's holdout layer, one-minute cue, approaching
-## engine and arrival). Both are reached by name; the public surface is full.
-## Phase 8c adds Verdance: the CanopySound (child "Canopy": the player's units
-## rustling under the crowns, and the ambience's high band closing while the
-## camera looks under one, applied here with the storm's muffle).
-## Phase 8d adds Hollow Meridian: the CoreSound (child "Core": the score's Core
-## layers by charge, and the awakening, the campaign's peak, on its own player;
-## the victory sting is left out while it rings), the MachineSound (child
-## "Machines": the old engines' spin-up, wind-down and the enemy's seizure, and
-## the running engines' hum; BaseLoops leaves those machines alone) and screen
-## music (ScreenMusic: a campaign screen with a score of its own, the ending).
-## Phase 9 adds subtitles for the Advisor (the AudioEventRouter emits
-## `Events.subtitle` as a line starts), the Advisor's and the ambience's own
-## volume settings (AudioMix), and the MachineClaimSound (child "Claims": the
-## player's workers bringing an engine back, heard rising with the work).
+## Autoload Audio: registers SoundEvents and routes gameplay, mission and campaign
+## events to sound. Its public API is the playback contract for other systems.
+## OneShotPlayback owns flat and positional voice pools, budgets and variation.
+## Audio owns the listener and mix, and coordinates world loops, planetary weather,
+## discovery, Advisor lines, ambience and music through focused child nodes.
+## ShutdownGuard stops all descendant players before they leave the tree.
 extends Node
 
 const EVENTS_DIR: String = "res://data/sounds"
@@ -55,8 +12,8 @@ const SHIP_SCORE: String = "res://data/sounds/music/meridian.tres"
 ## Leaving the ship, the planet's score comes in at the briefing bed's level
 ## and waits there for the briefing (or the mission) to set it.
 const LANDING_DIP_DB: float = MissionSoundRouter.BRIEFING_DUCK_DB
-const FLAT_VOICES: int = 16
-const POSITIONAL_VOICES: int = 32
+const FLAT_VOICES: int = OneShotPlayback.FLAT_VOICES
+const POSITIONAL_VOICES: int = OneShotPlayback.POSITIONAL_VOICES
 ## Zoom changes smaller than this do not touch the bus volumes.
 const ZOOM_EPSILON: float = 0.01
 ## The music layer that surfaces as discovery sites are resolved.
@@ -79,15 +36,9 @@ const RIVAL_INTEL_TYPE: StringName = &"rival_intel"
 const STING_DIP_DB: float = -6.0
 
 var _events: Dictionary[StringName, SoundEvent] = {}
-var _last_variation: Dictionary[StringName, int] = {}
-var _flat_budget: VoiceBudget = VoiceBudget.new(FLAT_VOICES)
-var _positional_budget: VoiceBudget = VoiceBudget.new(POSITIONAL_VOICES)
-var _flat_players: Array[AudioStreamPlayer] = []
-var _positional_players: Array[AudioStreamPlayer3D] = []
-var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _one_shots: OneShotPlayback
 var _listener: AudioListener3D
 var _listener_active: bool = false
-var _focus: Vector3 = Vector3.ZERO
 var _zoom: float = 0.5
 var _applied_zoom: float = -1.0
 var _router: AudioEventRouter
@@ -132,7 +83,9 @@ var _shade: float = 0.0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_register_events(EVENTS_DIR)
-	_build_pools()
+	_one_shots = OneShotPlayback.new()
+	_one_shots.name = &"OneShots"
+	add_child(_one_shots)
 	_listener = AudioListener3D.new()
 	_listener.name = &"Listener"
 	add_child(_listener)
@@ -311,7 +264,6 @@ func play(event_id: StringName, position: Vector3 = Vector3.INF) -> void:
 ## Called by the camera every frame. `focus` is the ground point the camera looks
 ## at; `zoom` runs from 0 (closest) to 1 (furthest) and shapes the mix.
 func set_listener_focus(focus: Vector3, zoom: float) -> void:
-	_focus = focus
 	_zoom = clampf(zoom, 0.0, 1.0)
 	_listener.global_position = focus + Vector3.UP * AudioMix.listener_height(_zoom)
 	var camera: Camera3D = get_viewport().get_camera_3d()
@@ -320,6 +272,8 @@ func set_listener_focus(focus: Vector3, zoom: float) -> void:
 	if not _listener_active:
 		_listener.make_current()
 		_listener_active = true
+	_one_shots.focus = focus
+	_one_shots.listener_active = _listener_active
 	_loops.focus = focus
 	_base_loops.focus = focus
 	_router.focus = focus
@@ -342,7 +296,7 @@ func set_music_state(state: StringName) -> void:
 	_music.set_state(state)
 
 
-# --- Additions beyond the original contract -----------------------------------
+# --- Music, ambience and mix --------------------------------------------------
 
 
 ## Starts a planet's score at once (and the ambience of the planet whose id
@@ -532,12 +486,7 @@ func music() -> MusicDirector:
 ## suspicion loops) at once; the score, the ambience and the storm go on. For
 ## leaving a mission mid-sound and for tests that measure the mix.
 func stop_all_voices() -> void:
-	for i: int in _flat_players.size():
-		_flat_players[i].stop()
-		_flat_budget.release(i)
-	for i: int in _positional_players.size():
-		_positional_players[i].stop()
-		_positional_budget.release(i)
+	_one_shots.stop_all()
 	for node: Node in [_loops, _base_loops, _pulses, _tones, _machines, _claims]:
 		ShutdownGuard._stop_all(node)
 	_ducker = BusDucker.new()
@@ -547,7 +496,7 @@ func stop_all_voices() -> void:
 
 ## Voices in use (flat + positional), for the debug overlay and tests.
 func active_voices() -> int:
-	return _flat_budget.active_count() + _positional_budget.active_count()
+	return _one_shots.active_voices()
 
 
 # --- Internals ----------------------------------------------------------------
@@ -563,55 +512,7 @@ func _process(_delta: float) -> void:
 
 
 func _start(event_id: StringName, position: Vector3, volume_offset_db: float = 0.0) -> bool:
-	var event: SoundEvent = _events.get(event_id, null)
-	if event == null or event.streams.is_empty():
-		return false
-	var positional: bool = event.positional and position.is_finite()
-	if positional and _listener_active and event.max_distance > 0.0:
-		if Vector2(position.x - _focus.x, position.z - _focus.z).length() > event.max_distance:
-			return false
-	var last: int = _last_variation.get(event_id, -1)
-	var index: int = SoundEvent.pick_index(
-		event.streams.size(), last, _rng.randf(), event.avoid_repeat
-	)
-	var stream: AudioStream = event.streams[index]
-	var pitch: float = 1.0
-	if event.pitch_variation > 0.0:
-		pitch = pow(2.0, _rng.randf_range(-event.pitch_variation, event.pitch_variation) / 12.0)
-	var budget: VoiceBudget = _positional_budget if positional else _flat_budget
-	var voice: int = (
-		budget
-		. request(
-			event_id,
-			event.priority,
-			event.max_instances,
-			event.cooldown,
-			stream.get_length() / pitch,
-			_now(),
-		)
-	)
-	if voice == VoiceBudget.REJECTED:
-		return false
-	_last_variation[event_id] = index
-	if positional:
-		var player3d: AudioStreamPlayer3D = _positional_players[voice]
-		player3d.stop()
-		player3d.stream = stream
-		player3d.bus = event.bus
-		player3d.volume_db = event.volume_db + volume_offset_db
-		player3d.pitch_scale = pitch
-		player3d.max_distance = event.max_distance
-		player3d.global_position = position
-		player3d.play()
-	else:
-		var player: AudioStreamPlayer = _flat_players[voice]
-		player.stop()
-		player.stream = stream
-		player.bus = event.bus
-		player.volume_db = event.volume_db + volume_offset_db
-		player.pitch_scale = pitch
-		player.play()
-	return true
+	return _one_shots.start(event_id, get_event(event_id), position, volume_offset_db)
 
 
 func _register_events(dir_path: String) -> void:
@@ -629,23 +530,6 @@ func _register_events(dir_path: String) -> void:
 			push_error("Audio: SoundEvent %s has an empty or duplicate id '%s'" % [path, event.id])
 			continue
 		_events[event.id] = event
-
-
-func _build_pools() -> void:
-	for i: int in FLAT_VOICES:
-		var player: AudioStreamPlayer = AudioStreamPlayer.new()
-		player.name = "Flat%d" % i
-		player.finished.connect(_flat_budget.release.bind(i))
-		add_child(player)
-		_flat_players.append(player)
-	for i: int in POSITIONAL_VOICES:
-		var player3d: AudioStreamPlayer3D = AudioStreamPlayer3D.new()
-		player3d.name = "Positional%d" % i
-		player3d.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
-		player3d.unit_size = 10.0
-		player3d.finished.connect(_positional_budget.release.bind(i))
-		add_child(player3d)
-		_positional_players.append(player3d)
 
 
 func _apply_volumes() -> void:
@@ -788,9 +672,7 @@ func _on_launch() -> void:
 ## Stops the world's one-shots (the positional pool) and loops; interface,
 ## Advisor and stings (the flat pool) ring on.
 func _stop_world_voices() -> void:
-	for i: int in _positional_players.size():
-		_positional_players[i].stop()
-		_positional_budget.release(i)
+	_one_shots.stop_world()
 	for node: Node in [_loops, _base_loops, _pulses, _tones]:
 		ShutdownGuard._stop_all(node)
 

@@ -12,6 +12,11 @@ extends Resource
 @export_group("Production")
 ## Share of the cost returned when a queued unit is cancelled.
 @export_range(0.0, 1.0, 0.05) var cancel_refund: float = 1.0
+@export_group("Selling")
+## Share of a completed building's Alloy and Flux cost returned on sale.
+@export_range(0.0, 1.0, 0.05) var sell_refund: float = 0.5
+## Cancelling construction returns the full building cost.
+@export_range(0.0, 1.0, 0.05) var construction_cancel_refund: float = 1.0
 @export_group("Placement")
 ## Free space kept between building footprints, in metres.
 @export_range(0.0, 10.0, 0.1, "suffix:m") var building_gap: float = 1.0

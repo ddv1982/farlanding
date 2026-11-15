@@ -48,10 +48,12 @@ var seen_by_player: bool = true
 var sabotage_progress: float = 0.0
 ## True once sabotaged: it no longer works. Read by audio, UI and presentation.
 var is_sabotaged: bool = false
-## True from the moment its health ran out.
+## True once sold; distinct from a combat death for mission accounting.
+var is_sold: bool = false
+## True from the moment it leaves play (health ran out or sold).
 var is_dead: bool:
 	get:
-		return health != null and health.is_dead()
+		return is_sold or (health != null and health.is_dead())
 
 ## True for an Antecedent machine that is not running (dormant or shut down): it gives
 ## nothing, and nothing targets it. Read by combat, the AI, UI and presentation.
@@ -62,7 +64,7 @@ var is_inert: bool:
 ## Read by audio (base loops) and the HUD.
 var is_under_construction: bool:
 	get:
-		return construction != null and not construction.is_complete()
+		return not is_dead and construction != null and not construction.is_complete()
 var is_producing: bool:
 	get:
 		return is_operational() and producer != null and producer.is_busy()
@@ -131,7 +133,8 @@ func _ready() -> void:
 
 func is_operational() -> bool:
 	return (
-		construction != null
+		not is_dead
+		and construction != null
 		and construction.is_complete()
 		and not is_sabotaged
 		and (machine == null or machine.is_running())

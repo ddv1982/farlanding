@@ -41,7 +41,7 @@ func after_each() -> void:
 	if _main != null:
 		_main.queue_free()
 		_main = null
-		await wait_frames(2)
+		await wait_physics_frames(2)
 	for slot: StringName in SaveSlots.slots():
 		SaveSlots.remove(slot)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVES))
@@ -166,7 +166,7 @@ func test_the_debrief_leads_to_the_ending_and_back_to_the_title() -> void:
 	main.launch(&"hollow_finale")
 	assert_true(main._briefing.visible, "the finale is briefed")
 	main._briefing._on_start()
-	await wait_frames(3)
+	await wait_physics_frames(3)
 	assert_not_null(main.runner, "landed on the deck")
 	assert_true(main.runner.script_instance is CoreScript)
 	main.runner.finish(true)

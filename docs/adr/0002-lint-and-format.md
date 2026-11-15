@@ -32,3 +32,13 @@ all of it.
 
 If a future GDScript feature is not parsed by gdtoolkit, either avoid it or exclude that file in
 `gdlintrc`/`gdformatrc` and note it here.
+
+## Verification note (2026-11-15)
+
+Only the explicitly stored warning overrides are project policy; engine defaults
+supply other settings. The earlier list overstated the committed configuration:
+`inference_on_variant` and `directory_rules` are engine defaults rather than explicit
+overrides in this checkout. Verified through the running 4.7.2 editor: inference is
+level 2 and directory rules are `{ "res://addons": 0 }`, matching the intended policy.
+The script/resource load check and actual project settings remain the executable authority. Engine and GUT diagnostic classification is now shared
+by local checks and exports; GUT warnings and deprecated APIs also fail checks.

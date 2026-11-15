@@ -36,24 +36,23 @@ run_godot() {
 	local log="$LOG_DIR/$name.log"
 	local status=0
 	with_timeout "$GODOT" --headless --path "$GAME" "$@" >"$log" 2>&1 || status=$?
-	# Strip ANSI colours so the output and the grep are plain text.
-	sed -e $'s/\x1b\\[[0-9;]*m//g' "$log" >"$log.txt"
-	cat "$log.txt"
-	if [ "$status" -ne 0 ]; then
-		fail "$name: godot exited with status $status"
+	local diagnostic_status=0
+	if [ "$name" = import ]; then
+		python3 "$ROOT/tools/godot_diagnostics.py" "$log" --allow-import-noise || diagnostic_status=$?
+	else
+		python3 "$ROOT/tools/godot_diagnostics.py" "$log" || diagnostic_status=$?
 	fi
-	# Not ours: the GUT editor plugin asks GitHub for its latest version on a fresh
-	# machine, and a shared CI runner address is often over GitHub's anonymous limit.
-	local noise='^ERROR: \[GUT\] Could not get version info'
-	if grep -E '^(SCRIPT ERROR|ERROR|WARNING|USER ERROR|USER WARNING):' "$log.txt" \
-		| grep -Ev "$noise" >/dev/null; then
-		fail "$name: engine reported errors or warnings (see above)"
-	fi
+	[ "$status" -eq 0 ] || fail "$name: godot exited with status $status"
+	[ "$diagnostic_status" -eq 0 ] || fail "$name: engine or GUT reported diagnostics (see above)"
 }
 
 command -v "$GODOT" >/dev/null || fail "Godot binary '$GODOT' not found (set GODOT=...)"
 command -v uvx >/dev/null || fail "uvx not found (install uv: https://docs.astral.sh/uv/)"
 command -v perl >/dev/null || fail "perl not found"
+
+step "Python tooling tests and project integrity"
+python3 -m unittest discover -s "$ROOT/tools" -p 'test_*.py'
+python3 "$ROOT/tools/project_integrity.py"
 
 step "Format check (gdformat $GDTOOLKIT_VERSION)"
 gdtoolkit gdformat --check . || fail "format (run: cd game && uvx --from gdtoolkit==$GDTOOLKIT_VERSION gdformat .)"

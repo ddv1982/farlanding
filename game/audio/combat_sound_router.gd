@@ -152,6 +152,8 @@ func handle_entity_damaged(entity: Node3D, amount: float, attacker: Node3D, now:
 
 
 func handle_entity_died(entity: Node3D, now: float) -> void:
+	if is_instance_valid(entity) and entity is Building and (entity as Building).is_sold:
+		return
 	if entity == null or not is_instance_valid(entity):
 		return
 	var at: Vector3 = _position_of(entity)
