@@ -34,11 +34,11 @@ const PANEL_CUT := 10.0
 const BUTTON_CUT := 6.0
 ## Labels this large or larger are set in the heading weight.
 const HEADING_SIZE := 18
-## The typeface (Chakra Petch, SIL Open Font License) by weight. Loaded on first use,
+## The typeface (Saira, SIL Open Font License) by weight. Loaded on first use,
 ## not preloaded: a fresh checkout parses this script before the fonts are imported.
-const FONT_BODY: String = "res://assets/fonts/ChakraPetch-Regular.ttf"
-const FONT_BUTTON: String = "res://assets/fonts/ChakraPetch-Medium.ttf"
-const FONT_HEADING: String = "res://assets/fonts/ChakraPetch-SemiBold.ttf"
+const FONT_BODY: String = "res://assets/fonts/Saira-Regular.tres"
+const FONT_BUTTON: String = "res://assets/fonts/Saira-Medium.tres"
+const FONT_HEADING: String = "res://assets/fonts/Saira-SemiBold.tres"
 
 
 ## The font at `path` (FONT_BODY, FONT_BUTTON, FONT_HEADING).

@@ -69,7 +69,7 @@ slope, height and world-space noise, so any heightfield is shaded for free.
 Concord field equipment uses steel-blue chamfered plates, subtle outlines and
 cyan instrument lamps. Orange marks warnings. `HudStyle`, `PlateStyle` and
 `HudTheme` provide the shared controls; `UiTheme` applies the stock-control theme
-before screens are built. Chakra Petch supplies body, button and heading weights.
+before screens are built. Saira supplies body, button and heading weights.
 Its SIL Open Font Licence is bundled under `game/assets/fonts/OFL.txt`, included
 in exports and displayed in Credits.
 
@@ -84,3 +84,8 @@ The title keeps its main play actions in a vertical stack, with secondary action
 in a compact two-column group. Heading size and spacing adapt to shorter windows;
 the supported 1152×648 layout fits at 100% and 130% UI scale without a scrollbar.
 Very short windows retain an emergency scrolling fallback so actions stay reachable.
+
+Typography uses Saira at normal width (100): regular 400 for body text, medium
+500 for buttons, and semibold 600 for headings. Help pages and mission briefings
+use 16 px text with 4 px extra line spacing. The bundled variable font and
+SIL Open Font License live in `game/assets/fonts/`.

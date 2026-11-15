@@ -56,7 +56,8 @@ func _ready() -> void:
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override(&"separation", 10)
 	column.add_scroll(body)
-	_text = HudStyle.make_label(14, HudStyle.TEXT_COLOR)
+	_text = HudStyle.make_label(16, HudStyle.TEXT_COLOR)
+	_text.add_theme_constant_override(&"line_spacing", 4)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text.custom_minimum_size = Vector2(WIDTH, 0)
 	body.add_child(_text)

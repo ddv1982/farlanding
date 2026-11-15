@@ -40,16 +40,16 @@ func _ready() -> void:
 	panel.add_theme_stylebox_override(&"panel", HudStyle.solid_panel_style())
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	centre.add_child(panel)
-	var column := VBoxContainer.new()
+	var column := FitColumn.new(8)
 	column.custom_minimum_size = Vector2(WIDTH, 0)
-	column.add_theme_constant_override(&"separation", 8)
+	column.outer_margin = 48.0 + panel.get_theme_stylebox(&"panel").get_minimum_size().y
 	panel.add_child(column)
 	column.add_child(HudStyle.make_label(11, HudStyle.ACCENT_COLOR, "THE CONCORD SURVEY"))
 	_heading = HudStyle.make_label(26, HudStyle.TEXT_COLOR, "Save")
 	column.add_child(_heading)
 	_rows = VBoxContainer.new()
 	_rows.add_theme_constant_override(&"separation", 6)
-	column.add_child(_rows)
+	column.add_scroll(_rows)
 	for slot: StringName in SaveSlots.slots():
 		var button: Button = HudStyle.make_small_button("")
 		button.custom_minimum_size = Vector2(WIDTH, 46)

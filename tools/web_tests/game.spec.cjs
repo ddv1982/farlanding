@@ -66,7 +66,7 @@ test('release starts on WebGL2 and uses real menu input', async ({ page }, info)
   await page.screenshot({ path: info.outputPath('release-menu.png') });
   await page.mouse.click(600, 285, { delay: 80 });
   const landing = page.waitForEvent('console', { predicate: entry => entry.text().includes('kessel_proving: 18 resource nodes and the bases placed'), timeout: 90000 });
-  await page.mouse.click(850, 522, { delay: 80 });
+  await page.mouse.click(850, 572, { delay: 80 });
   await landing;
   await page.mouse.click(580, 385, { delay: 80 });
   await page.screenshot({ path: info.outputPath('release-landing.png') });
